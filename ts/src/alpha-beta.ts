@@ -8,7 +8,6 @@ import type {
 } from "./cescacs.types";
 
 
-
 import { csTypes as csty, csConvert as cscnv } from "./cescacs.types";
 import { PositionHelper } from "./cescacs.positionHelper";
 import { csPieceTypes as cspty } from "./cescacs.piece";
