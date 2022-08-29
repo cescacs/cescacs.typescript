@@ -38,14 +38,14 @@ abstract class Minimax {
         const currentKing = levelPlayer == 'White' ? node.wKing : node.bKing;
         const moves = Minimax.generateMoves(node, currentKing);
         moves.sort((a, b) => {
-            let result = 0;
-            if (a.check != b.check) result += a.check - b.check;
-            if (a.capture != b.capture) result += (a.capture - b.capture) << 2;
-            if (a.defended != b.defended) result += a.defended ? 2 : -2;
-            if (a.threated != b.threated) result += a.threated ? 1 : -1;
-            return result;
+            return a.check - b.check + ((a.capture - b.capture) << 2) +
+                (a.defended != b.defended ? a.defended ? 2 : -2 : 0) +
+                (a.threated != b.threated ? a.threated ? -1 : 1 : 0);
         });
         //TODO: Recursive call
+        for (const m of moves) {
+
+        }
     }
 
     private static generateMoves(node: Board, currentKing: King) {
@@ -55,9 +55,9 @@ abstract class Minimax {
         const [orthogonalChecks, orthogonalDiscoveredChecks] = Minimax.OrthogonalCheckBitset(node, currentKing);
         const [diagonalChecks, diagonalDiscoveredChecks] = Minimax.DiagonalCheckBitset(node, currentKing);
         const result: Move[] = [];
-        //sort heuristic:
-        //- closeChecks doesn't ensures check, only close position
-        //- discovered doesn't ensures piece move destination allows discovered check
+        //this is a quick sort heuristic:
+        //- computed closeChecks doesn't ensures check, only close position
+        //- discovered doesn't ensures piece move destination allows discovered check not to be hiden
         for (const piece of color == 'White' ? node.whitePieces() : node.blackPieces()) {
             for (const pos of node.pieceMoves(piece)) {
                 const isEnPassantCapture = cspty.isPawn(piece) && node.specialPawnCapture != null &&
@@ -101,15 +101,11 @@ abstract class Minimax {
         const posCol = (pos[0] + 1) >>> 1;
         return (bitset[posCol] & Minimax.lineMask(pos[1])) != 0;
     }
-
     private static setBitset(bitset: Bitset, pos: Position): void {
         const posCol = (pos[0] + 1) >>> 1;
         bitset[posCol] |= Minimax.lineMask(pos[1]);
     }
-
-    private static lineMask(l: Line) {
-        return 1 << l;
-    }
+    private static lineMask(l: Line) { return 1 << l; }
 
     private static closeCheckBitset(node: Board, currentKing: King): Bitset {
         const checks: Bitset = [0, 0, 0, 0, 0, 0, 0, 0];
@@ -172,7 +168,6 @@ abstract class Minimax {
         }
         return [checks, discoveredChecks];
     }
-
     private static DiagonalCheckBitset(node: Board, currentKing: King): [Bitset, Bitset] {
         const checks: Bitset = [0, 0, 0, 0, 0, 0, 0, 0];
         const discoveredChecks: Bitset = [0, 0, 0, 0, 0, 0, 0, 0];
