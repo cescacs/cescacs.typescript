@@ -15,15 +15,6 @@ class Piece {
             this._position = cescacs_positionHelper_1.PositionHelper.fromBoardPosition(column, line);
     }
     get position() { return this._position; }
-    get uncapitalizedSymbol() {
-        return (this.color == "White" ? this.symbol : this.symbol.toLowerCase());
-    }
-    get symbolPositionString() {
-        return this.symbol + (this.position == null ? "" : cescacs_positionHelper_1.PositionHelper.toString(this.position));
-    }
-    get uncapitalizedSymbolPositionString() {
-        return this.uncapitalizedSymbol + (this.position == null ? "" : cescacs_positionHelper_1.PositionHelper.toString(this.position));
-    }
     setPositionTo(p) {
         if (this._position == null)
             this._position = p;
@@ -36,6 +27,12 @@ class Piece {
             this._position[1] = l;
         }
     }
+    get pin() {
+        return this._pin;
+    }
+    set pin(value) {
+        this._pin = value;
+    }
     get hasOrthogonalAttack() {
         return this.symbol == 'R' || this.symbol == 'V' || this.symbol == 'D';
     }
@@ -46,35 +43,7 @@ class Piece {
         return this.symbol == 'N' || this.symbol == 'V' || this.symbol == 'G';
     }
     get hasOnlyCloseAttack() {
-        return this.symbol == 'P' || this.symbol == 'E' || this.symbol == 'K';
-    }
-    canMoveTo(board, p) {
-        return cescacs_positionHelper_1.PositionHelper.positionIteratorIncludes(this.moves(board), p);
-        // if (this.position != null) {
-        //     let skipPin : boolean = false;
-        //     if (this.pin == null) skipPin = true;
-        //     else if (csty.isOrthogonalOrientation(this.pin)) {
-        //         const orthogonalDirection = PositionHelper.isOrthogonally(this.position, p);
-        //         skipPin = (orthogonalDirection != null) && (this.pin as OrthogonalDirection[]).includes(orthogonalDirection);
-        //     } else if (csty.isDiagonalOrientation(this.pin)) {
-        //         const diagonalDirection = PositionHelper.isDiagonally(this.position, p);
-        //         skipPin = (diagonalDirection != null) && (this.pin as DiagonalDirection[]).includes(diagonalDirection);
-        //     }
-        //     return skipPin && PositionHelper.positionIteratorIncludes(this.moves(board), p);
-        // } else return false;
-    }
-    canCaptureOn(board, p) {
-        return this.canMoveTo(board, p); //default piece capture same as move
-    }
-    get pin() {
-        return this._pin;
-    }
-    set pin(value) {
-        this._pin = value;
-    }
-    captured() {
-        (0, ts_general_1.assertNonNullish)(this._position, "Don't capture again the piece");
-        this._position = null;
+        return this.symbol == 'P' || this.symbol == 'E' || this.symbol == 'M' || this.symbol == 'K';
     }
     get isRegainable() {
         switch (this.symbol) {
@@ -87,15 +56,31 @@ class Piece {
             default: return false;
         }
     }
-    *blockThreat(board, threatBlockingPositions) {
-        yield* cescacs_positionHelper_1.PositionHelper.positionIteratorIntersection(this.moves(board), threatBlockingPositions);
-    }
-    get symbolString() {
-        return (this.color == "White" ? this.symbol : this.symbol.toLowerCase());
-    }
     toString() {
         var _a;
-        return this.symbolString + ((_a = this.position) === null || _a === void 0 ? void 0 : _a.toString());
+        return this.uncapitalizedSymbol + ((_a = this.position) === null || _a === void 0 ? void 0 : _a.toString());
+    }
+    get uncapitalizedSymbol() {
+        return (this.color == "White" ? this.symbol : this.symbol.toLowerCase());
+    }
+    get symbolPositionString() {
+        return this.symbol + (this.position == null ? "" : cescacs_positionHelper_1.PositionHelper.toString(this.position));
+    }
+    get uncapitalizedSymbolPositionString() {
+        return this.uncapitalizedSymbol + (this.position == null ? "" : cescacs_positionHelper_1.PositionHelper.toString(this.position));
+    }
+    canMoveTo(board, p) {
+        return cescacs_positionHelper_1.PositionHelper.positionIteratorIncludes(this.moves(board), p);
+    }
+    canCaptureOn(board, p) {
+        return this.canMoveTo(board, p); //default piece capture same as move
+    }
+    captured() {
+        (0, ts_general_1.assertNonNullish)(this._position, "Don't capture again the piece");
+        this._position = null;
+    }
+    *blockThreat(board, threatBlockingPositions) {
+        yield* cescacs_positionHelper_1.PositionHelper.positionIteratorIntersection(this.moves(board), threatBlockingPositions);
     }
     *knightMoves(board, defends = false) {
         if (this._position != null && this.pin == null) {

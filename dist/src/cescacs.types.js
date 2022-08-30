@@ -14,9 +14,10 @@ const _hexColor = ["Black", "White", "Color"];
 const _turn = ["w", "b"];
 const _pieceName = ["K", "D", "V", "R", "G", "N", "J", "E", "M", "P"];
 const _castlingStatus = ["RKR", "RK", "KR", "K", "-"];
+const _castlingString = ["KRK-II", "KRK-IK", "KRK-IH", "KRK-HIO", "KRK-HIOO", "KRK-HH", "KRK-HG", "KRK-FG", "KRK-FE", "KRK-EF", "KRK-EE",
+    ,
+    "KRD-DD", "KRD-DE", "KRD-HH", "KRD-HG", "KRD-FG", "KRD-FE", "KRD-EF", "KRD-ED", "KRR-HIH", "KRR-HGG", "KRR-FGG", "KRR-FEE", "KRR-EEF"];
 ;
-// Construct the type as the types of the properties of the type array whose keys are of type number (all ones)
-// Type predicate
 // Type predicates
 var csTypes;
 (function (csTypes) {

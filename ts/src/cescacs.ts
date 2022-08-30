@@ -79,7 +79,9 @@ export abstract class PawnSpecialCaptureStatus implements IPawnSpecialCaptureSta
         this._capturablePiece = capturablePawn;
     }
 
-    public get capturablePawn() { 
+    public get capturablePiece() { return this._capturablePiece; }
+
+    public get capturablePawn() {
         assertCondition(cspty.isPawn(this._capturablePiece));
         return this._capturablePiece;
     }
@@ -100,19 +102,17 @@ export class ScornfulCapturable extends PawnSpecialCaptureStatus implements ISco
         this._capturerPawnPos = scornedPawnPos;
     }
 
-    public get capturablePiece() { return this._capturablePiece; }
-
     public isScorned(pawn: Pawn): boolean
     public isScorned(pawn: Pawn, pos: Position): boolean
     public isScorned(pawn: Pawn, pos?: Position): boolean {
         const result = pawn.position != null && PositionHelper.equals(pawn.position, this._capturerPawnPos);
         if (pos == null) return result;
-        else return result && PositionHelper.equals(pos, this.capturablePawn.position!);
+        else return result && PositionHelper.equals(pos, this.capturablePiece.position!);
     }
 
     public get scornfulCaptureDirection(): ScornfulCaptureDirection {
         const capturerColumnIndex = this._capturerPawnPos[0];
-        const capturablePawnPos = this.capturablePawn.position!;
+        const capturablePawnPos = this.capturablePiece.position!;
         const capturableColumnIndex = capturablePawnPos[0];
         if (capturablePawnPos[1] > this._capturerPawnPos[1]) {
             return capturableColumnIndex > capturerColumnIndex ? "FileUp" : "FileInvUp";
@@ -127,10 +127,15 @@ export class ScornfulCapturable extends PawnSpecialCaptureStatus implements ISco
 }
 
 export class EnPassantCapturable extends PawnSpecialCaptureStatus implements IEnPassantCapturable {
+
+    public static promoteCapturablePawn(enpassantCapturable: EnPassantCapturable, capturablePiece: Piece): EnPassantCapturable {
+        return new EnPassantCapturable(capturablePiece, enpassantCapturable._captureTo)
+    }
+
     public readonly specialCaptureType = 'enPassant';
     private readonly _captureTo: Position[];
 
-    constructor(capturablePawn: Pawn, captureTo: Position[]) {
+    constructor(capturablePawn: Piece, captureTo: Position[]) {
         super(capturablePawn);
         this._captureTo = captureTo;
     }
@@ -150,7 +155,7 @@ export class EnPassantCapturable extends PawnSpecialCaptureStatus implements IEn
     }
 
     public toString(): string {
-        return PositionHelper.toString(this.capturablePawn.position!) + "@" + this.captureLines();
+        return PositionHelper.toString(this.capturablePiece.position!) + "@" + this.captureLines();
     }
 
     private captureLines(): string {
@@ -205,6 +210,7 @@ export abstract class Board implements IBoard {
     public readonly wKing: King = new King('White');
     public readonly bKing: King = new King('Black');
     private _specialPawnCapture: Nullable<PawnSpecialCaptureStatus> = null;
+    private _currentHeuristic: Heuristic = Board.newHeuristic();
     private _wAwaitingPromotion: boolean = false;
     private _bAwaitingPromotion: boolean = false;
     private _turn: Turn;
@@ -231,13 +237,14 @@ export abstract class Board implements IBoard {
     protected get isSingleCheck(): boolean { return this.currentKing.isSingleCheck(); }
     protected get isDoubleCheck(): boolean { return this.currentKing.isDoubleCheck(); }
 
-    private get currentKing(): King { return (this.turn === 'w' ? this.wKing : this.bKing); }
+    public get currentHeuristic() { return this._currentHeuristic; }
 
     public * whitePieces() { for (const p of this.wPieces.values()) yield p; }
     public * blackPieces() { for (const p of this.bPieces.values()) yield p; }
     protected * whitePiecePositions() { for (const p of this.wPieces.values()) yield p.position!; }
     protected * blackPiecePositions() { for (const p of this.bPieces.values()) yield p.position!; }
 
+    private get currentKing(): King { return (this.turn === 'w' ? this.wKing : this.bKing); }
 
     public hasPiece(pos: Position): Nullable<PieceColor> {
         const posCol = (pos[0] + 1) >>> 1;
@@ -284,7 +291,13 @@ export abstract class Board implements IBoard {
     public hasRegainablePieces(hexColor: HexColor): boolean {
         const currentColor = this._turn == 'w' ? 'White' : 'Black';
         return this._regainablePieces.reduce(
-            (total, x) => total + (x.color == currentColor && (!cspty.isBishop(x) || x.hexesColor == hexColor) ? 1 : 0), 0) > 0;
+            (found, x) => found || x.color == currentColor && (!cspty.isBishop(x) || x.hexesColor == hexColor), false);
+    }
+
+    public maxRegainablePiecesValue(hexColor: HexColor): number {
+        const currentColor = this._turn == 'w' ? 'White' : 'Black';
+        return this._regainablePieces.reduce((acc, x) =>
+            x.value > acc && x.color == currentColor && (!cspty.isBishop(x) || x.hexesColor == hexColor) ? x.value : acc, 0);
     }
 
     public currentRegainablePieceNames(hexColor: HexColor): Set<PieceName> {
@@ -392,10 +405,12 @@ export abstract class Board implements IBoard {
             pieces.delete(PositionHelper.positionKey(pawn.position!));
             pawn.promoteTo(piece);
             pieces.set(PositionHelper.positionKey(piece.position!), piece);
-            if (this._specialPawnCapture != null
-                && this._specialPawnCapture.isScornfulCapturable()
-                && this._specialPawnCapture.capturablePawn == pawn) {
-                this._specialPawnCapture = ScornfulCapturable.promoteCapturablePawn(this._specialPawnCapture, piece);
+            if (this._specialPawnCapture != null && this._specialPawnCapture.capturablePawn == pawn) {
+                if (this._specialPawnCapture.isScornfulCapturable()) {
+                    this._specialPawnCapture = ScornfulCapturable.promoteCapturablePawn(this._specialPawnCapture, piece);
+                } else if (this._specialPawnCapture.isEnPassantCapturable()) {
+                    this._specialPawnCapture = EnPassantCapturable.promoteCapturablePawn(this._specialPawnCapture, piece);
+                }
             }
             const pos = this._regainablePieces.indexOf(piece);
             this._regainablePieces.splice(pos, 1);
@@ -842,7 +857,6 @@ export class Game extends Board {
     private _resigned = false;
     private _enpassantCaptureCoordString: Nullable<string> = null;
     private _lastMove: string = "";
-    private _currentHeuristic: Heuristic = Board.newHeuristic();
 
     constructor(grand: boolean = false, restoreStatusTLPD?: string) {
         const restoreStatus: Nullable<string[]> = restoreStatusTLPD?.split(" ");
@@ -881,7 +895,6 @@ export class Game extends Board {
     public get resigned() { return this._resigned; }
 
     public get lastMove() { return this._lastMove; }
-    public get currentHeuristic() { return this._currentHeuristic; }
 
     public get enPassantCaptureCoordString(): Nullable<string> {
         return this._enpassantCaptureCoordString;
@@ -923,15 +936,8 @@ export class Game extends Board {
         }
     }
 
-    private setLastMove(symbolPrefix: PieceName | undefined, fromHex: string, movement: string, toHex: string, promotionPostfix?: PieceName) {
-        this._lastMove = (symbolPrefix ?? "") + fromHex + movement + toHex;
-        if (promotionPostfix !== undefined) this._lastMove += "=" + promotionPostfix;
-    }
-
     //current player heuristic
-    public get preMoveHeuristic(): Heuristic {
-        return this._currentHeuristic;
-    }
+    public get preMoveHeuristic(): Heuristic { return this.currentHeuristic; }
 
     public doMove(fromHex: string, toHex: string) {
         try {
@@ -1362,7 +1368,7 @@ export class Game extends Board {
     private movePieceTo(piece: Piece, pos: Position): string {
         const isEnPassantCapture = cspty.isPawn(piece) && this.specialPawnCapture != null &&
             this.specialPawnCapture.isEnPassantCapturable() && this.specialPawnCapture.isEnPassantCapture(pos, piece);
-        const capturedPiece = this.getPiece(pos) ?? (isEnPassantCapture ? this.specialPawnCapture!.capturablePawn : null);
+        const capturedPiece = this.getPiece(pos) ?? (isEnPassantCapture ? this.specialPawnCapture!.capturablePiece : null);
         const isScornfulCapture = capturedPiece != null && cspty.isPawn(piece) && this.specialPawnCapture != null &&
             this.specialPawnCapture.isScornfulCapturable() && this.specialPawnCapture.isScorned(piece, pos);
         const isLongEnPassant = isEnPassantCapture && Math.abs(capturedPiece!.position![1] - pos[1]) > 2;
@@ -1386,6 +1392,11 @@ export class Game extends Board {
         return moveSymbol;
     }
 
+    private setLastMove(symbolPrefix: PieceName | undefined, fromHex: string, movement: string, toHex: string, promotionPostfix?: PieceName) {
+        this._lastMove = (symbolPrefix ?? "") + fromHex + movement + toHex;
+        if (promotionPostfix !== undefined) this._lastMove += "=" + promotionPostfix;
+    }
+
     private forwardingTurn() {
         super.nextTurn();
         if (this.turn === 'w') this.moveNumber++;
@@ -1403,7 +1414,7 @@ export class Game extends Board {
             else if (this.isDoubleCheck) this._lastMove += "++"
             else throw new Error("never: exhaused check options");
         }
-        super.computeHeuristic(this.turn, this._currentHeuristic);
+        super.computeHeuristic(this.turn, this.currentHeuristic);
     }
 
     private initGame() {
@@ -1415,8 +1426,70 @@ export class Game extends Board {
             else this._stalemate = true;
         } else if (this.halfmoveClock >= 100) this._draw = true;
         this._lastMove = "";
-        this._currentHeuristic = super.computeHeuristic(this.turn, this._currentHeuristic);
+        super.computeHeuristic(this.turn, this.currentHeuristic);
     }
 
 
+    //Draft
+
+    private parseMove(mov: string): Move | string {
+        if (mov.startsWith("KR") && (mov[3] == '-' || mov[3] == '–')) {
+            if (mov[2] == "K") { }
+            else if (mov[2] == "D") { }
+            else if (mov[2] == "R") { }
+            else throw new Error("never: exhaused castling options");
+            return mov;
+        } else {
+            const separator =
+                mov.includes('-') ? '-' :
+                    mov.includes('–') ? '–' :
+                        mov.includes('x') ? 'x' :
+                            mov.includes('×') ? '×' :
+                                mov.includes('@') ? '@' :
+                                    mov.includes('@@') ? '@@' : "";
+            let movePiece: PieceName;
+            let fromPos: Position;
+            let toPos: Nullable<Position>;
+            let bag: Record<string, PieceName | Position> = {};
+            let promotedPiece: Nullable<PieceName> = null;
+            if (csty.isPieceName(mov[0]) && csty.isColumn(mov[1])) {
+                movePiece = mov[0];
+                fromPos = [cscnv.toColumnIndex(mov[1]), parseInt(mov.slice(2)) as Line];
+            } else {
+                movePiece = 'P';
+                fromPos = [cscnv.toColumnIndex(mov[0] as Column), parseInt(mov.slice(1)) as Line];
+            }
+            if (separator.length > 0) {
+                const sepPos = mov.indexOf(separator);
+                const dest = mov.slice(sepPos + separator.length);
+                if ((separator == 'x' || separator == '×') &&
+                    csty.isPieceName(dest[0]) && csty.isColumn(dest[1])) {
+                    bag["capturedPiece"] = dest[0];
+                    toPos = [cscnv.toColumnIndex(dest[1]), parseInt(dest.slice(2)) as Line];
+                } else {
+                    toPos = [cscnv.toColumnIndex(dest[0] as Column), parseInt(dest.slice(1)) as Line];
+                    if (separator == 'x' || separator == '×') {
+                        bag["capturedPiece"] = 'P';
+                    } else if (separator == '@' || separator == '@@') {
+                        bag["capturedPiece"] = 'P';
+                    }
+                }
+                if (dest[dest.length - 2] == '=') {
+                    bag["promotedPiece"] = dest[dest.length - 1] as PieceName;
+                }
+            } else if (mov[mov.length - 2] == '=') {
+                bag["promotedPiece"] = mov[mov.length - 1] as PieceName;
+                toPos = undefined;
+            } else throw new Error("never: exhaused move format options");
+            return { pos: fromPos, toPos: toPos, movePiece: movePiece, data: bag };
+        }
+    }
+
+}
+
+export interface Move {
+    movePiece: PieceName;
+    pos: Position;
+    toPos: Nullable<Position>;
+    data: Record<string, PieceName | Position>
 }

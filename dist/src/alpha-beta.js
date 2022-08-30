@@ -3,23 +3,46 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const cescacs_types_1 = require("./cescacs.types");
 const cescacs_positionHelper_1 = require("./cescacs.positionHelper");
 const cescacs_piece_1 = require("./cescacs.piece");
+const cescacs_1 = require("./cescacs");
 class Minimax {
+    static findBest(grand, board) {
+        const actualGame = new cescacs_1.Game(grand, board);
+        const player = actualGame.turn == 'w' ? 'White' : 'Black';
+        return Minimax.minimax(actualGame, 0, -Infinity, Infinity, player, player);
+    }
     static minimax(node, depth, alpha, beta, maxPlayer, levelPlayer) {
         const currentKing = levelPlayer == 'White' ? node.wKing : node.bKing;
         const moves = Minimax.generateMoves(node, currentKing);
-        moves.sort((a, b) => {
-            let result = 0;
-            if (a.check != b.check)
-                result += a.check - b.check;
-            if (a.capture != b.capture)
-                result += (a.capture - b.capture) << 2;
-            if (a.defended != b.defended)
-                result += a.defended ? 2 : -2;
-            if (a.threated != b.threated)
-                result += a.threated ? 1 : -1;
-            return result;
-        });
+        if (depth < Minimax.maxDepth) {
+            moves.sort((a, b) => {
+                return a.check - b.check + ((a.capture - b.capture) << 2) +
+                    (a.defended != b.defended ? a.defended ? 2 : -2 : 0) +
+                    (a.threated != b.threated ? a.threated ? -1 : 1 : 0);
+            });
+        }
         //TODO: Recursive call
+        for (const m of moves) {
+            // doMove: Attempt move can have information to undo:
+            // - captured Piece
+            // - enPassantPosition
+            // - promotion Piece
+            // - when the King or Rook moves, castling status
+            if (depth >= Minimax.maxDepth) {
+                const hValue = node.getHeuristicValue(node.currentHeuristic);
+                if (levelPlayer == maxPlayer) {
+                    if (alpha < hValue)
+                        alpha = hValue;
+                }
+                else {
+                    if (beta > hValue)
+                        beta = hValue;
+                }
+            }
+            else {
+                Minimax.minimax(node, depth + 1, alpha, beta, maxPlayer, levelPlayer == 'White' ? 'Black' : 'White');
+            }
+            // undoMove
+        }
     }
     static generateMoves(node, currentKing) {
         var _a, _b;
@@ -29,14 +52,16 @@ class Minimax {
         const [orthogonalChecks, orthogonalDiscoveredChecks] = Minimax.OrthogonalCheckBitset(node, currentKing);
         const [diagonalChecks, diagonalDiscoveredChecks] = Minimax.DiagonalCheckBitset(node, currentKing);
         const result = [];
-        //sort heuristic:
-        //- closeChecks doesn't ensures check, only close position
-        //- discovered doesn't ensures piece move destination allows discovered check
+        //TODO: Castlings, pawn promotion
+        //this is a quick sort heuristic:
+        //- computed closeChecks doesn't ensures check, only close position
+        //- discovered doesn't ensures piece move destination allows discovered check not to be hiden
         for (const piece of color == 'White' ? node.whitePieces() : node.blackPieces()) {
             for (const pos of node.pieceMoves(piece)) {
                 const isEnPassantCapture = cescacs_piece_1.csPieceTypes.isPawn(piece) && node.specialPawnCapture != null &&
                     node.specialPawnCapture.isEnPassantCapturable() && node.specialPawnCapture.isEnPassantCapture(pos, piece);
                 const capturedValue = (_b = (_a = node.getPiece(pos)) === null || _a === void 0 ? void 0 : _a.value) !== null && _b !== void 0 ? _b : (isEnPassantCapture ? piece.value : 0);
+                let pawnValue = 0;
                 let checkValue = 0;
                 if (piece.hasOnlyCloseAttack) {
                     if (Minimax.isBitset(orthogonalDiscoveredChecks, piece.position)
@@ -44,6 +69,16 @@ class Minimax {
                         checkValue = 128;
                     else if (Minimax.isBitset(closeChecks, pos))
                         checkValue = (node.hasThreat(pos, color) ? 64 : 32);
+                    if (cescacs_piece_1.csPieceTypes.isPawn(piece)) {
+                        if (cescacs_positionHelper_1.PositionHelper.isPromotionHex(pos, color)) {
+                            const maxPromotionValue = node.maxRegainablePiecesValue(cescacs_positionHelper_1.PositionHelper.hexColor(pos));
+                            pawnValue = maxPromotionValue > 0 ? maxPromotionValue - 1 : 0;
+                        }
+                        if (pos[0] == piece.position[0])
+                            pawnValue += 0.1; //better walk stright
+                        if (pos[1] > piece.position[1] + 2)
+                            pawnValue += 0.1; //better long steps
+                    }
                 }
                 else if (piece.hasKnightJumpAttack && Minimax.isBitset(knightChecks, pos)) {
                     if (Minimax.isBitset(orthogonalDiscoveredChecks, piece.position)
@@ -66,7 +101,7 @@ class Minimax {
                 }
                 result.push({
                     piece: piece, pos: pos,
-                    check: checkValue, capture: capturedValue,
+                    check: checkValue, capture: capturedValue + pawnValue,
                     defended: node.hasThreat(pos, color),
                     threated: node.isThreated(pos, color)
                 });
@@ -82,9 +117,7 @@ class Minimax {
         const posCol = (pos[0] + 1) >>> 1;
         bitset[posCol] |= Minimax.lineMask(pos[1]);
     }
-    static lineMask(l) {
-        return 1 << l;
-    }
+    static lineMask(l) { return 1 << l; }
     static closeCheckBitset(node, currentKing) {
         const checks = [0, 0, 0, 0, 0, 0, 0, 0];
         for (const d of cescacs_types_1.csConvert.orthogonalDirections()) {
@@ -183,3 +216,4 @@ class Minimax {
         return [checks, discoveredChecks];
     }
 }
+Minimax.maxDepth = 4;
