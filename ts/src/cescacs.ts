@@ -4,7 +4,9 @@ import {
     OrthogonalDirection, KnightDirection,
     ScornfulCaptureDirection,
     Turn, HexColor, PieceName, PieceColor, CastlingStatus,
-    CastlingColumn
+    CastlingColumn,
+    CastlingString,
+    GrandCastlingString
 } from "./cescacs.types";
 
 import { csTypes as csty, csConvert as cscnv } from "./cescacs.types";
@@ -241,6 +243,10 @@ export abstract class Board implements IBoard {
 
     public * whitePieces() { for (const p of this.wPieces.values()) yield p; }
     public * blackPieces() { for (const p of this.bPieces.values()) yield p; }
+
+    public * whitePiecesFulfil(cond: (p: Piece) => boolean) { for (const p of this.wPieces.values()) if (cond(p)) yield p; }
+    public * blackPiecesFulfil(cond: (p: Piece) => boolean) { for (const p of this.bPieces.values()) if (cond(p)) yield p; }
+
     protected * whitePiecePositions() { for (const p of this.wPieces.values()) yield p.position!; }
     protected * blackPiecePositions() { for (const p of this.bPieces.values()) yield p.position!; }
 
@@ -399,6 +405,23 @@ export abstract class Board implements IBoard {
         }
     }
 
+    protected undoPieceMove(piece: Piece, fromColumnIndex: ColumnIndex, fromLine: Line) {
+        const pieces = (piece.color == "White" ? this.wPieces : this.bPieces);
+        const piecePos = piece.position!;
+        const actualPosCol = (piecePos[0] + 1) >>> 1;
+        const actualPosLineMask = Board.lineMask(piecePos[1]);
+        pieces.delete(PositionHelper.positionKey(piecePos));
+
+        piece.moveTo(fromColumnIndex, fromLine); //piecePos updated
+
+        pieces.set(PositionHelper.positionKey(piecePos), piece);
+        const fromPosCol = (piecePos[0] + 1) >>> 1;
+        const fromPosLineMask = Board.lineMask(piecePos[1]);
+        const positions = (piece.color == "White" ? this.wPositions : this.bPositions);
+        positions[actualPosCol] &= ~actualPosLineMask;
+        positions[fromPosCol] |= fromPosLineMask;
+    }
+
     protected promotePawn(pawn: Pawn, piece: Piece) {
         if (this._regainablePieces.includes(piece)) {
             const pieces = (piece.color == "White" ? this.wPieces : this.bPieces);
@@ -415,6 +438,14 @@ export abstract class Board implements IBoard {
             const pos = this._regainablePieces.indexOf(piece);
             this._regainablePieces.splice(pos, 1);
         }
+    }
+
+    protected undoPromotePawn(piece: Piece) {
+        const pieces = (piece.color == "White" ? this.wPieces : this.bPieces);
+        pieces.delete(PositionHelper.positionKey(piece.position!));
+        const pawn = new Pawn(piece.color, cscnv.columnFromIndex(piece.position![0]), piece.position![1]);
+        piece.captured();
+        pieces.set(PositionHelper.positionKey(pawn.position!), pawn);
     }
 
     protected addRegainablePiece(piece: Piece) {
@@ -939,12 +970,12 @@ export class Game extends Board {
     //current player heuristic
     public get preMoveHeuristic(): Heuristic { return this.currentHeuristic; }
 
-    public doMove(fromHex: string, toHex: string) {
+    public doMove(fromHex: string, toHex: string, pieceName?: PieceName) {
         try {
             const moveFrom = PositionHelper.parse(fromHex);
             const moveTo = PositionHelper.parse(toHex);
             const piece = this.getPiece(moveFrom);
-            if (piece != null) {
+            if (piece != null && (pieceName === undefined || piece.symbol == pieceName)) {
                 const movementText = this.movePieceTo(piece, moveTo);
                 const symbolPrefix = piece.symbol !== 'P' ? piece.symbol : undefined;
                 this.setLastMove(symbolPrefix, fromHex, movementText, toHex);
@@ -1431,14 +1462,108 @@ export class Game extends Board {
 
 
     //Draft
+    public applyMove(mov: string, assertions: boolean = false) {
+        const separatorPos = (ini: number = 0) => {
+            let i = ini;
+            while (i < mov.length) {
+                const code = mov.charCodeAt(i);
+                if (code >= 48 && code < 58 || code >= 65 && code < 91 || code >= 97 && code < 123) i++;
+                else return i;
+            }
+            return i;
+        }
+        const isHexPosition = (hex: string) => {
+            return PositionHelper.isValidPosition(PositionHelper.parse(hex));
+        }
 
-    private parseMove(mov: string): Move | string {
+        if (assertions) assertCondition(mov.length >= 2, "Moviment length must be at least of 2 chars");
         if (mov.startsWith("KR") && (mov[3] == '-' || mov[3] == '–')) {
-            if (mov[2] == "K") { }
-            else if (mov[2] == "D") { }
-            else if (mov[2] == "R") { }
-            else throw new Error("never: exhaused castling options");
-            return mov;
+            const castlingString = mov[3] == '–' ? mov.replace('–', '-') : mov;
+            if (!assertions
+                || !this.isGrand && csty.isCastlingString(castlingString)
+                || this.isGrand && csty.isGrandCastlingString(castlingString)) {
+                this.doCastling(castlingString, assertions);
+            } else throw new Error(`never: incorrect castling move: ${castlingString}`);
+        } else {
+            const sepPos = separatorPos();
+            const movePiece: PieceName = csty.isPieceName(mov[0]) && csty.isColumn(mov[1]) ? mov[0] : 'P';
+            const fromPos: string = mov.slice(movePiece == 'P' ? 0 : 1, sepPos);
+            if (assertions) {
+                assertCondition(sepPos < mov.length - 1, "Moviment divided into parts");
+                assertCondition(isHexPosition(fromPos), "Initial hex");
+            }
+            const separator = mov.charAt(sepPos) == '@' && mov.charAt(sepPos + 1) == '@' ?
+                mov.slice(sepPos, sepPos + 2) : mov.charAt(sepPos);
+            if (separator == '=') {
+                const promotionPiece: PieceName = mov[sepPos + 1] as PieceName;
+                if (assertions) assertCondition(movePiece == 'P', "Promoting a pawn");
+                this.doPromotePawn(fromPos, fromPos, promotionPiece!);
+            }
+            else {
+                const destIni = sepPos + separator.length;
+                const destEnd = separatorPos(destIni);
+                const capturedPiece: Nullable<PieceName> =
+                    csty.isPieceName(mov[destIni]) && csty.isColumn(mov[destIni + 1]) ? mov[destIni] as PieceName : undefined;
+                const toPos = mov.slice(capturedPiece === undefined ? destIni : destIni + 1, destEnd);
+                if (assertions) {
+                    assertCondition(isHexPosition(toPos), "Destination hex");
+                    assertCondition(capturedPiece === undefined || (separator != '-' && separator != '–'), "Captured piece")
+                }
+                this.doMove(fromPos, toPos, movePiece);
+                if (destEnd < mov.length && mov[destEnd] == '=') {
+                    const promotionPiece: PieceName = mov[destEnd + 1] as PieceName;
+                    if (assertions) assertCondition(movePiece == 'P', "Promoting a pawn");
+                    this.doPromotePawn(fromPos, toPos, promotionPiece!);
+                }
+            }
+        }
+    }
+
+    public undoMove(mov: string) {
+        //undoPieceMove
+    }
+
+    private undoCastling(castling: string, color: PieceColor) {
+        const firstValue = (gen: Generator<Piece, void, void>) => {
+            for (const p of gen) return p;
+        }
+        const isGrand = this.isGrand;
+        const side = castling[2] as CastlingSide;
+        const column = castling[4] as CastlingColumn;
+        const rColumn = cscnv.toColumnIndex(castling[5] as Column);
+        const currentKing = color == 'White' ? this.wKing : this.bKing;
+        const kingInitialPos = color == 'White' ? PositionHelper.whiteKingInitPosition : PositionHelper.blackKingInitPosition;
+        const rookInitialPos = side == 'D' ?
+            PositionHelper.initialQueenSideRookPosition(color, isGrand)
+            : PositionHelper.initialKingSideRookPosition(color, isGrand);
+        const pieces = this.turn == 'w' ? this.whitePiecesFulfil : this.blackPiecesFulfil;
+        const rook = firstValue(pieces(p => cspty.isRook(p) && p.position != null && p.position[0] == rColumn
+            && PositionHelper.isOrthogonally(p.position, rookInitialPos) != null)) as Rook;
+        super.undoPieceMove(currentKing, kingInitialPos[0], kingInitialPos[1]);
+        super.undoPieceMove(rook!, rookInitialPos[0], rookInitialPos[1]);
+        currentKing.castlingStatus = "RKR";
+        rook.setCastlingStatus("RKR", isGrand);
+        if (side == 'R') {
+            const r2Column = cscnv.toColumnIndex(castling[6] as Column);
+            const r2InitialPos = PositionHelper.initialQueenSideRookPosition(color, isGrand);
+            const rook2 = firstValue(pieces(p => cspty.isRook(p) && p.position != null && p.position[0] == r2Column
+                && PositionHelper.isOrthogonally(p.position, r2InitialPos) != null)) as Rook;
+            super.undoPieceMove(rook2!, r2InitialPos[0], r2InitialPos[1]);
+            rook2.setCastlingStatus("RKR", isGrand);
+        }
+    }
+
+    private parseMove(mov: string): Move | CastlingMove {
+        if (mov.startsWith("KR") && (mov[3] == '-' || mov[3] == '–')) {
+            if (mov[3] == '–') mov = mov.replace('–', '-');
+            if (csty.isCastlingString(mov) || csty.isGrandCastlingString(mov)) {
+                return {
+                    side: mov[2] as CastlingSide,
+                    column: mov[4] as CastlingColumn,
+                    rColumn: cscnv.toColumnIndex(mov[5] as Column),
+                    r2Column: mov[2] == 'R' ? cscnv.toColumnIndex(mov[6] as Column) : undefined
+                }
+            } else throw new Error("never: incorrect castling move");
         } else {
             const separator =
                 mov.includes('-') ? '-' :
@@ -1487,9 +1612,30 @@ export class Game extends Board {
 
 }
 
+export type CastlingSide = "K" | "D" | "R";
+
+export interface CastlingMove {
+    side: CastlingSide;
+    column: CastlingColumn;
+    rColumn: ColumnIndex;
+    r2Column: Nullable<ColumnIndex>;
+}
 export interface Move {
     movePiece: PieceName;
     pos: Position;
     toPos: Nullable<Position>;
     data: Record<string, PieceName | Position>
 }
+
+export function isCastlingMove(m: any): m is CastlingMove {
+    return (m as CastlingMove).side != undefined &&
+        (m as CastlingMove).column != undefined &&
+        (m as CastlingMove).rColumn != undefined &&
+        ((m as CastlingMove).side != "R" || (m as CastlingMove).r2Column != undefined)
+}
+export function isMove(m: any): m is Move {
+    return (m as Move).movePiece != undefined &&
+        (m as Move).pos != undefined &&
+        (m as Move).data != undefined
+}
+

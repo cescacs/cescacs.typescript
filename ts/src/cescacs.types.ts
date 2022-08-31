@@ -8,15 +8,16 @@ const _knightDirection = ["TransversalLineInc-FileUp", "TransversalLineInc-FileD
     "LineInvUp-FileInvUp", "LineInvUp-ColumnUp", "LineInvDown-FileInvDown", "LineInvDown-ColumnDown"] as const;
 
 const _orthogonalOrientation = [["ColumnUp", "ColumnDown"], ["FileUp", "FileInvDown"], ["FileInvUp", "FileDown"]] as
-             readonly [[OrthogonalDirection, OrthogonalDirection], [OrthogonalDirection, OrthogonalDirection], [OrthogonalDirection, OrthogonalDirection]];
+    readonly [[OrthogonalDirection, OrthogonalDirection], [OrthogonalDirection, OrthogonalDirection], [OrthogonalDirection, OrthogonalDirection]];
 const _diagonalOrientation = [["TransversalLineInc", "TransversalLineDec"], ["LineUp", "LineInvDown"], ["LineInvUp", "LineDown"]] as
-            readonly [[DiagonalDirection, DiagonalDirection], [DiagonalDirection, DiagonalDirection], [DiagonalDirection, DiagonalDirection]];
+    readonly [[DiagonalDirection, DiagonalDirection], [DiagonalDirection, DiagonalDirection], [DiagonalDirection, DiagonalDirection]];
 const _hexColor = ["Black", "White", "Color"] as const;
 const _turn = ["w", "b"] as const;
 const _pieceName = ["K", "D", "V", "R", "G", "N", "J", "E", "M", "P"] as const;
 const _castlingStatus = ["RKR", "RK", "KR", "K", "-"] as const;
 const _castlingString = ["KRK-II", "KRK-IK", "KRK-IH", "KRK-HIO", "KRK-HIOO", "KRK-HH", "KRK-HG", "KRK-FG", "KRK-FE", "KRK-EF", "KRK-EE",
-, "KRD-DD", "KRD-DE", "KRD-HH", "KRD-HG", "KRD-FG", "KRD-FE", "KRD-EF", "KRD-ED", "KRR-HIH", "KRR-HGG", "KRR-FGG", "KRR-FEE", "KRR-EEF"] as const
+    "KRD-DD", "KRD-DE", "KRD-HH", "KRD-HG", "KRD-FG", "KRD-FE", "KRD-EF", "KRD-ED", "KRR-HIH", "KRR-HGG", "KRR-FGG", "KRR-FEE", "KRR-EEF"] as const
+const _grandCastlingString = ["KRK-FF", "KRK-FG", "KRK-HG", "KRK-HI", "KRD-DE", "KRD-DC", "KRD-ED", "KRD-EE", "KRD-FE", "KRD-FF", "KRR-FFE", "KRR-FGF"]
 
 export type Nullable<T> = T | undefined | null;
 // Construct the type as the types of the properties of the type array whose keys are of type number (all ones)
@@ -40,6 +41,8 @@ export type PieceName = (typeof _pieceName)[number];
 export type PieceColor = "White" | "Black";
 export type Turn = (typeof _turn)[number];
 export type CastlingStatus = (typeof _castlingStatus)[number];
+export type CastlingString = (typeof _castlingString)[number];
+export type GrandCastlingString = (typeof _grandCastlingString)[number];
 export type KnightOrCloseCheck = Position;
 export type DoubleCheck = [Position, Position, Nullable<Orientation>];
 export interface SingleCheck { d: Direction, p: Position };
@@ -65,8 +68,10 @@ export namespace csTypes {
     export const isPieceName = (x: any): x is PieceName => _pieceName.includes(x);
     export const isTurn = (x: any): x is Turn => _turn.includes(x);
     export const isCastlingStatus = (x: any): x is CastlingStatus => _castlingStatus.includes(x);
+    export const isCastlingString = (x: any): x is CastlingString => _castlingString.includes(x);
+    export const isGrandCastlingString = (x: any): x is GrandCastlingString => _grandCastlingString.includes(x);
     export const isSingleCheck = (x: unknown): x is SingleCheck => Object.prototype.hasOwnProperty.call(x, "d") && Object.prototype.hasOwnProperty.call(x, "p");
-    export const isDoubleCheck = (x: unknown): x is DoubleCheck => Array.isArray(x) && length == 3 && isPosition(x[0]) && isPosition(x[1]) && 
+    export const isDoubleCheck = (x: unknown): x is DoubleCheck => Array.isArray(x) && length == 3 && isPosition(x[0]) && isPosition(x[1]) &&
         (x[2] == null || isOrthogonalOrientation(x[2]) || isDiagonalOrientation(x[2]));
     export const hasDoubleCheckPin = (x: unknown): x is DoubleCheck => Array.isArray(x) && length == 3 && isPosition(x[0]) && isPosition(x[1]) &&
         x[2] != null && (isOrthogonalOrientation(x[2]) || isDiagonalOrientation(x[2]));
@@ -110,8 +115,8 @@ export namespace csConvert {
             }
         }
     }
-    export function * orthogonalDirections() { for (const d of _orthogonalDirection) yield d; }
-    export function * diagonalDirections() { for (const d of _diagonalDirection) yield d; }
-    export function * knightDirections() { for (const d of _knightDirection) yield d; }
+    export function* orthogonalDirections() { for (const d of _orthogonalDirection) yield d; }
+    export function* diagonalDirections() { for (const d of _diagonalDirection) yield d; }
+    export function* knightDirections() { for (const d of _knightDirection) yield d; }
 }
 
