@@ -15,8 +15,8 @@ const _turn = ["w", "b"];
 const _pieceName = ["K", "D", "V", "R", "G", "N", "J", "E", "M", "P"];
 const _castlingStatus = ["RKR", "RK", "KR", "K", "-"];
 const _castlingString = ["KRK-II", "KRK-IK", "KRK-IH", "KRK-HIO", "KRK-HIOO", "KRK-HH", "KRK-HG", "KRK-FG", "KRK-FE", "KRK-EF", "KRK-EE",
-    ,
     "KRD-DD", "KRD-DE", "KRD-HH", "KRD-HG", "KRD-FG", "KRD-FE", "KRD-EF", "KRD-ED", "KRR-HIH", "KRR-HGG", "KRR-FGG", "KRR-FEE", "KRR-EEF"];
+const _grandCastlingString = ["KRK-FF", "KRK-FG", "KRK-HG", "KRK-HI", "KRD-DE", "KRD-DC", "KRD-ED", "KRD-EE", "KRD-FE", "KRD-FF", "KRR-FFE", "KRR-FGF"];
 ;
 // Type predicates
 var csTypes;
@@ -38,6 +38,8 @@ var csTypes;
     csTypes.isPieceName = (x) => _pieceName.includes(x);
     csTypes.isTurn = (x) => _turn.includes(x);
     csTypes.isCastlingStatus = (x) => _castlingStatus.includes(x);
+    csTypes.isCastlingString = (x) => _castlingString.includes(x);
+    csTypes.isGrandCastlingString = (x) => _grandCastlingString.includes(x);
     csTypes.isSingleCheck = (x) => Object.prototype.hasOwnProperty.call(x, "d") && Object.prototype.hasOwnProperty.call(x, "p");
     csTypes.isDoubleCheck = (x) => Array.isArray(x) && length == 3 && csTypes.isPosition(x[0]) && csTypes.isPosition(x[1]) &&
         (x[2] == null || csTypes.isOrthogonalOrientation(x[2]) || csTypes.isDiagonalOrientation(x[2]));

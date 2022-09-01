@@ -14,6 +14,17 @@ class Piece {
         else
             this._position = cescacs_positionHelper_1.PositionHelper.fromBoardPosition(column, line);
     }
+    static isRegainablePiece(symbol) {
+        switch (symbol) {
+            case "D":
+            case "V":
+            case "R":
+            case "G":
+            case "N":
+            case "J": return true;
+            default: return false;
+        }
+    }
     get position() { return this._position; }
     setPositionTo(p) {
         if (this._position == null)
@@ -46,15 +57,7 @@ class Piece {
         return this.symbol == 'P' || this.symbol == 'E' || this.symbol == 'M' || this.symbol == 'K';
     }
     get isRegainable() {
-        switch (this.symbol) {
-            case "D":
-            case "V":
-            case "R":
-            case "G":
-            case "N":
-            case "J": return true;
-            default: return false;
-        }
+        return Piece.isRegainablePiece(this.symbol);
     }
     toString() {
         var _a;

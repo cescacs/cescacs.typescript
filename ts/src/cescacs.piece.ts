@@ -35,6 +35,13 @@ export interface IBoard {
 
 export abstract class Piece {
 
+    public static isRegainablePiece(symbol: PieceName): boolean {
+        switch (symbol) {
+            case "D": case "V": case "R": case "G": case "N": case "J": return true;
+            default: return false;
+        }
+    }
+
     public abstract readonly symbol: PieceName;
     public abstract readonly value: number;
 
@@ -92,10 +99,7 @@ export abstract class Piece {
     }
 
     public get isRegainable(): boolean {
-        switch (this.symbol) {
-            case "D": case "V": case "R": case "G": case "N": case "J": return true;
-            default: return false;
-        }
+        return Piece.isRegainablePiece(this.symbol);
     }
 
     public toString() {

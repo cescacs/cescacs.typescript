@@ -1,5 +1,5 @@
 
-export interface PropertyBag<T> { [key: string]: T; } //newer way: Record<string, T>
+export type PropertyBag<T> = Record<string, T>; // other way: interface PropertyBag<T> { [key: string]: T; } 
 
 export function assertNonNullish<TValue>(value: TValue, valueDescription?: string): asserts value is NonNullable<TValue> {
     if (value === null || value === undefined) {

@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Game = exports.Board = exports.EnPassantCapturable = exports.ScornfulCapturable = exports.PawnSpecialCaptureStatus = exports.round2hundredths = exports.cspty = exports.PositionHelper = void 0;
+exports.isMove = exports.isCastlingMove = exports.Game = exports.Board = exports.EnPassantCapturable = exports.ScornfulCapturable = exports.PawnSpecialCaptureStatus = exports.round2hundredths = exports.cspty = exports.PositionHelper = void 0;
 const ts_general_1 = require("./ts.general");
 Object.defineProperty(exports, "round2hundredths", { enumerable: true, get: function () { return ts_general_1.round2hundredths; } });
 const cescacs_types_1 = require("./cescacs.types");
@@ -21,7 +21,7 @@ class PawnSpecialCaptureStatus {
                     const p0 = cescacs_positionHelper_1.PositionHelper.parse(elements[0]);
                     if (elements[1].includes(",") || !isNaN(Number(elements[1]))) {
                         const piece = board.getPiece(p0);
-                        if (piece != null && cescacs_piece_1.csPieceTypes.isPawn(piece)) {
+                        if (piece != null) {
                             const values = elements[1].split(",");
                             if (values.length >= 1 && values.length <= 2) {
                                 let captureTo = [];
@@ -44,9 +44,8 @@ class PawnSpecialCaptureStatus {
                     else {
                         const p1 = cescacs_positionHelper_1.PositionHelper.parse(elements[1]);
                         const piece = board.getPiece(p1);
-                        if (piece != null && cescacs_piece_1.csPieceTypes.isPawn(piece)) {
+                        if (piece != null)
                             return new ScornfulCapturable(piece, p0);
-                        }
                         else
                             throw new Error(cescacs_positionHelper_1.PositionHelper.toString(p1) + " doesn't have a pawn");
                     }
@@ -218,6 +217,12 @@ class Board {
         yield p; }
     *blackPieces() { for (const p of this.bPieces.values())
         yield p; }
+    *whitePiecesFulfil(cond) { for (const p of this.wPieces.values())
+        if (cond(p))
+            yield p; }
+    *blackPiecesFulfil(cond) { for (const p of this.bPieces.values())
+        if (cond(p))
+            yield p; }
     *whitePiecePositions() { for (const p of this.wPieces.values())
         yield p.position; }
     *blackPiecePositions() { for (const p of this.bPieces.values())
@@ -320,6 +325,22 @@ class Board {
         if (piece.isRegainable)
             this._regainablePieces.push(piece);
     }
+    undoCapturePiece(symbol, color, col, line) {
+        const pieces = (color == "White" ? this.wPieces : this.bPieces);
+        let piece;
+        if (cescacs_piece_2.Piece.isRegainablePiece(symbol)) {
+            const hexesColor = cescacs_positionHelper_1.PositionHelper.lineHexColor(line);
+            const pix = this._regainablePieces.findIndex(x => x.symbol == symbol && x.color == color && (!cescacs_piece_1.csPieceTypes.isBishop(x) || x.hexesColor == hexesColor));
+            piece = this._regainablePieces[pix];
+            this._regainablePieces.splice(pix, 1);
+        }
+        else {
+            piece = symbol == 'E' ? new cescacs_piece_2.Elephant(color, col, line)
+                : symbol == 'P' ? new cescacs_piece_2.Pawn(color, col, line)
+                    : new cescacs_piece_2.Almogaver(color, col, line); //symbol == 'M'
+        }
+        pieces.set(cescacs_positionHelper_1.PositionHelper.positionKey(piece.position), piece);
+    }
     movePiece(piece, toColumnIndex, toLine) {
         (0, ts_general_1.assertNonNullish)(piece.position, `${piece.symbol} position`);
         const piecePos = piece.position;
@@ -375,6 +396,20 @@ class Board {
             this._specialPawnCapture = null;
         }
     }
+    undoPieceMove(piece, fromColumnIndex, fromLine) {
+        const pieces = (piece.color == "White" ? this.wPieces : this.bPieces);
+        const piecePos = piece.position;
+        const actualPosCol = (piecePos[0] + 1) >>> 1;
+        const actualPosLineMask = Board.lineMask(piecePos[1]);
+        pieces.delete(cescacs_positionHelper_1.PositionHelper.positionKey(piecePos));
+        piece.moveTo(fromColumnIndex, fromLine); //piecePos updated
+        pieces.set(cescacs_positionHelper_1.PositionHelper.positionKey(piecePos), piece);
+        const fromPosCol = (piecePos[0] + 1) >>> 1;
+        const fromPosLineMask = Board.lineMask(piecePos[1]);
+        const positions = (piece.color == "White" ? this.wPositions : this.bPositions);
+        positions[actualPosCol] &= ~actualPosLineMask;
+        positions[fromPosCol] |= fromPosLineMask;
+    }
     promotePawn(pawn, piece) {
         if (this._regainablePieces.includes(piece)) {
             const pieces = (piece.color == "White" ? this.wPieces : this.bPieces);
@@ -392,6 +427,14 @@ class Board {
             const pos = this._regainablePieces.indexOf(piece);
             this._regainablePieces.splice(pos, 1);
         }
+    }
+    undoPromotePawn(piece) {
+        const pieces = (piece.color == "White" ? this.wPieces : this.bPieces);
+        pieces.delete(cescacs_positionHelper_1.PositionHelper.positionKey(piece.position));
+        const pawn = new cescacs_piece_2.Pawn(piece.color, cescacs_types_1.csConvert.columnFromIndex(piece.position[0]), piece.position[1]);
+        piece.captured();
+        this._regainablePieces.push(piece);
+        pieces.set(cescacs_positionHelper_1.PositionHelper.positionKey(pawn.position), pawn);
     }
     addRegainablePiece(piece) {
         if (piece.position == null)
@@ -932,12 +975,12 @@ class Game extends Board {
     }
     //current player heuristic
     get preMoveHeuristic() { return this.currentHeuristic; }
-    doMove(fromHex, toHex) {
+    doMove(fromHex, toHex, pieceName) {
         try {
             const moveFrom = cescacs_positionHelper_1.PositionHelper.parse(fromHex);
             const moveTo = cescacs_positionHelper_1.PositionHelper.parse(toHex);
             const piece = this.getPiece(moveFrom);
-            if (piece != null) {
+            if (piece != null && (pieceName === undefined || piece.symbol == pieceName)) {
                 const movementText = this.movePieceTo(piece, moveTo);
                 const symbolPrefix = piece.symbol !== 'P' ? piece.symbol : undefined;
                 this.setLastMove(symbolPrefix, fromHex, movementText, toHex);
@@ -1483,64 +1526,138 @@ class Game extends Board {
         this._lastMove = "";
         super.computeHeuristic(this.turn, this.currentHeuristic);
     }
-    //Draft
-    parseMove(mov) {
+    applyMove(mov, assertions = false) {
+        const isHexPosition = (hex) => {
+            return cescacs_positionHelper_1.PositionHelper.isValidPosition(cescacs_positionHelper_1.PositionHelper.parse(hex));
+        };
+        if (assertions)
+            (0, ts_general_1.assertCondition)(mov.length >= 2, "Moviment length must be at least of 2 chars");
         if (mov.startsWith("KR") && (mov[3] == '-' || mov[3] == '–')) {
-            if (mov[2] == "K") { }
-            else if (mov[2] == "D") { }
-            else if (mov[2] == "R") { }
+            const castlingString = mov[3] == '–' ? mov.replace('–', '-') : mov;
+            if (!assertions
+                || !this.isGrand && cescacs_types_1.csTypes.isCastlingString(castlingString)
+                || this.isGrand && cescacs_types_1.csTypes.isGrandCastlingString(castlingString)) {
+                this.doCastling(castlingString, assertions);
+            }
             else
-                throw new Error("never: exhaused castling options");
-            return mov;
+                throw new Error(`never: incorrect castling move: ${castlingString}`);
         }
         else {
-            const separator = mov.includes('-') ? '-' :
-                mov.includes('–') ? '–' :
-                    mov.includes('x') ? 'x' :
-                        mov.includes('×') ? '×' :
-                            mov.includes('@') ? '@' :
-                                mov.includes('@@') ? '@@' : "";
-            let movePiece;
-            let fromPos;
-            let toPos;
-            let bag = {};
-            let promotedPiece = null;
-            if (cescacs_types_1.csTypes.isPieceName(mov[0]) && cescacs_types_1.csTypes.isColumn(mov[1])) {
-                movePiece = mov[0];
-                fromPos = [cescacs_types_1.csConvert.toColumnIndex(mov[1]), parseInt(mov.slice(2))];
+            const sepIx = Game.separatorIndex(mov);
+            const movePiece = cescacs_types_1.csTypes.isPieceName(mov[0]) && cescacs_types_1.csTypes.isColumn(mov[1]) ? mov[0] : 'P';
+            const fromHexPos = mov.slice(movePiece == 'P' ? 0 : 1, sepIx);
+            if (assertions) {
+                (0, ts_general_1.assertCondition)(sepIx < mov.length - 1, "Moviment divided into parts");
+                (0, ts_general_1.assertCondition)(isHexPosition(fromHexPos), "Initial hex");
+            }
+            const separator = mov.charAt(sepIx) == '@' && mov.charAt(sepIx + 1) == '@' ?
+                mov.slice(sepIx, sepIx + 2) : mov.charAt(sepIx);
+            if (separator == '=') {
+                const promotionPiece = mov[sepIx + 1];
+                if (assertions)
+                    (0, ts_general_1.assertCondition)(movePiece == 'P', "Promoting a pawn");
+                this.doPromotePawn(fromHexPos, fromHexPos, promotionPiece);
             }
             else {
-                movePiece = 'P';
-                fromPos = [cescacs_types_1.csConvert.toColumnIndex(mov[0]), parseInt(mov.slice(1))];
-            }
-            if (separator.length > 0) {
-                const sepPos = mov.indexOf(separator);
-                const dest = mov.slice(sepPos + separator.length);
-                if ((separator == 'x' || separator == '×') &&
-                    cescacs_types_1.csTypes.isPieceName(dest[0]) && cescacs_types_1.csTypes.isColumn(dest[1])) {
-                    bag["capturedPiece"] = dest[0];
-                    toPos = [cescacs_types_1.csConvert.toColumnIndex(dest[1]), parseInt(dest.slice(2))];
+                const toIx = sepIx + separator.length;
+                const toEndIx = Game.separatorIndex(mov, toIx);
+                const capturedPiece = cescacs_types_1.csTypes.isPieceName(mov[toIx]) && cescacs_types_1.csTypes.isColumn(mov[toIx + 1]) ? mov[toIx] : undefined;
+                const toHexPos = mov.slice(capturedPiece === undefined ? toIx : toIx + 1, toEndIx);
+                if (assertions) {
+                    (0, ts_general_1.assertCondition)(isHexPosition(toHexPos), "Destination hex");
+                    (0, ts_general_1.assertCondition)(capturedPiece === undefined || (separator != '-' && separator != '–'), "Captured piece");
                 }
-                else {
-                    toPos = [cescacs_types_1.csConvert.toColumnIndex(dest[0]), parseInt(dest.slice(1))];
-                    if (separator == 'x' || separator == '×') {
-                        bag["capturedPiece"] = 'P';
-                    }
-                    else if (separator == '@' || separator == '@@') {
-                        bag["capturedPiece"] = 'P';
-                    }
-                }
-                if (dest[dest.length - 2] == '=') {
-                    bag["promotedPiece"] = dest[dest.length - 1];
+                this.doMove(fromHexPos, toHexPos, movePiece);
+                if (toEndIx < mov.length && mov[toEndIx] == '=') {
+                    const promotionPiece = mov[toEndIx + 1];
+                    if (assertions)
+                        (0, ts_general_1.assertCondition)(movePiece == 'P', "Promoting a pawn");
+                    this.doPromotePawn(fromHexPos, toHexPos, promotionPiece);
                 }
             }
-            else if (mov[mov.length - 2] == '=') {
-                bag["promotedPiece"] = mov[mov.length - 1];
-                toPos = undefined;
+        }
+    }
+    undoMove(movement) {
+        const mov = movement.move;
+        const color = movement.turn == 'w' ? 'White' : 'Black';
+        const specialCaptureStatus = movement.specialPawnCapture == undefined ? null
+            : PawnSpecialCaptureStatus.parse(this, movement.specialPawnCapture);
+        if (mov.startsWith("KR") && mov[3] == '-') {
+            this.undoCastling(mov, color);
+        }
+        else {
+            const sepIx = Game.separatorIndex(mov);
+            const movePieceName = cescacs_types_1.csTypes.isPieceName(mov[0]) && cescacs_types_1.csTypes.isColumn(mov[1]) ? mov[0] : 'P';
+            const originalHexPos = mov.slice(movePieceName == 'P' ? 0 : 1, sepIx);
+            const separator = mov.charAt(sepIx) == '@' && mov.charAt(sepIx + 1) == '@' ?
+                mov.slice(sepIx, sepIx + 2) : mov.charAt(sepIx);
+            if (separator == '=') {
+                const piece = this.getPiece([cescacs_types_1.csConvert.toColumnIndex(originalHexPos[0]), parseInt(originalHexPos.slice(1))]);
+                super.undoPromotePawn(piece);
             }
-            else
-                throw new Error("never: exhaused move format options");
-            return { pos: fromPos, toPos: toPos, movePiece: movePiece, data: bag };
+            else {
+                const toIx = sepIx + separator.length;
+                const toEndIx = Game.separatorIndex(mov, toIx);
+                const capturedPieceName = cescacs_types_1.csTypes.isPieceName(mov[toIx]) && cescacs_types_1.csTypes.isColumn(mov[toIx + 1]) ? mov[toIx] : undefined;
+                const toHexPos = mov.slice(capturedPieceName === undefined ? toIx : toIx + 1, toEndIx);
+                const toPos = [cescacs_types_1.csConvert.toColumnIndex(toHexPos[0]), parseInt(toHexPos.slice(1))];
+                const movePiece = this.getPiece(toPos);
+                if (toEndIx < mov.length && mov[toEndIx] == '=') {
+                    super.undoPromotePawn(movePiece);
+                }
+                else if (movement.castling != undefined)
+                    if (movePieceName == 'R')
+                        movePiece.setCastlingStatus(movement.castling, this.isGrand);
+                    else if (movePieceName == 'K')
+                        movePiece.castlingStatus = movement.castling;
+                super.undoPieceMove(movePiece, cescacs_types_1.csConvert.toColumnIndex(originalHexPos[0]), parseInt(originalHexPos.slice(1)));
+                if (separator == 'x') {
+                    const capturedPieceSymbol = capturedPieceName !== null && capturedPieceName !== void 0 ? capturedPieceName : 'P';
+                    super.undoCapturePiece(capturedPieceSymbol, color, toHexPos[0], toPos[1]);
+                }
+                else if (separator[0] == '@') {
+                    //undo special capture
+                    const capturedPieceHexPos = movement.specialPawnCapture.slice(0, movement.specialPawnCapture.indexOf('@'));
+                    super.undoCapturePiece('P', color, capturedPieceHexPos[0], parseInt(capturedPieceHexPos.slice(1)));
+                }
+            }
+        }
+        this._lastMove = mov;
+        this.moveNumber--;
+        if (movement.halfMoveCount === undefined)
+            this.halfmoveClock--;
+        else
+            this.halfmoveClock = movement.halfMoveCount;
+        this.specialPawnCapture = specialCaptureStatus;
+    }
+    undoCastling(castling, color) {
+        const firstValue = (gen) => {
+            for (const p of gen)
+                return p;
+        };
+        const isGrand = this.isGrand;
+        const side = castling[2];
+        const column = castling[4];
+        const rColumn = cescacs_types_1.csConvert.toColumnIndex(castling[5]);
+        const currentKing = color == 'White' ? this.wKing : this.bKing;
+        const kingInitialPos = color == 'White' ? cescacs_positionHelper_1.PositionHelper.whiteKingInitPosition : cescacs_positionHelper_1.PositionHelper.blackKingInitPosition;
+        const rookInitialPos = side == 'D' ?
+            cescacs_positionHelper_1.PositionHelper.initialQueenSideRookPosition(color, isGrand)
+            : cescacs_positionHelper_1.PositionHelper.initialKingSideRookPosition(color, isGrand);
+        const pieces = color == 'White' ? this.whitePiecesFulfil : this.blackPiecesFulfil;
+        const rook = firstValue(pieces(p => cescacs_piece_1.csPieceTypes.isRook(p) && p.position != null && p.position[0] == rColumn
+            && cescacs_positionHelper_1.PositionHelper.isOrthogonally(p.position, rookInitialPos) != null));
+        super.undoPieceMove(currentKing, kingInitialPos[0], kingInitialPos[1]);
+        super.undoPieceMove(rook, rookInitialPos[0], rookInitialPos[1]);
+        currentKing.castlingStatus = "RKR";
+        rook.setCastlingStatus("RKR", isGrand);
+        if (side == 'R') {
+            const r2Column = cescacs_types_1.csConvert.toColumnIndex(castling[6]);
+            const r2InitialPos = cescacs_positionHelper_1.PositionHelper.initialQueenSideRookPosition(color, isGrand);
+            const rook2 = firstValue(pieces(p => cescacs_piece_1.csPieceTypes.isRook(p) && p.position != null && p.position[0] == r2Column
+                && cescacs_positionHelper_1.PositionHelper.isOrthogonally(p.position, r2InitialPos) != null));
+            super.undoPieceMove(rook2, r2InitialPos[0], r2InitialPos[1]);
+            rook2.setCastlingStatus("RKR", isGrand);
         }
     }
 }
@@ -1559,3 +1676,29 @@ Game.blackKingCastleMove = {
     'E': "LineInvDown-FileInvDown",
     'D': "TransversalLineDec-FileInvDown"
 };
+//Draft
+//////////////////////////////////////////////////////
+Game.separatorIndex = (mov, ini = 0) => {
+    let i = ini;
+    while (i < mov.length) {
+        const code = mov.charCodeAt(i);
+        if (code >= 48 && code < 58 || code >= 65 && code < 91 || code >= 97 && code < 123)
+            i++;
+        else
+            return i;
+    }
+    return i;
+};
+function isCastlingMove(m) {
+    return m.side != undefined &&
+        m.column != undefined &&
+        m.rColumn != undefined &&
+        (m.side != "R" || m.r2Column != undefined);
+}
+exports.isCastlingMove = isCastlingMove;
+function isMove(m) {
+    return m.movePiece != undefined &&
+        m.pos != undefined &&
+        m.data != undefined;
+}
+exports.isMove = isMove;

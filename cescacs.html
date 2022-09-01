@@ -747,6 +747,14 @@
             }
         }
 
+        function Moves() {
+            let move = window.prompt("Moviment?");
+            if (move != null && move.length >=2) {
+                game.applyMove(move, true);
+                restoreBoard();
+            }
+        }
+
         function HideButtons() {
             const buttonTLPD = document.getElementById("buttonTLPD");
             const buttonLoad = document.getElementById("buttonLoad");
@@ -2608,6 +2616,8 @@
                     </div>
                     <button id="buttonCastling" class="w3-button w3-black fullbutton"
                         onclick="Castling()">Castling</button>
+                    <button id="buttonMoves" class="w3-button w3-black fullbutton"
+                        onclick="Moves()">Moves</button>
                     <div class="w3-bar">
                         <label class="w3-text-purple" style="font-size:1.5em"><b id="resultString"></b></label>
                     </div>
