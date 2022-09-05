@@ -1066,7 +1066,7 @@ export class Game extends Board {
     // }
 
 
-    //TODO: Try-catch must be on user interface
+    //TODO: Try-catch must be on user interface 
     public doMove(fromHex: string, toHex: string, pieceName?: PieceName): void {
         try {
             const moveFrom = PositionHelper.parse(fromHex);
