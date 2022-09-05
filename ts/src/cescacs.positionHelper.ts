@@ -72,6 +72,12 @@ export abstract class PositionHelper {
         return pos[1] == (c <= 7 ? (color == "White" ? 21 + c : 7 - c) : (color == "White" ? 35 - c : c - 7));
     }
 
+    public static promotionDistance(pos: Position, color: PieceColor): number {
+        const c = pos[0];
+        if (color == 'White') return (c <= 7 ? 21 + c : 35 - c) - pos[1];
+        else return pos[1] - (c <= 7 ? 7 - c : c - 7);
+    }
+
     public static hexColor(p: Position): HexColor {
         return PositionHelper.lineHexColor(p[1]);
     }

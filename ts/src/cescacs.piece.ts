@@ -1050,5 +1050,5 @@ export namespace csPieceTypes {
     export function isBishop(p: Piece): p is Bishop { return p.symbol == 'J'; }
     export function isElephant(p: Piece): p is Elephant { return p.symbol == 'E'; }
     export function isPawn(p: Piece): p is Pawn { return p.symbol == 'P'; }
-
+    export function isAlmogaver(p: Piece): p is Almogaver { return p.symbol == 'M'; }
 }

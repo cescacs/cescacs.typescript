@@ -66,6 +66,31 @@
             position: absolute;
             margin-left: 1em;
         }
+
+        .grid2xContainer {
+            display: grid;
+            background-color: #2196F3;
+            width: 100%;
+            height: 39ex;
+            overflow: auto;
+            grid-template-columns: 1.2fr 1fr;
+            grid-auto-rows: 3.85ex;
+            grid-gap: 0.25em;
+            gap: 0.25em;
+            padding: 4px;
+        }
+
+        .grid2xContainer>div {
+            background-color: rgba(255, 255, 255, 0.8);
+            text-align: left;
+            font-size: smaller;
+            padding: 5px 0 5px 5px;
+        }
+
+        .grid2xContainer>div:hover,
+        .grid2xContainer>div.selected {
+            background-color: coral;
+        }
     </style>
     <script src="./dist/bundle.js"></script>
     <script>
@@ -151,10 +176,6 @@
                             }
                             removeSymbol(clickHex.item); //piece to move
                             removeSymbol(hexElement); //may be a captured piece
-                            const enPassantPos = game.enPassantCaptureCoordString;
-                            if (enPassantPos != null) {
-                                removeSymbol(document.getElementById("HEX" + enPassantPos));
-                            }
                             placeSymbol(dest, game.turn == 'w' ? piece.symbol : piece.symbol.toLowerCase());
                             clickHex.item.classList.remove("selected");
                             const destCoord = cescacs.PositionHelper.parse(dest);
@@ -166,6 +187,10 @@
                             } else {
                                 clickHex.item = null;
                                 game.doMove(src, dest);
+                                const enPassantPos = game.enPassantCaptureCoordString;
+                                if (enPassantPos != null) {
+                                    removeSymbol(document.getElementById("HEX" + enPassantPos));
+                                }
                                 displayMoveStatus();
                             }
                         } else gameStatus.innerHTML = dest + ' ERROR!';
@@ -261,14 +286,13 @@
             saveGame(); //ensure to preserve status
         }
         function isExecutingAction() {
-            if (boardTLPDStatus || loadNewGame || endingGameResign || endingGameDraw || showingThreated) return true;
-            else {
-                const x = document.getElementById("TLPD");
-                const y = document.getElementById("castlingContainer");
-                return x.style.display != 'none' || y.style.display != 'none';
-            }
+            if (boardTLPDStatus || loadNewGame || endingGameResign || endingGameDraw || showingThreated || showingThreats) return true;
+            else return document.getElementById("TLPD").style.display != 'none'
+                || document.getElementById("castlingContainer").style.display != 'none'
+                || document.getElementById("movesPanel").style.display != 'none'
+                || document.getElementById("loadMovesPanel").style.display != 'none';
         }
-        function showPromotionDialog(destCoord, closeable = false) {            
+        function showPromotionDialog(destCoord, closeable = false) {
             const dialog = document.getElementById("dialogPromotion");
             const selector = document.getElementById("promotionRegainableOptions");
             const bishopColor = cescacs.PositionHelper.hexColor(destCoord);
@@ -346,8 +370,9 @@
 
         function saveGame() {
             localStorage.setItem("cescacs", game.valueTLPD);
+            localStorage.setItem("cescacs-mv", game.movesJSON);
             if (game.gameEnd) localStorage.setItem("cescacs-end", game.resultString);
-            else localStorage.removeItem("cescacs-end", game.resultString);
+            else localStorage.removeItem("cescacs-end");
             localStorage.setItem("cescacs-grand", game.isGrand ? 'grand' : "");
         }
 
@@ -355,6 +380,7 @@
             const isGrandStored = localStorage.getItem("cescacs-grand") == 'grand';
             if (game.isGrand == isGrandStored) {
                 game.loadTLPD(localStorage.getItem("cescacs"));
+                game.restoreMovesJSON(localStorage.getItem("cescacs-mv"))
                 restoreBoard();
                 const gend = localStorage.getItem("cescacs-end");
                 game.resultString = gend;
@@ -375,10 +401,15 @@
             const x = document.getElementById("TLPD");
             const l = document.getElementById("TLPDStringLabel");
             if (x.style.display === "none") {
+                const sepGameStatus = document.getElementById("sepGameStatus");
                 const buttonTLPD = document.getElementById("buttonTLPD");
                 x.readOnly = true;
                 x.value = game.valueTLPD;
                 HideButtons();
+                sepGameStatus.style.display = "block";
+                buttonTLPD.classList.remove("halfbutton");
+                buttonTLPD.classList.add("fullbutton");
+                buttonTLPD.innerHTML = "Got";
                 buttonTLPD.style.display = "block";
                 x.style.display = "block";
                 l.style.display = "block";
@@ -391,6 +422,10 @@
                 x.style.display = "none";
                 l.style.display = "none";
                 RestoreButtons();
+                const buttonTLPD = document.getElementById("buttonTLPD");
+                buttonTLPD.innerHTML = "Get";
+                buttonTLPD.classList.remove("fullbutton");
+                buttonTLPD.classList.add("halfbutton");
                 boardTLPDStatus = false;
             }
         }
@@ -400,26 +435,36 @@
                 const x = document.getElementById("TLPD");
                 const l = document.getElementById("loadTLPDLabel");
                 if (x.style.display === "none") {
+                    const sepGameStatus = document.getElementById("sepGameStatus");
                     const buttonLoad = document.getElementById("buttonLoad");
                     x.readOnly = false;
                     HideButtons();
+                    sepGameStatus.style.display = "block";
+                    buttonLoad.classList.remove("halfbutton");
+                    buttonLoad.classList.add("fullbutton");
                     buttonLoad.style.display = "block";
                     x.style.display = "block";
                     l.style.display = "block";
                 } else {
+                    const buttonLoad = document.getElementById("buttonLoad");
                     const textContent = x.value.trim();
                     if (textContent.length == 0) {
                         x.style.display = "none";
                         l.style.display = "none";
                         RestoreButtons();
+                        buttonLoad.classList.remove("fullbutton");
+                        buttonLoad.classList.add("halfbutton");
                     } else if (textContent.length > 10) {
                         x.style.display = "none";
                         l.style.display = "none";
                         RestoreButtons();
+                        buttonLoad.classList.remove("fullbutton");
+                        buttonLoad.classList.add("halfbutton");
                         game.loadTLPD(textContent);
                         restoreBoard();
-                        localStorage.removeItem("cescacs", null);
-                        localStorage.removeItem("cescacs-end", null);
+                        localStorage.removeItem("cescacs");
+                        localStorage.removeItem("cescacs-mv");
+                        localStorage.removeItem("cescacs-end");
                         //cescacs-grand is preserved
                         displayMoveStatus();
                     }
@@ -466,6 +511,7 @@
             if (loadNewGame) {
                 loadNewGame = false;
                 localStorage.removeItem("cescacs");
+                localStorage.removeItem("cescacs-mv");
                 localStorage.removeItem("cescacs-end");
                 localStorage.removeItem("cescacs-grand");
                 const parser = new URL(window.location);
@@ -490,6 +536,7 @@
         function GrandCescacs() {
             loadNewGame = false;
             localStorage.removeItem("cescacs");
+            localStorage.removeItem("cescacs-mv");
             localStorage.removeItem("cescacs-end");
             localStorage.setItem("cescacs-grand", 'grand');
             const parser = new URL(window.location);
@@ -551,6 +598,8 @@
                 }
                 if (n > 0) {
                     HideButtons();
+                    const sepInfo = document.getElementById("sepInfo");
+                    sepInfo.style.display = 'block';
                     buttonShowThreated.classList.add('w3-red');
                     buttonShowThreated.classList.add("fullbutton");
                     buttonShowThreated.classList.remove('w3-black');
@@ -590,6 +639,8 @@
                 }
                 if (n > 0) {
                     HideButtons();
+                    const sepInfo = document.getElementById("sepInfo");
+                    sepInfo.style.display = 'block';
                     buttonShowThreats.classList.add('w3-red');
                     buttonShowThreats.classList.add("fullbutton");
                     buttonShowThreats.classList.remove('w3-black');
@@ -624,7 +675,7 @@
                             if (status == '') {
                                 const kmove = game.castlingKingPosition(col);
                                 if (kmove != null) {
-                                    for (const m of game.castlingMoves(currentColor, kmove)) {
+                                    for (const m of game.castlingStrMoves(currentColor, kmove)) {
                                         const btn = document.createElement("button");
                                         btn.setAttribute("id", m);
                                         btn.setAttribute("title", m);
@@ -747,10 +798,132 @@
             }
         }
 
+        function ShowMoves() {
+            const buttonShowMoves = document.getElementById("buttonShowMoves");
+            const movesPanel = document.getElementById("movesPanel");
+            if (movesPanel.style.display == "none") {
+                const sepMoves = document.getElementById("sepMoves");
+                const movesGrid = document.getElementById("movesGrid");
+                HideButtons();
+                sepMoves.style.display = "block";
+                buttonShowMoves.classList.remove("halfbutton");
+                buttonShowMoves.classList.add("fullbutton");
+                buttonShowMoves.innerHTML = "Go on"
+                buttonShowMoves.style.display = "block";
+                const n = movesGrid.childElementCount;
+                const restIni = n == 0 ? 0 : n - 1;
+                for (const mv of game.moves(n)) {
+                    const div = document.createElement('div');
+                    div.innerHTML = cescacs.csmv.fullMoveNotation(mv);
+                    div.onclick = function () { alert(this.innerHTML); }
+                    movesGrid.appendChild(div);
+                }
+                if (movesGrid.childElementCount > 0) {
+                    movesGrid.lastChild.classList.add("selected");
+                    document.getElementById("buttonUndo").disabled = false;
+                } else {
+                    document.getElementById("buttonUndo").disabled = true;
+                }
+                movesPanel.style.display = "block";
+                movesGrid.scrollTop = 10000;
+            } else {
+                movesPanel.style.display = "none";
+                for (const item of movesGrid.children) item.classList.remove("selected");
+                RestoreButtons();
+                buttonShowMoves.innerHTML = "Show Mvs"
+                buttonShowMoves.classList.remove("fullbutton");
+                buttonShowMoves.classList.add("halfbutton");
+            }
+        }
+
+        function showFirst() {
+            const movesGrid = document.getElementById("movesGrid");
+            const buttonUndo = document.getElementById("buttonUndo");
+            for (const item of movesGrid.children) {
+                if (item.classList.contains("selected")) {
+                    if (item.previousElementSibling != null) {
+                        item.classList.remove("selected");
+                        movesGrid.firstElementChild.classList.add("selected");
+                        movesGrid.firstElementChild.focus();
+                        buttonUndo.disabled = movesGrid.firstElementChild.nextElementSibling != null;
+                    }
+                    break;
+                }
+            }
+            movesGrid.scrollTop = 0;
+        }
+
+        function showPrevious() {
+            const movesGrid = document.getElementById("movesGrid");
+            for (const item of movesGrid.children) {
+                if (item.classList.contains("selected")) {
+                    const previousSibling = item.previousElementSibling;
+                    if (previousSibling != null) {
+                        item.classList.remove("selected");
+                        previousSibling.classList.add("selected");
+                        buttonUndo.disabled = true;
+                    }
+                    break;
+                }
+            }
+        }
+
+        function showNext() {
+            const movesGrid = document.getElementById("movesGrid");
+            for (const item of movesGrid.children) {
+                if (item.classList.contains("selected")) {
+                    const nextSibling = item.nextElementSibling;
+                    if (nextSibling != null) {
+                        item.classList.remove("selected");
+                        nextSibling.classList.add("selected");
+                        nextSibling.focus();
+                        buttonUndo.disabled = nextSibling.nextElementSibling != null;
+                    }
+                    break;
+                }
+            }
+        }
+
+        function showLast() {
+            const movesGrid = document.getElementById("movesGrid");
+            for (const item of movesGrid.children) {
+                if (item.classList.contains("selected")) {
+                    if (item.nextElementSibling != null) {
+                        item.classList.remove("selected");
+                        movesGrid.lastElementChild.classList.add("selected");
+                        buttonUndo.disabled = false;
+                    }
+                    break;
+                }
+            }
+            movesGrid.scrollTop = 10000;
+        }
+
+        function LoadMoves() {
+            const buttonLoadMoves = document.getElementById("buttonLoadMoves");
+            const loadMovesPanel = document.getElementById("loadMovesPanel");
+            if (loadMovesPanel.style.display == "none") {
+                const sepMoves = document.getElementById("sepMoves");
+                HideButtons();
+                sepMoves.style.display = "block";
+                buttonLoadMoves.classList.remove("halfbutton");
+                buttonLoadMoves.classList.add("fullbutton");
+                buttonLoadMoves.innerHTML = "Apply";
+                buttonLoadMoves.style.display = "block";
+                loadMovesPanel.style.display = "block";
+            } else {
+                loadMovesPanel.style.display = "none";
+                RestoreButtons();
+                buttonLoadMoves.innerHTML = "Load Mvs";
+                buttonLoadMoves.classList.remove("fullbutton");
+                buttonLoadMoves.classList.add("halfbutton");
+            }
+        }
+
         function Moves() {
-            let move = window.prompt("Moviment?");
-            if (move != null && move.length >=2) {
-                game.applyMove(move, true);
+            let move = window.prompt("Next move?");
+            if (move != null && move.length >= 2) {
+                game.applyStringMove(move, true);
                 restoreBoard();
             }
         }
@@ -758,7 +931,9 @@
         function HideButtons() {
             const buttonTLPD = document.getElementById("buttonTLPD");
             const buttonLoad = document.getElementById("buttonLoad");
-            const buttonNew = document.getElementById("buttonNew")
+            const buttonNew = document.getElementById("buttonNew");
+            const buttonShowMoves = document.getElementById("buttonShowMoves");
+            const buttonLoadMoves = document.getElementById("buttonLoadMoves");
             const buttonResign = document.getElementById("buttonResign");
             const buttonDraw = document.getElementById("buttonDraw");
             const buttonSugestMove = document.getElementById("buttonSugestMove");
@@ -766,10 +941,16 @@
             const buttonShowThreated = document.getElementById("buttonShowThreated");
             const buttonShowThreats = document.getElementById("buttonShowThreats");
             const buttonCastling = document.getElementById("buttonCastling");
+            const sepGameStatus = document.getElementById("sepGameStatus");
+            const sepMoves = document.getElementById("sepMoves");
+            const sepInfo = document.getElementById("sepInfo");
+            const sepCastling = document.getElementById("sepCastling");
             const heuristicContainer = document.getElementById("heuristicContainer");
             buttonTLPD.style.display = "none";
             buttonLoad.style.display = "none";
             buttonNew.style.display = "none";
+            buttonShowMoves.style.display = "none";
+            buttonLoadMoves.style.display = "none";
             buttonResign.style.display = "none";
             buttonDraw.style.display = "none";
             buttonSugestMove.style.display = "none";
@@ -777,13 +958,19 @@
             buttonShowThreated.style.display = "none";
             buttonShowThreats.style.display = "none";
             buttonCastling.style.display = "none";
+            sepGameStatus.style.display = "none";
+            sepMoves.style.display = "none";
+            sepInfo.style.display = "none";
+            sepCastling.style.display = "none";
             heuristicContainer.style.display = "none";
         }
 
         function RestoreButtons() {
             const buttonTLPD = document.getElementById("buttonTLPD");
             const buttonLoad = document.getElementById("buttonLoad");
-            const buttonNew = document.getElementById("buttonNew")
+            const buttonNew = document.getElementById("buttonNew");
+            const buttonShowMoves = document.getElementById("buttonShowMoves");
+            const buttonLoadMoves = document.getElementById("buttonLoadMoves");
             const buttonResign = document.getElementById("buttonResign");
             const buttonDraw = document.getElementById("buttonDraw");
             const buttonSugestMove = document.getElementById("buttonSugestMove");
@@ -791,6 +978,10 @@
             const buttonShowThreated = document.getElementById("buttonShowThreated");
             const buttonShowThreats = document.getElementById("buttonShowThreats");
             const buttonCastling = document.getElementById("buttonCastling");
+            const sepGameStatus = document.getElementById("sepGameStatus");
+            const sepMoves = document.getElementById("sepMoves");
+            const sepInfo = document.getElementById("sepInfo");
+            const sepCastling = document.getElementById("sepCastling");
             const confirm = document.getElementById("confirmationArea");
             const confirmLblPrevi = document.getElementById("confirmLblPrevi");
             const confirmLbl = document.getElementById("confirmationLabel");
@@ -803,6 +994,8 @@
             buttonTLPD.style.display = "block";
             buttonLoad.style.display = "block";
             buttonNew.style.display = "block";
+            buttonShowMoves.style.display = "block";
+            buttonLoadMoves.style.display = "block";
             buttonResign.style.display = "block";
             buttonDraw.style.display = "block";
             buttonSugestMove.style.display = "block";
@@ -810,6 +1003,10 @@
             buttonShowThreated.style.display = "block";
             buttonShowThreats.style.display = "block";
             buttonCastling.style.display = "block";
+            sepGameStatus.style.display = "block";
+            sepMoves.style.display = "block";
+            sepInfo.style.display = "block";
+            sepCastling.style.display = "block";
             heuristicContainer.style.display = "block";
         }
     </script>
@@ -2553,36 +2750,35 @@
             </svg>
         </div>
         <div class="w3-rest w3-right">
-            <!--
-            <div class="w3-container">
-                <div class="w3-container w3-left">
-                    <div class="w3-row">
-                        <label style="width: 15em;">&nbsp;</label>
-                    </div>
-                    <div class="w3-row">
-                            <label style="width: 15em;" for="moves">Moves:</label><br />
-                            <select id="moves" size="20" style="width: 22em;" class="w3-select w3-border">
-
-                            </select>
-                    </div>
-                </div>
-            </div>
-            -->
             <div class="w3-container">
                 <div class="btn-group w3-right">
                     <div class="w3-bar">
                         <label class="w3-text-purple" style="font-size:1.5em"><b id="gameStatus">Game ready!</b></label>
                     </div>
-                    <button id="buttonTLPD" class="w3-button w3-black fullbutton stacked" onclick="TLPDString()">Board
-                        status string</button>
-                    <button id="buttonLoad" class="w3-button w3-black fullbutton stacked" onclick="LoadTLPD()">Load
-                        board status</button>
+                    <div id="sepGameStatus" class="w3-bar w3-amber w3-center"
+                        style="height: 3ex; width: 14em; border: 1px solid green;"><span>Game status</span>
+                    </div>
+                    <div class="btn-subgroup">
+                        <button id="buttonTLPD" class="w3-button w3-black halfbutton stacked"
+                            onclick="TLPDString()">Get</button>
+                        <button id="buttonLoad" class="w3-button w3-black halfbutton stacked"
+                            onclick="LoadTLPD()">Load</button>
+                    </div>
                     <button id="buttonNew" class="w3-button w3-black fullbutton stacked" onclick="LoadNewGame()">New
                         game</button>
                     <div class="btn-subgroup">
                         <button id="buttonResign" class="w3-button w3-black halfbutton"
                             onclick="Resign()">Resign</button>
                         <button id="buttonDraw" class="w3-button w3-black halfbutton" onclick="Draw()">Draw</button>
+                    </div>
+                    <div id="sepMoves" class="w3-bar w3-amber w3-center"
+                        style="height: 3ex; width: 14em; border: 1px solid green;"><span>Moves</span>
+                    </div>
+                    <div class="btn-subgroup">
+                        <button id="buttonShowMoves" class="w3-button w3-black halfbutton stacked"
+                            onclick="ShowMoves()">Show Mvs</button>
+                        <button id="buttonLoadMoves" class="w3-button w3-black halfbutton stacked"
+                            onclick="LoadMoves()">Load Mvs</button>
                     </div>
                     <div id="confirmationArea" style="display:none;">
                         <div class="w3-bar w3-black w3-text-amber" style="border-bottom: green;">
@@ -2601,7 +2797,8 @@
                                 ?</button>
                         </div>
                     </div>
-                    <div class="w3-bar w3-amber" style="height: 2ex; width: 14em;">
+                    <div id="sepInfo" class="w3-bar w3-amber w3-center"
+                        style="height: 3ex; width: 14em; border: 1px solid green;"><span>Information</span>
                     </div>
                     <div class="btn-subgroup">
                         <button id="buttonShowThreated" class="w3-button w3-black halfbutton stacked"
@@ -2614,10 +2811,11 @@
                             onclick="ShowHeuristic()">Heuristic</button>
                         <button id="buttonSugestMove" class="w3-button w3-black halfbutton stacked">Sugest mv</button>
                     </div>
-                    <button id="buttonCastling" class="w3-button w3-black fullbutton"
-                        onclick="Castling()">Castling</button>
-                    <button id="buttonMoves" class="w3-button w3-black fullbutton"
-                        onclick="Moves()">Moves</button>
+                    <div id="sepCastling" class="w3-bar w3-amber w3-center"
+                        style="height: 3ex; width: 14em; border: 1px solid green;"><span>Castling</span>
+                    </div>
+                    <button id="buttonCastling" class="w3-button w3-black fullbutton" onclick="Castling()">Do
+                        Castling</button>
                     <div class="w3-bar">
                         <label class="w3-text-purple" style="font-size:1.5em"><b id="resultString"></b></label>
                     </div>
@@ -2633,6 +2831,50 @@
                         &nbsp; Enter TLPD string, and press again the button<br />
                         &nbsp; <small>To load correctly you first start new to choose as normal or Grand</small>
                     </label>
+                </div>
+                <div id="loadMovesPanel" style="width: 14em; display: none" class="w3-right">
+                    <textarea id="movesArea" name="movesArea" cols="10" rows="20" placeholder="Enter moves"
+                        style="width:14em;"></textarea>
+                    <label id="movesAreaLbl" for="MovesArea" class="w3-amber">
+                        &nbsp; Moves must be consistent
+                    </label>
+                    <label id="movesAreaLoadLbl" for="movesArea" class="w3-amber">
+                        <small>&nbsp; applied to a new game, or<br />&nbsp; a previosly loaded board status</small>
+                    </label>
+                </div>
+                <div id="movesPanel" style="width: 18em; display: none" class="w3-right">
+                    <div id="movesGrid" class="grid2xContainer" class="w3-tiny" style="width:18em;">
+                    </div>
+                    <div class="w3-bar w3-blue w3-border" style="display: flex; justify-content: space-between;">
+                        <div id="buttonFirst" class="w3-button w3-bar-item" onclick="showFirst()">
+                            <svg style="width: 1.5em; height: 1.5em; vertical-align: middle;" viewBox='0 0 1024 1024'
+                                xmlns='http://www.w3.org/2000/svg'>
+                                <path
+                                    d="M839.792 130.112 356.88 439.888c-61.808 39.664-61.808 104.544 0 144.192l482.928 309.792c61.808 39.664 112.384 12.016 112.384-61.424L952.192 191.552C952.192 118.112 901.616 90.464 839.792 130.112zM111.808 112c-22.096 0-40 17.904-40 40l0 720c0 22.096 17.904 40 40 40s40-17.904 40-40l0-720C151.808 129.904 133.904 112 111.808 112z" />
+                        </div>
+                        <div id="buttonPrevious" class="w3-button w3-bar-item" onclick="showPrevious()">
+                            <svg style="width: 1.5em; height: 1.5em; vertical-align: middle;" viewBox='0 0 1024 1024'
+                                xmlns='http://www.w3.org/2000/svg'>
+                                <path
+                                    d="M779.704065 146.115845c0.082888-12.881378-1.100054-22.822798-9.91993-31.327496-1.528819-1.482771-3.160993-2.758834-4.880147-3.923356-5.882987-4.114714-13.130042-6.578836-20.979824-6.578836-10.750855 0-16.845667 4.072759-26.91193 11.800767L254.198469 458.492342c-7.198959 6.944156-10.700713 16.087397-10.559497 25.195845-0.14224 9.108448 3.360538 18.252713 10.559497 25.195845l464.578967 343.721389c17.667382 13.287631 36.927027 13.623275 51.006697 0 8.819876-8.516977 10.214642-19.716041 9.91993-31.331589L779.704065 146.115845z" />
+                        </div>
+                        <div id="buttonNext" class="w3-button w3-bar-item" onclick="showNext()">
+                            <svg style="width: 1.5em; height: 1.5em; vertical-align: middle;" viewBox='0 0 1024 1024'
+                                xmlns='http://www.w3.org/2000/svg'>
+                                <path d="M262.3386 62.3677 762.3127 512.3492 262.3386 962.3255Z" />
+                        </div>
+                        <div id="buttonLast" class="w3-button w3-bar-item" onclick="showLast()">
+                            <svg style="width: 1.5em; height: 1.5em; vertical-align: middle;" viewBox='0 0 1024 1024'
+                                xmlns='http://www.w3.org/2000/svg'>
+                                <path
+                                    d="M184.208 893.888l482.928-309.776c61.808-39.664 61.808-104.544 0-144.192L184.208 130.128c-61.808-39.664-112.384-12.016-112.384 61.424l0 640.912C71.808 905.888 122.384 933.536 184.208 893.888zM912.192 912c22.096 0 40-17.904 40-40l0-720c0-22.096-17.904-40-40-40s-40 17.904-40 40l0 720C872.192 894.096 890.096 912 912.192 912z" />
+                        </div>
+                    </div>
+                    <div class="btn-group" style="width: 18em; float:right">
+                        <button id="buttonUndo" class="w3-button w3-black halfbutton">Undo</button>
+                        <button id="buttonMoves" class="w3-button w3-black halfbutton" onclick="Moves()">Enter
+                            Move</button>
+                    </div>
                 </div>
                 <div id="castlingContainer"
                     class="w3-container w3-topbar w3-bottombar w3-leftbar w3-rightbar w3-border-amber"

@@ -1042,4 +1042,6 @@ var csPieceTypes;
     csPieceTypes.isElephant = isElephant;
     function isPawn(p) { return p.symbol == 'P'; }
     csPieceTypes.isPawn = isPawn;
+    function isAlmogaver(p) { return p.symbol == 'M'; }
+    csPieceTypes.isAlmogaver = isAlmogaver;
 })(csPieceTypes = exports.csPieceTypes || (exports.csPieceTypes = {}));
