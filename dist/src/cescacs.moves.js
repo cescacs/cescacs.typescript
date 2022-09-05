@@ -26,7 +26,7 @@ var csMoves;
     function fullMoveNotation(info) {
         var _a;
         const postStr = (_a = info.check) !== null && _a !== void 0 ? _a : (info.end == "mate" ? "#" : "");
-        const preStr = info.turn == 'w' ? info.n + '.\xa0' : "";
+        const preStr = info.turn == 'w' ? info.n + '. ' : "";
         return preStr + moveNotation(info.move) + postStr;
     }
     csMoves.fullMoveNotation = fullMoveNotation;

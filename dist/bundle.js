@@ -369,12 +369,6 @@ class Board {
                     }
                 }
             }
-            if (cescacs_positionHelper_1.PositionHelper.isPromotionPos(toColumnIndex, toLine, piece.color)) {
-                if (piece.color == 'White')
-                    this._wAwaitingPromotion = true;
-                else
-                    this._bAwaitingPromotion = true;
-            }
             if (scornedPawn != null) {
                 this._specialPawnCapture = new ScornfulCapturable(piece, scornedPawn.position);
             }
@@ -384,6 +378,15 @@ class Board {
             else {
                 this._specialPawnCapture = null;
             }
+            if (cescacs_positionHelper_1.PositionHelper.isPromotionPos(toColumnIndex, toLine, piece.color)) {
+                if (piece.color == 'White')
+                    this._wAwaitingPromotion = true;
+                else
+                    this._bAwaitingPromotion = true;
+            }
+        }
+        else {
+            this._specialPawnCapture = null;
         }
         pieces.delete(cescacs_positionHelper_1.PositionHelper.positionKey(piecePos));
         piece.moveTo(toColumnIndex, toLine); //piecePos updated
@@ -974,6 +977,17 @@ class Game extends Board {
     set resign(value) { this._resigned = value; }
     get resigned() { return this._resigned; }
     moves(fromMove) { return Object.freeze(this._moves.slice(fromMove)); }
+    strMoves() {
+        let result = [];
+        for (let i = 0; i < this._moves.length; i += 2) {
+            let move = cescacs_moves_1.csMoves.fullMoveNotation(this._moves[i]);
+            if (i < this._moves.length - 1) {
+                move += ", " + cescacs_moves_1.csMoves.fullMoveNotation(this._moves[i + 1]);
+            }
+            result.push(move);
+        }
+        return result.join("\n");
+    }
     get lastMove() { return this._lastMove; }
     get preMoveHeuristic() { return this.currentHeuristic; }
     get enPassantCaptureCoordString() {
@@ -1095,7 +1109,7 @@ class Game extends Board {
             }
         }
         catch (e) {
-            console.log(e);
+            console.log(fromHex, toHex, e);
         }
     }
     doPromotePawn(fromHex, toHex, promoteTo) {
@@ -1813,6 +1827,22 @@ class Game extends Board {
             rook2.setCastlingStatus("RKR", isGrand);
         }
     }
+    applyMoveSq(sq) {
+        const lines = sq.split(/\r?\n/);
+        for (let i = 0; i < lines.length; i++) {
+            const parts = lines[i].split(/[.,]\s?/);
+            (0, ts_general_1.assertCondition)(parts.length > 1, "numbered plays");
+            console.log(parts[1], parts[2]);
+            this.applyStringMove(parts[1]);
+            if (i < lines.length - 1) {
+                (0, ts_general_1.assertCondition)(parts.length == 3, "both players on each numbered play");
+                this.applyStringMove(parts[2]);
+            }
+            else if (parts.length == 3) {
+                this.applyStringMove(parts[2]);
+            }
+        }
+    }
     applyStringMove(mov, assertions = false) {
         const separatorIndex = (mov, ini = 0) => {
             let i = ini;
@@ -1829,7 +1859,7 @@ class Game extends Board {
             return cescacs_positionHelper_1.PositionHelper.isValidPosition(cescacs_positionHelper_1.PositionHelper.parse(hex));
         };
         if (assertions)
-            (0, ts_general_1.assertCondition)(mov.length >= 2, "Moviment length must be at least of 2 chars");
+            (0, ts_general_1.assertCondition)(mov.length >= 4, "Moviment length must be at least of 4 chars");
         if (mov.startsWith("KR") && (mov[3] == '-' || mov[3] == '–')) {
             const castlingString = mov[3] == '–' ? mov.replace('–', '-') : mov;
             if (!assertions
@@ -1924,7 +1954,7 @@ var csMoves;
     function fullMoveNotation(info) {
         var _a;
         const postStr = (_a = info.check) !== null && _a !== void 0 ? _a : (info.end == "mate" ? "#" : "");
-        const preStr = info.turn == 'w' ? info.n + '.\xa0' : "";
+        const preStr = info.turn == 'w' ? info.n + '. ' : "";
         return preStr + moveNotation(info.move) + postStr;
     }
     csMoves.fullMoveNotation = fullMoveNotation;

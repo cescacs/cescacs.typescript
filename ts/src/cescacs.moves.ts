@@ -72,7 +72,7 @@ export namespace csMoves {
 
     export function fullMoveNotation(info: UndoStatus): string {
         const postStr = info.check ?? (info.end == "mate" ? "#" : "");
-        const preStr = info.turn == 'w' ? info.n + '.\xa0' : "";
+        const preStr = info.turn == 'w' ? info.n + '. ' : "";
         return preStr + moveNotation(info.move) + postStr;
     }
 

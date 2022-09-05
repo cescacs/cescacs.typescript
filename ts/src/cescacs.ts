@@ -398,10 +398,6 @@ export abstract class Board implements IBoard {
                     }
                 }
             }
-            if (PositionHelper.isPromotionPos(toColumnIndex, toLine, piece.color)) {
-                if (piece.color == 'White') this._wAwaitingPromotion = true;
-                else this._bAwaitingPromotion = true;
-            }
             if (scornedPawn != null) {
                 this._specialPawnCapture = new ScornfulCapturable(piece as Pawn, scornedPawn.position!);
             } else if (multipleStep != null) {
@@ -409,6 +405,12 @@ export abstract class Board implements IBoard {
             } else {
                 this._specialPawnCapture = null;
             }
+            if (PositionHelper.isPromotionPos(toColumnIndex, toLine, piece.color)) {
+                if (piece.color == 'White') this._wAwaitingPromotion = true;
+                else this._bAwaitingPromotion = true;
+            }
+        } else {
+            this._specialPawnCapture = null;
         }
         pieces.delete(PositionHelper.positionKey(piecePos));
         piece.moveTo(toColumnIndex, toLine); //piecePos updated
@@ -981,6 +983,17 @@ export class Game extends Board {
     public get resigned() { return this._resigned; }
 
     public moves(fromMove: number) { return Object.freeze(this._moves.slice(fromMove)); }
+    public strMoves(): string {
+        let result = [];
+        for (let i = 0; i < this._moves.length; i += 2) {
+            let move = csmv.fullMoveNotation(this._moves[i]);
+            if (i < this._moves.length - 1) {
+                move += ", " + csmv.fullMoveNotation(this._moves[i + 1]);
+            }
+            result.push(move);
+        }
+        return result.join("\n");
+    }
     public get lastMove() { return this._lastMove; }
     public get preMoveHeuristic(): Heuristic { return this.currentHeuristic; }
 
@@ -1052,6 +1065,8 @@ export class Game extends Board {
     //     }
     // }
 
+
+    //TODO: Try-catch must be on user interface
     public doMove(fromHex: string, toHex: string, pieceName?: PieceName): void {
         try {
             const moveFrom = PositionHelper.parse(fromHex);
@@ -1076,8 +1091,8 @@ export class Game extends Board {
                     this._enpassantCaptureCoordString = null;
                     this.pieceCaptured = true;
                 } else if (cspty.isPawn(piece) && this.specialPawnCapture != null
-                        && this.specialPawnCapture.isEnPassantCapturable()
-                        && this.specialPawnCapture.isEnPassantCapture(moveTo, piece)) {
+                    && this.specialPawnCapture.isEnPassantCapturable()
+                    && this.specialPawnCapture.isEnPassantCapture(moveTo, piece)) {
                     const enPassantCapture = this.specialPawnCapture.capturablePiece;
                     move.captured = enPassantCapture;
                     move.special = [enPassantCapture.position![0], enPassantCapture.position![1]];
@@ -1088,14 +1103,14 @@ export class Game extends Board {
                     this.pieceCaptured = false;
                 }
                 this.pawnMoved = piece.symbol == 'P';
-                this.pushMove(move as MoveInfo);        
+                this.pushMove(move as MoveInfo);
             } else {
                 console.log("empty piece at " + PositionHelper.toString(moveFrom));
                 this._lastMove = "";
             }
         }
         catch (e) {
-            console.log(e);
+            console.log(fromHex, toHex, e);
         }
     }
 
@@ -1732,6 +1747,22 @@ export class Game extends Board {
         }
     }
 
+    public applyMoveSq(sq: string) {
+        const lines = sq.split(/\r?\n/);
+        for (let i = 0; i < lines.length; i++) {
+            const parts = lines[i].split(/[.,]\s?/);
+            assertCondition(parts.length > 1, "numbered plays");
+            this.applyStringMove(parts[1]);
+            if (i < lines.length - 1) {
+                assertCondition(parts.length == 3, "both players on each numbered play");
+                this.applyStringMove(parts[2]);
+            } else if (parts.length == 3) {
+                this.applyStringMove(parts[2]);
+            }
+        }
+    }
+
+    //TODO: always assertions when string parameters (call from user interface)
     public applyStringMove(mov: string, assertions: boolean = false) {
         const separatorIndex = (mov: string, ini: number = 0) => {
             let i = ini;
@@ -1746,7 +1777,7 @@ export class Game extends Board {
             return PositionHelper.isValidPosition(PositionHelper.parse(hex));
         }
 
-        if (assertions) assertCondition(mov.length >= 2, "Moviment length must be at least of 2 chars");
+        if (assertions) assertCondition(mov.length >= 4, "Moviment length must be at least of 4 chars");
         if (mov.startsWith("KR") && (mov[3] == '-' || mov[3] == '–')) {
             const castlingString = mov[3] == '–' ? mov.replace('–', '-') : mov;
             if (!assertions

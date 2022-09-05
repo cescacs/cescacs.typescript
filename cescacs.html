@@ -899,6 +899,23 @@
             movesGrid.scrollTop = 10000;
         }
 
+        function GetMoves() {
+            const movesPanelTgl1 = document.getElementById("movesPanelTgl1");
+            const movesPanelTgl2 = document.getElementById("movesPanelTgl2");
+            if (movesPanelTgl1.style.display == 'none') {
+                movesPanelTgl1.style.display = 'block';
+                movesPanelTgl2.style.display = 'none';                
+            } else {
+                const movesArea = document.getElementById("movesArea");
+                movesPanelTgl1.style.display = 'none';
+                movesPanelTgl2.style.display = 'block';
+                movesArea.value = game.strMoves();
+                movesArea.select();
+                movesArea.setSelectionRange(0, 99999); /* For mobile devices */
+                navigator.clipboard.writeText(movesArea.value);
+            }
+        }
+
         function LoadMoves() {
             const buttonLoadMoves = document.getElementById("buttonLoadMoves");
             const loadMovesPanel = document.getElementById("loadMovesPanel");
@@ -912,15 +929,27 @@
                 buttonLoadMoves.style.display = "block";
                 loadMovesPanel.style.display = "block";
             } else {
+                //TODO: DO NOT CLOSE IN CASE OF ERROR
+                const text = lMovesArea.value.trim();
+                try {
+                    if (text.length >= 6) {
+                        game.applyMoveSq(text);
+                    }
+                } catch (e) {
+                    console.log(e);
+                }
+                restoreBoard();
                 loadMovesPanel.style.display = "none";
                 RestoreButtons();
+                displayHeuristic();
+                saveGame(); //ensure to preserve status
                 buttonLoadMoves.innerHTML = "Load Mvs";
                 buttonLoadMoves.classList.remove("fullbutton");
                 buttonLoadMoves.classList.add("halfbutton");
             }
         }
 
-        function Moves() {
+        function ManualMove() {
             let move = window.prompt("Next move?");
             if (move != null && move.length >= 2) {
                 game.applyStringMove(move, true);
@@ -934,6 +963,7 @@
             const buttonNew = document.getElementById("buttonNew");
             const buttonShowMoves = document.getElementById("buttonShowMoves");
             const buttonLoadMoves = document.getElementById("buttonLoadMoves");
+            const buttonManualMove = document.getElementById("buttonManualMove");
             const buttonResign = document.getElementById("buttonResign");
             const buttonDraw = document.getElementById("buttonDraw");
             const buttonSugestMove = document.getElementById("buttonSugestMove");
@@ -951,6 +981,7 @@
             buttonNew.style.display = "none";
             buttonShowMoves.style.display = "none";
             buttonLoadMoves.style.display = "none";
+            buttonManualMove.style.display = "none";
             buttonResign.style.display = "none";
             buttonDraw.style.display = "none";
             buttonSugestMove.style.display = "none";
@@ -971,6 +1002,7 @@
             const buttonNew = document.getElementById("buttonNew");
             const buttonShowMoves = document.getElementById("buttonShowMoves");
             const buttonLoadMoves = document.getElementById("buttonLoadMoves");
+            const buttonManualMove = document.getElementById("buttonManualMove");
             const buttonResign = document.getElementById("buttonResign");
             const buttonDraw = document.getElementById("buttonDraw");
             const buttonSugestMove = document.getElementById("buttonSugestMove");
@@ -996,6 +1028,7 @@
             buttonNew.style.display = "block";
             buttonShowMoves.style.display = "block";
             buttonLoadMoves.style.display = "block";
+            buttonManualMove.style.display = "block";
             buttonResign.style.display = "block";
             buttonDraw.style.display = "block";
             buttonSugestMove.style.display = "block";
@@ -2780,6 +2813,8 @@
                         <button id="buttonLoadMoves" class="w3-button w3-black halfbutton stacked"
                             onclick="LoadMoves()">Load Mvs</button>
                     </div>
+                    <button id="buttonManualMove" class="w3-button w3-black fullbutton stacked" onclick="ManualMove()">Enter
+                        Manual Move</button>
                     <div id="confirmationArea" style="display:none;">
                         <div class="w3-bar w3-black w3-text-amber" style="border-bottom: green;">
                             <div><label id="confirmLblPrevi"></label></div>
@@ -2823,7 +2858,7 @@
                 <br style="clear:both;" />
                 <div class="w3-right">
                     <textarea id="TLPD" name="TLPD" readonly cols="40" rows="8" placeholder="Enter TLPD string"
-                        style="display:none;"></textarea>
+                        style="display:none; resize:none"></textarea>
                     <label id="TLPDStringLabel" for="TLPD" class="w3-amber" style="display:none;">
                         &nbsp; TLPD string copied into the clipboard
                     </label>
@@ -2833,47 +2868,50 @@
                     </label>
                 </div>
                 <div id="loadMovesPanel" style="width: 14em; display: none" class="w3-right">
-                    <textarea id="movesArea" name="movesArea" cols="10" rows="20" placeholder="Enter moves"
-                        style="width:14em;"></textarea>
-                    <label id="movesAreaLbl" for="MovesArea" class="w3-amber">
+                    <textarea id="lMovesArea" cols="19" rows="20" class="w3-large" placeholder="Enter moves" style="resize: vertical"></textarea>
+                    <label id="lMovesAreaLbl" for="lMovesArea" class="w3-amber">
                         &nbsp; Moves must be consistent
                     </label>
-                    <label id="movesAreaLoadLbl" for="movesArea" class="w3-amber">
+                    <label id="lMovesAreaLbl2" for="lMovesArea" class="w3-amber">
                         <small>&nbsp; applied to a new game, or<br />&nbsp; a previosly loaded board status</small>
                     </label>
                 </div>
                 <div id="movesPanel" style="width: 18em; display: none" class="w3-right">
-                    <div id="movesGrid" class="grid2xContainer" class="w3-tiny" style="width:18em;">
+                    <div id="movesPanelTgl1" style="width:100%; display:block;">
+                        <div id="movesGrid" class="grid2xContainer" class="w3-tiny" style="width:18em;">
+                        </div>
+                        <div class="w3-bar w3-blue w3-border" style="display: flex; justify-content: space-between;">
+                            <div id="buttonFirst" class="w3-button w3-bar-item" onclick="showFirst()">
+                                <svg style="width: 1.5em; height: 1.5em; vertical-align: middle;" viewBox='0 0 1024 1024'
+                                    xmlns='http://www.w3.org/2000/svg'>
+                                    <path
+                                        d="M839.792 130.112 356.88 439.888c-61.808 39.664-61.808 104.544 0 144.192l482.928 309.792c61.808 39.664 112.384 12.016 112.384-61.424L952.192 191.552C952.192 118.112 901.616 90.464 839.792 130.112zM111.808 112c-22.096 0-40 17.904-40 40l0 720c0 22.096 17.904 40 40 40s40-17.904 40-40l0-720C151.808 129.904 133.904 112 111.808 112z" />
+                            </div>
+                            <div id="buttonPrevious" class="w3-button w3-bar-item" onclick="showPrevious()">
+                                <svg style="width: 1.5em; height: 1.5em; vertical-align: middle;" viewBox='0 0 1024 1024'
+                                    xmlns='http://www.w3.org/2000/svg'>
+                                    <path
+                                        d="M779.704065 146.115845c0.082888-12.881378-1.100054-22.822798-9.91993-31.327496-1.528819-1.482771-3.160993-2.758834-4.880147-3.923356-5.882987-4.114714-13.130042-6.578836-20.979824-6.578836-10.750855 0-16.845667 4.072759-26.91193 11.800767L254.198469 458.492342c-7.198959 6.944156-10.700713 16.087397-10.559497 25.195845-0.14224 9.108448 3.360538 18.252713 10.559497 25.195845l464.578967 343.721389c17.667382 13.287631 36.927027 13.623275 51.006697 0 8.819876-8.516977 10.214642-19.716041 9.91993-31.331589L779.704065 146.115845z" />
+                            </div>
+                            <div id="buttonNext" class="w3-button w3-bar-item" onclick="showNext()">
+                                <svg style="width: 1.5em; height: 1.5em; vertical-align: middle;" viewBox='0 0 1024 1024'
+                                    xmlns='http://www.w3.org/2000/svg'>
+                                    <path d="M262.3386 62.3677 762.3127 512.3492 262.3386 962.3255Z" />
+                            </div>
+                            <div id="buttonLast" class="w3-button w3-bar-item" onclick="showLast()">
+                                <svg style="width: 1.5em; height: 1.5em; vertical-align: middle;" viewBox='0 0 1024 1024'
+                                    xmlns='http://www.w3.org/2000/svg'>
+                                    <path
+                                        d="M184.208 893.888l482.928-309.776c61.808-39.664 61.808-104.544 0-144.192L184.208 130.128c-61.808-39.664-112.384-12.016-112.384 61.424l0 640.912C71.808 905.888 122.384 933.536 184.208 893.888zM912.192 912c22.096 0 40-17.904 40-40l0-720c0-22.096-17.904-40-40-40s-40 17.904-40 40l0 720C872.192 894.096 890.096 912 912.192 912z" />
+                            </div>
+                        </div>
                     </div>
-                    <div class="w3-bar w3-blue w3-border" style="display: flex; justify-content: space-between;">
-                        <div id="buttonFirst" class="w3-button w3-bar-item" onclick="showFirst()">
-                            <svg style="width: 1.5em; height: 1.5em; vertical-align: middle;" viewBox='0 0 1024 1024'
-                                xmlns='http://www.w3.org/2000/svg'>
-                                <path
-                                    d="M839.792 130.112 356.88 439.888c-61.808 39.664-61.808 104.544 0 144.192l482.928 309.792c61.808 39.664 112.384 12.016 112.384-61.424L952.192 191.552C952.192 118.112 901.616 90.464 839.792 130.112zM111.808 112c-22.096 0-40 17.904-40 40l0 720c0 22.096 17.904 40 40 40s40-17.904 40-40l0-720C151.808 129.904 133.904 112 111.808 112z" />
-                        </div>
-                        <div id="buttonPrevious" class="w3-button w3-bar-item" onclick="showPrevious()">
-                            <svg style="width: 1.5em; height: 1.5em; vertical-align: middle;" viewBox='0 0 1024 1024'
-                                xmlns='http://www.w3.org/2000/svg'>
-                                <path
-                                    d="M779.704065 146.115845c0.082888-12.881378-1.100054-22.822798-9.91993-31.327496-1.528819-1.482771-3.160993-2.758834-4.880147-3.923356-5.882987-4.114714-13.130042-6.578836-20.979824-6.578836-10.750855 0-16.845667 4.072759-26.91193 11.800767L254.198469 458.492342c-7.198959 6.944156-10.700713 16.087397-10.559497 25.195845-0.14224 9.108448 3.360538 18.252713 10.559497 25.195845l464.578967 343.721389c17.667382 13.287631 36.927027 13.623275 51.006697 0 8.819876-8.516977 10.214642-19.716041 9.91993-31.331589L779.704065 146.115845z" />
-                        </div>
-                        <div id="buttonNext" class="w3-button w3-bar-item" onclick="showNext()">
-                            <svg style="width: 1.5em; height: 1.5em; vertical-align: middle;" viewBox='0 0 1024 1024'
-                                xmlns='http://www.w3.org/2000/svg'>
-                                <path d="M262.3386 62.3677 762.3127 512.3492 262.3386 962.3255Z" />
-                        </div>
-                        <div id="buttonLast" class="w3-button w3-bar-item" onclick="showLast()">
-                            <svg style="width: 1.5em; height: 1.5em; vertical-align: middle;" viewBox='0 0 1024 1024'
-                                xmlns='http://www.w3.org/2000/svg'>
-                                <path
-                                    d="M184.208 893.888l482.928-309.776c61.808-39.664 61.808-104.544 0-144.192L184.208 130.128c-61.808-39.664-112.384-12.016-112.384 61.424l0 640.912C71.808 905.888 122.384 933.536 184.208 893.888zM912.192 912c22.096 0 40-17.904 40-40l0-720c0-22.096-17.904-40-40-40s-40 17.904-40 40l0 720C872.192 894.096 890.096 912 912.192 912z" />
-                        </div>
+                    <div id="movesPanelTgl2" style="width:100%; display:none;">
+                        <textarea id="movesArea" cols="26" rows="20" class="w3-large" readonly style="resize: vertical"></textarea>
                     </div>
-                    <div class="btn-group" style="width: 18em; float:right">
-                        <button id="buttonUndo" class="w3-button w3-black halfbutton">Undo</button>
-                        <button id="buttonMoves" class="w3-button w3-black halfbutton" onclick="Moves()">Enter
-                            Move</button>
+                    <div class="btn-group">
+                        <button id="buttonUndo" class="w3-button w3-black w3-block stacked">Undo</button>
+                        <button id="buttonMoves" class="w3-button w3-black w3-block" onclick="GetMoves()">Get Moves</button>
                     </div>
                 </div>
                 <div id="castlingContainer"
