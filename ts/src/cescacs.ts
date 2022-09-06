@@ -1,6 +1,6 @@
-import { assertNonNullish, assertCondition, round2hundredths } from "./ts.general"
-import {
-    Nullable, Column, ColumnIndex, Line, Position,
+import type { Nullable } from "./ts.general";
+import type {
+    Column, ColumnIndex, Line, Position,
     OrthogonalDirection, KnightDirection,
     ScornfulCaptureDirection,
     Turn, HexColor, PieceName, PieceColor, CastlingStatus,
@@ -9,14 +9,14 @@ import {
     GrandCastlingString
 } from "./cescacs.types";
 
+import { assertNonNullish, assertCondition, round2hundredths } from "./ts.general";
 import { csTypes as csty, csConvert as cscnv } from "./cescacs.types";
-import { PositionHelper } from "./cescacs.positionHelper";
 import { csPieceTypes as cspty } from "./cescacs.piece";
+import { PositionHelper } from "./cescacs.positionHelper";
 import {
     IBoard, Piece, IPawnSpecialCaptureStatus, IScornfulCapturable, IEnPassantCapturable,
     King, Queen, Wyvern, Rook, Pegasus, Knight, Bishop, Elephant, Almogaver, Pawn
 } from "./cescacs.piece";
-
 import { UndoStatus, MoveInfo, CastlingSide } from "./cescacs.moves";
 import { csMoves as csmv } from "./cescacs.moves"
 
@@ -1189,11 +1189,9 @@ export class Game extends Board {
         this.pawnMoved = false;
     }
 
-    public doCastling(castlingMove: string, assertions = false) {
-        if (assertions) {
-            assertCondition(castlingMove.length >= 6 && castlingMove.length <= 8, "castling move string length");
-            assertCondition(castlingMove[0] == 'K' && castlingMove[1] == 'R', "castling move string prefix");
-        }
+    public doCastling(castlingMove: CastlingString | GrandCastlingString, assertions = false) {
+        if (this.isGrand) assertCondition(csty.isGrandCastlingString(castlingMove), "castling move string");
+        else assertCondition(csty.isCastlingString(castlingMove), "castling move string");
         const currentColor = this.turn == 'w' ? 'White' : 'Black';
         const currentKing = this.turn == 'w' ? this.wKing : this.bKing;
         const cmove = castlingMove.split("-");
@@ -1203,28 +1201,22 @@ export class Game extends Board {
         const rCol2 = cmove[1].length == 3 && cmove[1][2] != 'O' ? cmove[1][2] as Column : undefined;
         const singleStep = cmove[1].length > 3 ? false : cmove[1].length == 3 && cmove[1][2] == 'O' ? true : undefined;
         assertCondition(side == 'K' || side == 'D', `${side} must be King (K) side or Queen (D) side`);
-        if (assertions) {
-            assertCondition(csty.iscastlingColumn(kCol), `${kCol} must be a king castling column name`);
-            assertCondition(csty.isColumn(rCol), `${rCol} must be a column name`);
-        }
         const kPos = this.castlingKingPosition(kCol);
         const rPos = this.castlingRookPosition(kCol, rCol, side, singleStep);
         const rook = this.getPiece(side == 'K' ? PositionHelper.initialKingSideRookPosition(currentColor, this.isGrand)
             : PositionHelper.initialQueenSideRookPosition(currentColor, this.isGrand));
         assertNonNullish(kPos, "king castling position");
         assertNonNullish(rook, "castling rook piece");
-        assertCondition(cspty.isRook(rook), "castling king rook");
-        if (assertions) {
-            assertCondition(!rook.moved && rook.canMoveTo(this, rPos, false), "castling king rook move");
-        }
+        assertCondition(cspty.isRook(rook), "castling rook");
+        assertCondition(!rook.moved, "castling rook's not been moved");
+        assertCondition(rook.canMoveTo(this, rPos, false), "castling rook movement");
         if (rCol2 !== undefined) {
             const r2Pos = this.castlingRookPosition(kCol, rCol2, 'D', singleStep);
             const rook2 = this.getPiece(PositionHelper.initialQueenSideRookPosition(currentColor, this.isGrand));
             assertNonNullish(rook2, "double castling queen side rook");
             assertCondition(cspty.isRook(rook2), "castling queen rook");
-            if (assertions) {
-                assertCondition(!rook2.moved && rook2.canMoveTo(this, r2Pos, false), "castling queen rook move");
-            }
+            assertCondition(!rook2.moved, "castling queen rook's not been moved");
+            assertCondition(rook2.canMoveTo(this, r2Pos, false), "castling queen rook movement");
             super.movePiece(rook2, r2Pos[0], r2Pos[1]);
         }
         super.movePiece(currentKing, kPos[0], kPos[1]);
@@ -1261,7 +1253,7 @@ export class Game extends Board {
         //TODO
     }
 
-    public * castlingStrMoves(color: PieceColor, kingFinalPos: Position): Generator<string, void, void> {
+    public * castlingStrMoves(color: PieceColor, kingFinalPos: Position): Generator<CastlingString | GrandCastlingString, void, void> {
         const qRookPos: Position = PositionHelper.initialQueenSideRookPosition(color, this.isGrand);
         const kRookPos: Position = PositionHelper.initialKingSideRookPosition(color, this.isGrand);
         const qRook: Nullable<Rook> = this.getPiece(qRookPos) as Nullable<Rook>;
@@ -1423,32 +1415,37 @@ export class Game extends Board {
         return r;
     }
 
-    public loadTLPD(restoreStatusTLPD: string): boolean {
-        if (restoreStatusTLPD == null || restoreStatusTLPD.trim().length <= 10) return false;
-        else try {
+    public loadTLPD(restoreStatusTLPD: string): Nullable<string> {
+        try {
+            assertCondition(restoreStatusTLPD != null, "Not empty TLPD");
+            assertCondition(restoreStatusTLPD.trim().length > 12, "Enough TLPD length");
             const restoreStatus: string[] = restoreStatusTLPD.split(" ");
-            if (restoreStatus.length >= 2 && restoreStatus[0].length >= 10 && csty.isTurn(restoreStatus[1])) {
-                const turn: Turn = restoreStatus[1] as Turn;
-                super.resetGame(turn);
-                this._moves.length = 0;
-                const [wCastlingStatus, bCastlingStatus] = Board.splitCastlingStatus(restoreStatus[2]);
-                this.restoreTLPDPositions(restoreStatus[0], wCastlingStatus, bCastlingStatus);
-                this.halfmoveClock = csty.isNumber(Number(restoreStatus[4])) ? Number(restoreStatus[4]) : 0;
-                if (isNaN(Number(restoreStatus[4]))) {
-                    if (restoreStatus[4] != null && restoreStatus[4] !== "-") throw new TypeError("Invalid halfmove clock value");
-                }
-                this.moveNumber = csty.isNumber(Number(restoreStatus[5])) ? Number(restoreStatus[5]) : 1;
-                if (isNaN(Number(restoreStatus[5]))) {
-                    if (restoreStatus[5] != null && restoreStatus[5] !== "-") throw new TypeError("Invalid move number");
-                }
-                super.specialPawnCapture = PawnSpecialCaptureStatus.parse(this, restoreStatus[3]);
-                this.initGame();
-                return true;
+            assertCondition(restoreStatus.length >= 2, "Piece positions and turn are mandatory");
+            assertCondition(restoreStatus[0].length >= 10, "Piece positions string");
+            assertCondition(csty.isTurn(restoreStatus[1]), "Correct turn");
+            const turn: Turn = restoreStatus[1] as Turn;
+            super.resetGame(turn);
+            this._moves.length = 0;
+            const [wCastlingStatus, bCastlingStatus] = Board.splitCastlingStatus(restoreStatus[2]);
+            this.restoreTLPDPositions(restoreStatus[0], wCastlingStatus, bCastlingStatus);
+            this.halfmoveClock = csty.isNumber(Number(restoreStatus[4])) ? Number(restoreStatus[4]) : 0;
+            if (isNaN(Number(restoreStatus[4]))) {
+                if (restoreStatus[4] != null && restoreStatus[4] !== "-") throw new TypeError("Invalid halfmove clock value");
             }
-            else return false;
+            this.moveNumber = csty.isNumber(Number(restoreStatus[5])) ? Number(restoreStatus[5]) : 1;
+            if (isNaN(Number(restoreStatus[5]))) {
+                if (restoreStatus[5] != null && restoreStatus[5] !== "-") throw new TypeError("Invalid move number");
+            }
+            super.specialPawnCapture = PawnSpecialCaptureStatus.parse(this, restoreStatus[3]);
+            this.initGame();
+            return null;
         } catch (error) {
             console.log(error);
-            return false;
+            if (error instanceof Error) {
+                const errorName: Nullable<string> = error.name;
+                if (errorName == null || errorName == "") error.name = "TLPD";
+                return error.toString();
+            } else return String(error);
         }
     }
 

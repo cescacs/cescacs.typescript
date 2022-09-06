@@ -1,5 +1,6 @@
+import type { Nullable } from "./ts.general";
 import type {
-    Nullable, Column, ColumnIndex, Line, Position,
+    Column, ColumnIndex, Line, Position,
     OrthogonalDirection, DiagonalDirection, KnightDirection,
     HexColor, PieceColor
 } from "./cescacs.types";

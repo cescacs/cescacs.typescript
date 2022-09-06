@@ -5,10 +5,10 @@ exports.Game = exports.Board = exports.EnPassantCapturable = exports.ScornfulCap
 const ts_general_1 = require("./ts.general");
 Object.defineProperty(exports, "round2hundredths", { enumerable: true, get: function () { return ts_general_1.round2hundredths; } });
 const cescacs_types_1 = require("./cescacs.types");
-const cescacs_positionHelper_1 = require("./cescacs.positionHelper");
-Object.defineProperty(exports, "PositionHelper", { enumerable: true, get: function () { return cescacs_positionHelper_1.PositionHelper; } });
 const cescacs_piece_1 = require("./cescacs.piece");
 Object.defineProperty(exports, "cspty", { enumerable: true, get: function () { return cescacs_piece_1.csPieceTypes; } });
+const cescacs_positionHelper_1 = require("./cescacs.positionHelper");
+Object.defineProperty(exports, "PositionHelper", { enumerable: true, get: function () { return cescacs_positionHelper_1.PositionHelper; } });
 const cescacs_piece_2 = require("./cescacs.piece");
 const cescacs_moves_1 = require("./cescacs.moves");
 Object.defineProperty(exports, "csmv", { enumerable: true, get: function () { return cescacs_moves_1.csMoves; } });
@@ -1064,6 +1064,7 @@ class Game extends Board {
     //         console.log(e);
     //     }
     // }
+    //TODO: Try-catch must be on user interface 
     doMove(fromHex, toHex, pieceName) {
         var _a, _b;
         try {
@@ -1185,10 +1186,10 @@ class Game extends Board {
         this.pawnMoved = false;
     }
     doCastling(castlingMove, assertions = false) {
-        if (assertions) {
-            (0, ts_general_1.assertCondition)(castlingMove.length >= 6 && castlingMove.length <= 8, "castling move string length");
-            (0, ts_general_1.assertCondition)(castlingMove[0] == 'K' && castlingMove[1] == 'R', "castling move string prefix");
-        }
+        if (this.isGrand)
+            (0, ts_general_1.assertCondition)(cescacs_types_1.csTypes.isGrandCastlingString(castlingMove), "castling move string");
+        else
+            (0, ts_general_1.assertCondition)(cescacs_types_1.csTypes.isCastlingString(castlingMove), "castling move string");
         const currentColor = this.turn == 'w' ? 'White' : 'Black';
         const currentKing = this.turn == 'w' ? this.wKing : this.bKing;
         const cmove = castlingMove.split("-");
@@ -1198,28 +1199,22 @@ class Game extends Board {
         const rCol2 = cmove[1].length == 3 && cmove[1][2] != 'O' ? cmove[1][2] : undefined;
         const singleStep = cmove[1].length > 3 ? false : cmove[1].length == 3 && cmove[1][2] == 'O' ? true : undefined;
         (0, ts_general_1.assertCondition)(side == 'K' || side == 'D', `${side} must be King (K) side or Queen (D) side`);
-        if (assertions) {
-            (0, ts_general_1.assertCondition)(cescacs_types_1.csTypes.iscastlingColumn(kCol), `${kCol} must be a king castling column name`);
-            (0, ts_general_1.assertCondition)(cescacs_types_1.csTypes.isColumn(rCol), `${rCol} must be a column name`);
-        }
         const kPos = this.castlingKingPosition(kCol);
         const rPos = this.castlingRookPosition(kCol, rCol, side, singleStep);
         const rook = this.getPiece(side == 'K' ? cescacs_positionHelper_1.PositionHelper.initialKingSideRookPosition(currentColor, this.isGrand)
             : cescacs_positionHelper_1.PositionHelper.initialQueenSideRookPosition(currentColor, this.isGrand));
         (0, ts_general_1.assertNonNullish)(kPos, "king castling position");
         (0, ts_general_1.assertNonNullish)(rook, "castling rook piece");
-        (0, ts_general_1.assertCondition)(cescacs_piece_1.csPieceTypes.isRook(rook), "castling king rook");
-        if (assertions) {
-            (0, ts_general_1.assertCondition)(!rook.moved && rook.canMoveTo(this, rPos, false), "castling king rook move");
-        }
+        (0, ts_general_1.assertCondition)(cescacs_piece_1.csPieceTypes.isRook(rook), "castling rook");
+        (0, ts_general_1.assertCondition)(!rook.moved, "castling rook's not been moved");
+        (0, ts_general_1.assertCondition)(rook.canMoveTo(this, rPos, false), "castling rook movement");
         if (rCol2 !== undefined) {
             const r2Pos = this.castlingRookPosition(kCol, rCol2, 'D', singleStep);
             const rook2 = this.getPiece(cescacs_positionHelper_1.PositionHelper.initialQueenSideRookPosition(currentColor, this.isGrand));
             (0, ts_general_1.assertNonNullish)(rook2, "double castling queen side rook");
             (0, ts_general_1.assertCondition)(cescacs_piece_1.csPieceTypes.isRook(rook2), "castling queen rook");
-            if (assertions) {
-                (0, ts_general_1.assertCondition)(!rook2.moved && rook2.canMoveTo(this, r2Pos, false), "castling queen rook move");
-            }
+            (0, ts_general_1.assertCondition)(!rook2.moved, "castling queen rook's not been moved");
+            (0, ts_general_1.assertCondition)(rook2.canMoveTo(this, r2Pos, false), "castling queen rook movement");
             super.movePiece(rook2, r2Pos[0], r2Pos[1]);
         }
         super.movePiece(currentKing, kPos[0], kPos[1]);
@@ -1425,38 +1420,43 @@ class Game extends Board {
         return r;
     }
     loadTLPD(restoreStatusTLPD) {
-        if (restoreStatusTLPD == null || restoreStatusTLPD.trim().length <= 10)
-            return false;
-        else
-            try {
-                const restoreStatus = restoreStatusTLPD.split(" ");
-                if (restoreStatus.length >= 2 && restoreStatus[0].length >= 10 && cescacs_types_1.csTypes.isTurn(restoreStatus[1])) {
-                    const turn = restoreStatus[1];
-                    super.resetGame(turn);
-                    this._moves.length = 0;
-                    const [wCastlingStatus, bCastlingStatus] = Board.splitCastlingStatus(restoreStatus[2]);
-                    this.restoreTLPDPositions(restoreStatus[0], wCastlingStatus, bCastlingStatus);
-                    this.halfmoveClock = cescacs_types_1.csTypes.isNumber(Number(restoreStatus[4])) ? Number(restoreStatus[4]) : 0;
-                    if (isNaN(Number(restoreStatus[4]))) {
-                        if (restoreStatus[4] != null && restoreStatus[4] !== "-")
-                            throw new TypeError("Invalid halfmove clock value");
-                    }
-                    this.moveNumber = cescacs_types_1.csTypes.isNumber(Number(restoreStatus[5])) ? Number(restoreStatus[5]) : 1;
-                    if (isNaN(Number(restoreStatus[5]))) {
-                        if (restoreStatus[5] != null && restoreStatus[5] !== "-")
-                            throw new TypeError("Invalid move number");
-                    }
-                    super.specialPawnCapture = PawnSpecialCaptureStatus.parse(this, restoreStatus[3]);
-                    this.initGame();
-                    return true;
-                }
-                else
-                    return false;
+        try {
+            (0, ts_general_1.assertCondition)(restoreStatusTLPD != null, "Not empty TLPD");
+            (0, ts_general_1.assertCondition)(restoreStatusTLPD.trim().length > 12, "Enough TLPD length");
+            const restoreStatus = restoreStatusTLPD.split(" ");
+            (0, ts_general_1.assertCondition)(restoreStatus.length >= 2, "Piece positions and turn are mandatory");
+            (0, ts_general_1.assertCondition)(restoreStatus[0].length >= 10, "Piece positions string");
+            (0, ts_general_1.assertCondition)(cescacs_types_1.csTypes.isTurn(restoreStatus[1]), "Correct turn");
+            const turn = restoreStatus[1];
+            super.resetGame(turn);
+            this._moves.length = 0;
+            const [wCastlingStatus, bCastlingStatus] = Board.splitCastlingStatus(restoreStatus[2]);
+            this.restoreTLPDPositions(restoreStatus[0], wCastlingStatus, bCastlingStatus);
+            this.halfmoveClock = cescacs_types_1.csTypes.isNumber(Number(restoreStatus[4])) ? Number(restoreStatus[4]) : 0;
+            if (isNaN(Number(restoreStatus[4]))) {
+                if (restoreStatus[4] != null && restoreStatus[4] !== "-")
+                    throw new TypeError("Invalid halfmove clock value");
             }
-            catch (error) {
-                console.log(error);
-                return false;
+            this.moveNumber = cescacs_types_1.csTypes.isNumber(Number(restoreStatus[5])) ? Number(restoreStatus[5]) : 1;
+            if (isNaN(Number(restoreStatus[5]))) {
+                if (restoreStatus[5] != null && restoreStatus[5] !== "-")
+                    throw new TypeError("Invalid move number");
             }
+            super.specialPawnCapture = PawnSpecialCaptureStatus.parse(this, restoreStatus[3]);
+            this.initGame();
+            return null;
+        }
+        catch (error) {
+            console.log(error);
+            if (error instanceof Error) {
+                const errorName = error.name;
+                if (errorName == null || errorName == "")
+                    error.name = "TLPD";
+                return error.toString();
+            }
+            else
+                return String(error);
+        }
     }
     restoreTLPDPositions(positions, wCastlingStatus, bCastlingStatus) {
         (0, ts_general_1.assertCondition)(positions.length >= 10 && positions[0] == '/' && positions[positions.length - 1] == '/', `Valid TLPD string positions: ${positions}`);
@@ -1832,7 +1832,6 @@ class Game extends Board {
         for (let i = 0; i < lines.length; i++) {
             const parts = lines[i].split(/[.,]\s?/);
             (0, ts_general_1.assertCondition)(parts.length > 1, "numbered plays");
-            console.log(parts[1], parts[2]);
             this.applyStringMove(parts[1]);
             if (i < lines.length - 1) {
                 (0, ts_general_1.assertCondition)(parts.length == 3, "both players on each numbered play");
@@ -1843,6 +1842,7 @@ class Game extends Board {
             }
         }
     }
+    //TODO: always assertions when string parameters (call from user interface)
     applyStringMove(mov, assertions = false) {
         const separatorIndex = (mov, ini = 0) => {
             let i = ini;
@@ -2292,28 +2292,27 @@ class King extends Piece {
         this._moved = true;
     }
     *moves(board) {
-        if (this.checked && this.position != null) {
+        if (this.checked) {
+            //King's pin is used for the direction of the attack, as backwards there's still no threat detected, cause of the king's shade
+            (0, ts_general_1.assertNonNullish)(this.position);
+            (0, ts_general_1.assertNonNullish)(this.checkPosition);
             for (const direction of cescacs_types_1.csConvert.orthogonalDirections()) {
-                if (this.pin == null || !(this.pin.includes(direction))) {
-                    if (!cescacs_types_1.csTypes.hasDoubleCheckPin(this.checkPosition) || !(this.checkPosition[2].includes(direction))) {
-                        const pos = cescacs_positionHelper_1.PositionHelper.orthogonalStep(this.position, direction);
-                        if (pos != undefined) {
-                            const pieceColor = board.hasPiece(pos);
-                            if ((pieceColor == null || pieceColor !== this.color) && !board.isThreated(pos, this.color))
-                                yield pos;
-                        }
+                const pos = cescacs_positionHelper_1.PositionHelper.orthogonalStep(this.position, direction);
+                if (pos != undefined) {
+                    if (this.pin == null || !(this.pin.includes(direction)) || cescacs_types_1.csTypes.isCheckAttackPos(this.checkPosition, pos)) {
+                        const pieceColor = board.hasPiece(pos);
+                        if ((pieceColor == null || pieceColor != this.color) && !board.isThreated(pos, this.color))
+                            yield pos;
                     }
                 }
             }
             for (const direction of cescacs_types_1.csConvert.diagonalDirections()) {
-                if (this.pin == null || !(this.pin.includes(direction))) {
-                    if (!cescacs_types_1.csTypes.hasDoubleCheckPin(this.checkPosition) || !(this.checkPosition[2].includes(direction))) {
-                        const pos = cescacs_positionHelper_1.PositionHelper.diagonalStep(this.position, direction);
-                        if (pos != undefined) {
-                            const pieceColor = board.hasPiece(pos);
-                            if ((pieceColor == null || pieceColor !== this.color) && !board.isThreated(pos, this.color))
-                                yield pos;
-                        }
+                const pos = cescacs_positionHelper_1.PositionHelper.diagonalStep(this.position, direction);
+                if (pos != undefined) {
+                    if (this.pin == null || !(this.pin.includes(direction)) || cescacs_types_1.csTypes.isCheckAttackPos(this.checkPosition, pos)) {
+                        const pieceColor = board.hasPiece(pos);
+                        if ((pieceColor == null || pieceColor != this.color) && !board.isThreated(pos, this.color))
+                            yield pos;
                     }
                 }
             }
@@ -2327,7 +2326,7 @@ class King extends Piece {
     }
     markThreats(board) {
         for (const p of this.attemptMoves(board, true)) {
-            if (!board.hasThreat(p, this.color))
+            if (!board.isThreated(p, this.color))
                 board.setThreat(p, this.color);
         }
     }
@@ -2454,7 +2453,8 @@ class King extends Piece {
     }
     getSingleCheckBlockingPositions(board) {
         const r = [];
-        if (this.position != null && cescacs_types_1.csTypes.isSingleCheck(this.checkPosition)) {
+        (0, ts_general_1.assertNonNullish)(this.position);
+        if (cescacs_types_1.csTypes.isSingleCheck(this.checkPosition)) {
             const d = this.checkPosition.d;
             if (cescacs_types_1.csTypes.isDiagonalDirection(d)) {
                 for (const p of cescacs_positionHelper_1.PositionHelper.diagonalRide(this.position, d)) {
@@ -2584,33 +2584,31 @@ class King extends Piece {
         }
     }
     *orthogonalStepList(board, defends) {
-        if (this.position != null) {
-            for (const direction of cescacs_types_1.csConvert.orthogonalDirections()) {
-                const pos = cescacs_positionHelper_1.PositionHelper.orthogonalStep(this.position, direction);
-                if (pos != undefined) {
-                    if (defends)
+        (0, ts_general_1.assertNonNullish)(this.position);
+        for (const direction of cescacs_types_1.csConvert.orthogonalDirections()) {
+            const pos = cescacs_positionHelper_1.PositionHelper.orthogonalStep(this.position, direction);
+            if (pos != undefined) {
+                if (defends)
+                    yield pos;
+                else {
+                    const pieceColor = board.hasPiece(pos);
+                    if (pieceColor == null || pieceColor !== this.color)
                         yield pos;
-                    else {
-                        const pieceColor = board.hasPiece(pos);
-                        if (pieceColor == null || pieceColor !== this.color)
-                            yield pos;
-                    }
                 }
             }
         }
     }
     *diagonalStepList(board, defends) {
-        if (this.position != null) {
-            for (const direction of cescacs_types_1.csConvert.diagonalDirections()) {
-                const pos = cescacs_positionHelper_1.PositionHelper.diagonalStep(this.position, direction);
-                if (pos != undefined) {
-                    if (defends)
+        (0, ts_general_1.assertNonNullish)(this.position);
+        for (const direction of cescacs_types_1.csConvert.diagonalDirections()) {
+            const pos = cescacs_positionHelper_1.PositionHelper.diagonalStep(this.position, direction);
+            if (pos != undefined) {
+                if (defends)
+                    yield pos;
+                else {
+                    const pieceColor = board.hasPiece(pos);
+                    if (pieceColor == null || pieceColor !== this.color)
                         yield pos;
-                    else {
-                        const pieceColor = board.hasPiece(pos);
-                        if (pieceColor == null || pieceColor !== this.color)
-                            yield pos;
-                    }
                 }
             }
         }
@@ -3342,6 +3340,11 @@ var csTypes;
         (x[2] == null || csTypes.isOrthogonalOrientation(x[2]) || csTypes.isDiagonalOrientation(x[2]));
     csTypes.hasDoubleCheckPin = (x) => Array.isArray(x) && length == 3 && csTypes.isPosition(x[0]) && csTypes.isPosition(x[1]) &&
         x[2] != null && (csTypes.isOrthogonalOrientation(x[2]) || csTypes.isDiagonalOrientation(x[2]));
+    csTypes.isCheckAttackPos = (checkPos, pos) => {
+        return csTypes.isPosition(checkPos) ? pos[0] == checkPos[0] && pos[1] == checkPos[1]
+            : csTypes.isSingleCheck(checkPos) ? checkPos.p[0] == pos[0] && checkPos.p[1] == pos[1]
+                : checkPos[0][0] == pos[0] && checkPos[0][1] == pos[1] || checkPos[1][0] == pos[0] && checkPos[1][1] == pos[1];
+    };
 })(csTypes = exports.csTypes || (exports.csTypes = {}));
 // Conversions
 var csConvert;
@@ -3398,21 +3401,31 @@ var csConvert;
 },{}],6:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.round2hundredths = exports.assertCondition = exports.assertNonNullish = void 0;
+exports.round2hundredths = exports.isNotNullNorWhitespace = exports.isNotNullNorEmpty = exports.assertCondition = exports.assertNonNullish = void 0;
 function assertNonNullish(value, valueDescription) {
+    var _a;
     if (value === null || value === undefined) {
-        debugger;
+        console.log((_a = "NonNullish assertion fail: " + valueDescription) !== null && _a !== void 0 ? _a : "-");
         throw new TypeError(`Unexpected ${value} value` + valueDescription == undefined ? '' : ": " + valueDescription);
     }
 }
 exports.assertNonNullish = assertNonNullish;
 function assertCondition(condition, conditionDescription) {
+    var _a;
     if (!condition) {
-        debugger;
+        console.log((_a = "Condition assertion fail: " + conditionDescription) !== null && _a !== void 0 ? _a : "-");
         throw new Error('Assertion does not hold' + conditionDescription == undefined ? '' : ": " + conditionDescription);
     }
 }
 exports.assertCondition = assertCondition;
+function isNotNullNorEmpty(str) {
+    return str !== undefined && str !== null && str.length > 0;
+}
+exports.isNotNullNorEmpty = isNotNullNorEmpty;
+function isNotNullNorWhitespace(str) {
+    return str !== undefined && str !== null && str.length > 0 && str.trim().length > 0;
+}
+exports.isNotNullNorWhitespace = isNotNullNorWhitespace;
 function round2hundredths(value) {
     return Math.round((value + Number.EPSILON) * 100) / 100;
 }

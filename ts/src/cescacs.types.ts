@@ -1,3 +1,4 @@
+import type { Nullable } from "./ts.general";
 
 const _column = ['P', 'T', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'K', 'L', 'X', 'Z'] as const;
 const _castlingColumn = ['D', 'E', 'F', 'H', 'I'] as const;
@@ -19,7 +20,6 @@ const _castlingString = ["KRK-II", "KRK-IK", "KRK-IH", "KRK-HIO", "KRK-HIOO", "K
     "KRD-DD", "KRD-DE", "KRD-HH", "KRD-HG", "KRD-FG", "KRD-FE", "KRD-EF", "KRD-ED", "KRR-HIH", "KRR-HGG", "KRR-FGG", "KRR-FEE", "KRR-EEF"] as const
 const _grandCastlingString = ["KRK-FF", "KRK-FG", "KRK-HG", "KRK-HI", "KRD-DE", "KRD-DC", "KRD-ED", "KRD-EE", "KRD-FE", "KRD-FF", "KRR-FFE", "KRR-FGF"]
 
-export type Nullable<T> = T | undefined | null;
 // Construct the type as the types of the properties of the type array whose keys are of type number (all ones)
 export type Column = (typeof _column)[number];
 export type ColumnIndex = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14;
@@ -75,6 +75,12 @@ export namespace csTypes {
         (x[2] == null || isOrthogonalOrientation(x[2]) || isDiagonalOrientation(x[2]));
     export const hasDoubleCheckPin = (x: unknown): x is DoubleCheck => Array.isArray(x) && length == 3 && isPosition(x[0]) && isPosition(x[1]) &&
         x[2] != null && (isOrthogonalOrientation(x[2]) || isDiagonalOrientation(x[2]));
+    
+    export const isCheckAttackPos = (checkPos: KnightOrCloseCheck | SingleCheck | DoubleCheck, pos:Position) => {
+        return isPosition(checkPos) ? pos[0] == checkPos[0] && pos[1] == checkPos[1]
+            : isSingleCheck(checkPos) ? checkPos.p[0] == pos[0] && checkPos.p[1] == pos[1]
+            : checkPos[0][0] == pos[0] && checkPos[0][1] == pos[1] || checkPos[1][0] == pos[0] && checkPos[1][1] == pos[1];
+    }
 }
 
 // Conversions

@@ -1,5 +1,6 @@
+import type { Nullable } from "./ts.general";
 import type {
-    Nullable, Column, ColumnIndex, Line, Position,
+    Column, ColumnIndex, Line, Position,
     OrthogonalDirection, DiagonalDirection,
     Orientation, OrthogonalOrientation, DiagonalOrientation,
     ScornfulCaptureDirection,
@@ -308,26 +309,25 @@ export class King extends Piece {
     }
 
     public * moves(board: IBoard): Generator<Position, void, void> {
-        if (this.checked && this.position != null) {
+        if (this.checked) {
+            //King's pin is used for the direction of the attack, as backwards there's still no threat detected, cause of the king's shade
+            assertNonNullish(this.position);
+            assertNonNullish(this.checkPosition);
             for (const direction of cscnv.orthogonalDirections()) {
-                if (this.pin == null || !((this.pin as Direction[]).includes(direction))) {
-                    if (!csty.hasDoubleCheckPin(this.checkPosition) || !((this.checkPosition[2] as unknown as string[]).includes(direction))) {
-                        const pos = PositionHelper.orthogonalStep(this.position, direction);
-                        if (pos != undefined) {
-                            const pieceColor: Nullable<PieceColor> = board.hasPiece(pos);
-                            if ((pieceColor == null || pieceColor !== this.color) && !board.isThreated(pos, this.color)) yield pos;
-                        }
+                const pos = PositionHelper.orthogonalStep(this.position, direction);
+                if (pos != undefined) {
+                    if (this.pin == null || !((this.pin as Direction[]).includes(direction)) || csty.isCheckAttackPos(this.checkPosition, pos)) {
+                        const pieceColor: Nullable<PieceColor> = board.hasPiece(pos);
+                        if ((pieceColor == null || pieceColor != this.color) && !board.isThreated(pos, this.color)) yield pos;
                     }
                 }
             }
             for (const direction of cscnv.diagonalDirections()) {
-                if (this.pin == null || !((this.pin as Direction[]).includes(direction))) {
-                    if (!csty.hasDoubleCheckPin(this.checkPosition) || !((this.checkPosition[2] as unknown as string[]).includes(direction))) {
-                        const pos = PositionHelper.diagonalStep(this.position, direction);
-                        if (pos != undefined) {
-                            const pieceColor: Nullable<PieceColor> = board.hasPiece(pos);
-                            if ((pieceColor == null || pieceColor !== this.color) && !board.isThreated(pos, this.color)) yield pos;
-                        }
+                const pos = PositionHelper.diagonalStep(this.position, direction);
+                if (pos != undefined) {
+                    if (this.pin == null || !((this.pin as Direction[]).includes(direction)) || csty.isCheckAttackPos(this.checkPosition, pos)) {
+                        const pieceColor: Nullable<PieceColor> = board.hasPiece(pos);
+                        if ((pieceColor == null || pieceColor != this.color) && !board.isThreated(pos, this.color)) yield pos;
                     }
                 }
             }
@@ -340,7 +340,7 @@ export class King extends Piece {
 
     public markThreats(board: IBoard): void {
         for (const p of this.attemptMoves(board, true)) {
-            if (!board.hasThreat(p, this.color)) board.setThreat(p, this.color);
+            if (!board.isThreated(p, this.color)) board.setThreat(p, this.color);
         }
     }
 
@@ -459,7 +459,8 @@ export class King extends Piece {
 
     public getSingleCheckBlockingPositions(board: IBoard): Position[] {
         const r: Position[] = [];
-        if (this.position != null && csty.isSingleCheck(this.checkPosition)) {
+        assertNonNullish(this.position);
+        if (csty.isSingleCheck(this.checkPosition)) {
             const d = this.checkPosition.d;
             if (csty.isDiagonalDirection(d)) {
                 for (const p of PositionHelper.diagonalRide(this.position, d)) {
@@ -587,30 +588,28 @@ export class King extends Piece {
     }
 
     private * orthogonalStepList(board: IBoard, defends: boolean): Generator<Position, void, void> {
-        if (this.position != null) {
-            for (const direction of cscnv.orthogonalDirections()) {
-                const pos = PositionHelper.orthogonalStep(this.position, direction);
-                if (pos != undefined) {
-                    if (defends) yield pos;
-                    else {
-                        const pieceColor: Nullable<PieceColor> = board.hasPiece(pos);
-                        if (pieceColor == null || pieceColor !== this.color) yield pos;
-                    }
+        assertNonNullish(this.position);
+        for (const direction of cscnv.orthogonalDirections()) {
+            const pos = PositionHelper.orthogonalStep(this.position, direction);
+            if (pos != undefined) {
+                if (defends) yield pos;
+                else {
+                    const pieceColor: Nullable<PieceColor> = board.hasPiece(pos);
+                    if (pieceColor == null || pieceColor !== this.color) yield pos;
                 }
             }
         }
     }
 
     private * diagonalStepList(board: IBoard, defends: boolean): Generator<Position, void, void> {
-        if (this.position != null) {
-            for (const direction of cscnv.diagonalDirections()) {
-                const pos = PositionHelper.diagonalStep(this.position, direction);
-                if (pos != undefined) {
-                    if (defends) yield pos;
-                    else {
-                        const pieceColor: Nullable<PieceColor> = board.hasPiece(pos);
-                        if (pieceColor == null || pieceColor !== this.color) yield pos;
-                    }
+        assertNonNullish(this.position);
+        for (const direction of cscnv.diagonalDirections()) {
+            const pos = PositionHelper.diagonalStep(this.position, direction);
+            if (pos != undefined) {
+                if (defends) yield pos;
+                else {
+                    const pieceColor: Nullable<PieceColor> = board.hasPiece(pos);
+                    if (pieceColor == null || pieceColor !== this.color) yield pos;
                 }
             }
         }

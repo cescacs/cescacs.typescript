@@ -280,29 +280,44 @@ class King extends Piece {
         this._moved = true;
     }
     *moves(board) {
-        if (this.checked) {
-            //King's pin is used for the direction of the attack, as backwards there's still no threat detected, cause of the king's shade
-            (0, ts_general_1.assertNonNullish)(this.position);
-            (0, ts_general_1.assertNonNullish)(this.checkPosition);
+        if (this.checked && this.position != null) {
             for (const direction of cescacs_types_1.csConvert.orthogonalDirections()) {
+                debugger;
+                console.log("KING MOVES");
                 const pos = cescacs_positionHelper_1.PositionHelper.orthogonalStep(this.position, direction);
                 if (pos != undefined) {
-                    if (this.pin == null || !(this.pin.includes(direction)) || cescacs_types_1.csTypes.isCheckAttackPos(this.checkPosition, pos)) {
-                        const pieceColor = board.hasPiece(pos);
-                        if ((pieceColor == null || pieceColor != this.color) && !board.isThreated(pos, this.color))
-                            yield pos;
-                    }
+                    const pieceColor = board.hasPiece(pos);
+                    if ((pieceColor == null || pieceColor != this.color) && !board.isThreated(pos, this.color))
+                        yield pos;
                 }
+                // //King pin is used for the direction of the attack
+                // if (this.pin == null || !((this.pin as Direction[]).includes(direction))) {
+                //     if (!csty.hasDoubleCheckPin(this.checkPosition) || !((this.checkPosition[2] as Direction[]).includes(direction))) {
+                //         const pos = PositionHelper.orthogonalStep(this.position, direction);
+                //         if (pos != undefined) {
+                //             const pieceColor: Nullable<PieceColor> = board.hasPiece(pos);
+                //             if ((pieceColor == null || pieceColor != this.color) && !board.isThreated(pos, this.color)) yield pos;
+                //         }
+                //     }
+                // }
             }
             for (const direction of cescacs_types_1.csConvert.diagonalDirections()) {
                 const pos = cescacs_positionHelper_1.PositionHelper.diagonalStep(this.position, direction);
                 if (pos != undefined) {
-                    if (this.pin == null || !(this.pin.includes(direction)) || cescacs_types_1.csTypes.isCheckAttackPos(this.checkPosition, pos)) {
-                        const pieceColor = board.hasPiece(pos);
-                        if ((pieceColor == null || pieceColor != this.color) && !board.isThreated(pos, this.color))
-                            yield pos;
-                    }
+                    const pieceColor = board.hasPiece(pos);
+                    if ((pieceColor == null || pieceColor != this.color) && !board.isThreated(pos, this.color))
+                        yield pos;
                 }
+                // //King pin is used for the direction of the attack
+                // if (this.pin == null || !((this.pin as Direction[]).includes(direction))) {
+                //     if (!csty.hasDoubleCheckPin(this.checkPosition) || !((this.checkPosition[2] as Direction[]).includes(direction))) {
+                //         const pos = PositionHelper.diagonalStep(this.position, direction);
+                //         if (pos != undefined) {
+                //             const pieceColor: Nullable<PieceColor> = board.hasPiece(pos);
+                //             if ((pieceColor == null || pieceColor != this.color) && !board.isThreated(pos, this.color)) yield pos;
+                //         }
+                //     }
+                // }
             }
         }
         else {
@@ -314,7 +329,7 @@ class King extends Piece {
     }
     markThreats(board) {
         for (const p of this.attemptMoves(board, true)) {
-            if (!board.isThreated(p, this.color))
+            if (!board.hasThreat(p, this.color))
                 board.setThreat(p, this.color);
         }
     }
@@ -441,8 +456,7 @@ class King extends Piece {
     }
     getSingleCheckBlockingPositions(board) {
         const r = [];
-        (0, ts_general_1.assertNonNullish)(this.position);
-        if (cescacs_types_1.csTypes.isSingleCheck(this.checkPosition)) {
+        if (this.position != null && cescacs_types_1.csTypes.isSingleCheck(this.checkPosition)) {
             const d = this.checkPosition.d;
             if (cescacs_types_1.csTypes.isDiagonalDirection(d)) {
                 for (const p of cescacs_positionHelper_1.PositionHelper.diagonalRide(this.position, d)) {
@@ -572,31 +586,33 @@ class King extends Piece {
         }
     }
     *orthogonalStepList(board, defends) {
-        (0, ts_general_1.assertNonNullish)(this.position);
-        for (const direction of cescacs_types_1.csConvert.orthogonalDirections()) {
-            const pos = cescacs_positionHelper_1.PositionHelper.orthogonalStep(this.position, direction);
-            if (pos != undefined) {
-                if (defends)
-                    yield pos;
-                else {
-                    const pieceColor = board.hasPiece(pos);
-                    if (pieceColor == null || pieceColor !== this.color)
+        if (this.position != null) {
+            for (const direction of cescacs_types_1.csConvert.orthogonalDirections()) {
+                const pos = cescacs_positionHelper_1.PositionHelper.orthogonalStep(this.position, direction);
+                if (pos != undefined) {
+                    if (defends)
                         yield pos;
+                    else {
+                        const pieceColor = board.hasPiece(pos);
+                        if (pieceColor == null || pieceColor !== this.color)
+                            yield pos;
+                    }
                 }
             }
         }
     }
     *diagonalStepList(board, defends) {
-        (0, ts_general_1.assertNonNullish)(this.position);
-        for (const direction of cescacs_types_1.csConvert.diagonalDirections()) {
-            const pos = cescacs_positionHelper_1.PositionHelper.diagonalStep(this.position, direction);
-            if (pos != undefined) {
-                if (defends)
-                    yield pos;
-                else {
-                    const pieceColor = board.hasPiece(pos);
-                    if (pieceColor == null || pieceColor !== this.color)
+        if (this.position != null) {
+            for (const direction of cescacs_types_1.csConvert.diagonalDirections()) {
+                const pos = cescacs_positionHelper_1.PositionHelper.diagonalStep(this.position, direction);
+                if (pos != undefined) {
+                    if (defends)
                         yield pos;
+                    else {
+                        const pieceColor = board.hasPiece(pos);
+                        if (pieceColor == null || pieceColor !== this.color)
+                            yield pos;
+                    }
                 }
             }
         }

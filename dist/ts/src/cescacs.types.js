@@ -45,11 +45,6 @@ var csTypes;
         (x[2] == null || csTypes.isOrthogonalOrientation(x[2]) || csTypes.isDiagonalOrientation(x[2]));
     csTypes.hasDoubleCheckPin = (x) => Array.isArray(x) && length == 3 && csTypes.isPosition(x[0]) && csTypes.isPosition(x[1]) &&
         x[2] != null && (csTypes.isOrthogonalOrientation(x[2]) || csTypes.isDiagonalOrientation(x[2]));
-    csTypes.isCheckAttackPos = (checkPos, pos) => {
-        return csTypes.isPosition(checkPos) ? pos[0] == checkPos[0] && pos[1] == checkPos[1]
-            : csTypes.isSingleCheck(checkPos) ? checkPos.p[0] == pos[0] && checkPos.p[1] == pos[1]
-                : checkPos[0][0] == pos[0] && checkPos[0][1] == pos[1] || checkPos[1][0] == pos[0] && checkPos[1][1] == pos[1];
-    };
 })(csTypes = exports.csTypes || (exports.csTypes = {}));
 // Conversions
 var csConvert;
