@@ -90,12 +90,18 @@ function clickHex(hexElement) {
                         showPromotionDialog(destCoord);
                     } else {
                         clickHex.item = null;
-                        game.doMove(src, dest);
-                        const enPassantPos = game.enPassantCaptureCoordString;
-                        if (enPassantPos != null) {
-                            removeSymbol(document.getElementById("HEX" + enPassantPos));
+                        try {
+                            game.doMove(src, dest);
+                            const enPassantPos = game.enPassantCaptureCoordString;
+                            if (enPassantPos != null) {
+                                removeSymbol(document.getElementById("HEX" + enPassantPos));
+                            }
+                            displayMoveStatus();
+                        } catch (e) {
+                            console.log("doMove: ", e);
+                            document.getElementById("gameStatus").innerHTML = (e instanceof Error ? e.message : "");
+                            document.getElementById("resultString").innerHTML = 'ERROR';
                         }
-                        displayMoveStatus();
                     }
                 } else gameStatus.innerHTML = dest + ' ERROR!';
             }
@@ -226,8 +232,14 @@ function confirmPromotion() {
         clickHex.hexElement = undefined;
         //put new piece
         placeSymbol(dest, game.turn == 'w' ? pieceSymbol : pieceSymbol.toLowerCase());
-        game.doPromotePawn(src, dest, pieceSymbol);
-        displayMoveStatus();
+        try {
+            game.doPromotePawn(src, dest, pieceSymbol);
+            displayMoveStatus();
+        } catch (e) {
+            console.log("doPromotePawn: ", e);
+            document.getElementById("gameStatus").innerHTML = (e instanceof Error ? e.message : "");
+            document.getElementById("resultString").innerHTML = 'ERROR';
+        }
         dialog.close();
     }
 }
@@ -279,12 +291,18 @@ function saveGame() {
         if (game.gameEnd) localStorage.setItem("cescacs-end", game.resultString);
         else localStorage.removeItem("cescacs-end");
         localStorage.setItem("cescacs-grand", game.isGrand ? 'grand' : "");
-    } catch (e) { console.log("saveGame: ", e); }
+    } catch (e) {
+        console.log("saveGame: ", e);
+        document.getElementById("gameStatus").innerHTML = (e instanceof Error ? e.message : "");
+        document.getElementById("resultString").innerHTML = 'ERROR';
+    }
 }
 
 function restoreGame() {
     const isGrandStored = localStorage.getItem("cescacs-grand") == 'grand';
     if (game.isGrand == isGrandStored) {
+        const movesGrid = document.getElementById("movesGrid");
+        movesGrid.innerHTML = "";
         try {
             game.loadTLPD(localStorage.getItem("cescacs"));
             game.restoreMovesJSON(localStorage.getItem("cescacs-mv"))
@@ -292,7 +310,11 @@ function restoreGame() {
             const gend = localStorage.getItem("cescacs-end");
             game.resultString = gend;
             displayMoveStatus();
-        } catch (e) { console.log("restoreGame: ", e); }
+        } catch (e) {
+            console.log("restoreGame: ", e);
+            document.getElementById("gameStatus").innerHTML = (e instanceof Error ? e.message : "");
+            document.getElementById("resultString").innerHTML = 'ERROR';
+        }
     } else { //Never happens                
         const parser = new URL(window.location);
         if (isGrandStored) parser.searchParams.append('grand', "");
@@ -364,7 +386,9 @@ function LoadTLPD() {
                 buttonLoad.classList.add("halfbutton");
             } else if (textContent.length > 10) {
                 try {
+                    const movesGrid = document.getElementById("movesGrid");
                     const result = game.loadTLPD(textContent);
+                    movesGrid.innerHTML = "";
                     x.style.display = "none";
                     l.style.display = "none";
                     RestoreButtons();
@@ -377,8 +401,10 @@ function LoadTLPD() {
                     //cescacs-grand is preserved
                     displayMoveStatus();
                 } catch (e) {
-                    console.log(e);
-                    x.value = (e instanceof Error ? e.toString() : String(e)) + "\n\n" + x.value;
+                    console.log("LoadTLPD: ", x.value, e);
+                    x.value = ("LoadTLPD: " + e instanceof Error ? e.toString() : String(e)) + "\n\n" + x.value;
+                    document.getElementById("gameStatus").innerHTML = (e instanceof Error ? e.message : "");
+                    document.getElementById("resultString").innerHTML = 'ERROR';
                 }
             }
         }
@@ -633,7 +659,7 @@ function previewCastling(value) {
                 cescacs.PositionHelper.whiteKingInitPosition
                 : cescacs.PositionHelper.blackKingInitPosition);
             placeSymbol(kPos, kingSymbol);
-            previewCastling.initK = previewCastling.k = undefined;
+            previewCastling.k = undefined;
             if (previewCastling.rk !== undefined && previewCastling.rk !== null) {
                 removeSymbol(document.getElementById("HEX" + previewCastling.rk));
                 const pos = cescacs.PositionHelper.initialKingSideRookPosition(currentColor, game.isGrand);
@@ -654,25 +680,22 @@ function previewCastling(value) {
             previewCastling.k = cescacs.PositionHelper.toString(game.turn == "w" ?
                 cescacs.PositionHelper.whiteKingInitPosition
                 : cescacs.PositionHelper.blackKingInitPosition);
-            if (previewCastling.rk === undefined) {
-                const pos = cescacs.PositionHelper.initialKingSideRookPosition(currentColor, game.isGrand);
-                const krook = game.getPiece(pos);
-                if (krook != null && krook.color == currentColor && krook.symbol == 'R' && !krook.moved) {
-                    previewCastling.rk = cescacs.PositionHelper.toString(pos);
-                } else {
-                    previewCastling.rk = null;
-                }
+            const krpos = cescacs.PositionHelper.initialKingSideRookPosition(currentColor, game.isGrand);
+            const qrpos = cescacs.PositionHelper.initialQueenSideRookPosition(currentColor, game.isGrand);
+            const krook = game.getPiece(krpos);
+            const qrook = game.getPiece(qrpos);
+            if (krook != null && krook.color == currentColor && krook.symbol == 'R' && !krook.moved) {
+                previewCastling.rk = cescacs.PositionHelper.toString(krpos);
+            } else {
+                previewCastling.rk = null;
             }
-            if (previewCastling.rq === undefined) {
-                const pos = cescacs.PositionHelper.initialQueenSideRookPosition(currentColor, game.isGrand);
-                const qrook = game.getPiece(pos);
-                if (qrook != null && qrook.color == currentColor && qrook.symbol == 'R' && !qrook.moved) {
-                    previewCastling.rq = cescacs.PositionHelper.toString(pos);
-                } else {
-                    previewCastling.rq = null;
-                }
+            if (qrook != null && qrook.color == currentColor && qrook.symbol == 'R' && !qrook.moved) {
+                previewCastling.rq = cescacs.PositionHelper.toString(qrpos);
+            } else {
+                previewCastling.rq = null;
             }
         }
+        debugger;
         const cmove = value.split("-");
         const side = cmove[0][2] == 'R' ? 'K' : cmove[0][2];
         const kCol = cmove[1][0];
@@ -681,28 +704,32 @@ function previewCastling(value) {
         const singleStep = cmove[1].length > 3 ? false : cmove[1].length == 3 && cmove[1][2] == 'O' ? true : undefined;
         const kPos = cescacs.PositionHelper.toString(game.castlingKingPosition(kCol));
         const rPos = cescacs.PositionHelper.toString(game.castlingRookPosition(kCol, rCol, side, singleStep));
-        const r2Pos = rCol2 != undefined ?
+        const r2Pos = (rCol2 !== undefined) ?
             cescacs.PositionHelper.toString(game.castlingRookPosition(kCol, rCol2, 'D', singleStep)) : undefined;
         removeSymbol(document.getElementById("HEX" + previewCastling.k));
         previewCastling.k = kPos;
         if (side == 'K') {
             removeSymbol(document.getElementById("HEX" + previewCastling.rk));
             previewCastling.rk = rPos;
-            if (r2Pos == undefined) {
-                const rqPos = cescacs.PositionHelper.toString(cescacs.PositionHelper.initialQueenSideRookPosition(currentColor, game.isGrand));
-                removeSymbol(document.getElementById("HEX" + previewCastling.rq));
-                previewCastling.rq = rqPos;
-                placeSymbol(rqPos, rookSymbol);
+            if (r2Pos === undefined) {
+                if (previewCastling.rq != null) {
+                    const rqPos = cescacs.PositionHelper.toString(cescacs.PositionHelper.initialQueenSideRookPosition(currentColor, game.isGrand));
+                    removeSymbol(document.getElementById("HEX" + previewCastling.rq));
+                    previewCastling.rq = rqPos;
+                    placeSymbol(rqPos, rookSymbol);
+                }
             } else {
                 removeSymbol(document.getElementById("HEX" + previewCastling.rq));
                 previewCastling.rq = r2Pos;
                 placeSymbol(r2Pos, rookSymbol);
             }
         } else {
-            const rkPos = cescacs.PositionHelper.toString(cescacs.PositionHelper.initialKingSideRookPosition(currentColor, game.isGrand));
-            removeSymbol(document.getElementById("HEX" + previewCastling.rk));
-            previewCastling.rk = rkPos;
-            placeSymbol(rkPos, rookSymbol);
+            if (previewCastling.rk != null) {
+                const rkPos = cescacs.PositionHelper.toString(cescacs.PositionHelper.initialKingSideRookPosition(currentColor, game.isGrand));
+                removeSymbol(document.getElementById("HEX" + previewCastling.rk));
+                previewCastling.rk = rkPos;
+                placeSymbol(rkPos, rookSymbol);
+            }
             removeSymbol(document.getElementById("HEX" + previewCastling.rq));
             previewCastling.rq = rPos;
         }
@@ -724,11 +751,11 @@ function ShowMoves() {
         buttonShowMoves.innerHTML = "Go on"
         buttonShowMoves.style.display = "block";
         const n = movesGrid.childElementCount;
-        const restIni = n == 0 ? 0 : n - 1;
         for (const mv of game.moves(n)) {
             const div = document.createElement('div');
+            div.setAttribute("id", cescacs.csmv.undoStatusId(mv));
             div.innerHTML = cescacs.csmv.fullMoveNotation(mv);
-            div.onclick = function () { alert(this.innerHTML); }
+            div.onclick = function () { showId(this, this.getAttribute("id")); }
             movesGrid.appendChild(div);
         }
         if (movesGrid.childElementCount > 0) {
@@ -742,84 +769,156 @@ function ShowMoves() {
     } else {
         movesPanel.style.display = "none";
         for (const item of movesGrid.children) item.classList.remove("selected");
+        game.moveTop();
+        restoreBoard();
         RestoreButtons();
-        buttonShowMoves.innerHTML = "Show Mvs"
+        buttonShowMoves.innerHTML = "Show mvs"
         buttonShowMoves.classList.remove("fullbutton");
         buttonShowMoves.classList.add("halfbutton");
+    }
+}
+
+function UndoMove() {
+    const movesGrid = document.getElementById("movesGrid");
+    movesGrid.lastElementChild.remove();
+    game.popMove();
+    if (movesGrid.childElementCount > 0) {
+        movesGrid.lastElementChild.classList.add("selected");
+    } else document.getElementById("buttonUndo").disabled = true;
+    restoreBoard();
+}
+
+function showId(element, id) {
+    if (id != null) {
+        game.moveBottom();
+        while (game.topMoveId != id) {
+            game.moveForward();
+        }
+        restoreBoard();
+        for (const item of movesGrid.children) {
+            item.classList.remove("selected");
+        }
+        element.classList.add("selected");
+        buttonUndo.disabled = element.nextElementSibling != null;
     }
 }
 
 function showFirst() {
     const movesGrid = document.getElementById("movesGrid");
     const buttonUndo = document.getElementById("buttonUndo");
-    for (const item of movesGrid.children) {
-        if (item.classList.contains("selected")) {
-            if (item.previousElementSibling != null) {
-                item.classList.remove("selected");
-                movesGrid.firstElementChild.classList.add("selected");
-                movesGrid.firstElementChild.focus();
-                buttonUndo.disabled = movesGrid.firstElementChild.nextElementSibling != null;
+    try {
+        game.moveBottom();
+        restoreBoard();
+        for (const item of movesGrid.children) {
+            if (item.classList.contains("selected")) {
+                if (item.previousElementSibling != null) {
+                    item.classList.remove("selected");
+                    movesGrid.firstElementChild.classList.add("selected");
+                    movesGrid.firstElementChild.focus();
+                    buttonUndo.disabled = movesGrid.firstElementChild.nextElementSibling != null;
+                }
+                break;
             }
-            break;
         }
+        movesGrid.scrollTop = 0;
+    } catch (e) {
+        console.log("showFirst: ", e);
+        document.getElementById("gameStatus").innerHTML = (e instanceof Error ? e.message : "");
+        document.getElementById("resultString").innerHTML = 'ERROR';
     }
-    movesGrid.scrollTop = 0;
 }
+
 
 function showPrevious() {
     const movesGrid = document.getElementById("movesGrid");
-    for (const item of movesGrid.children) {
-        if (item.classList.contains("selected")) {
-            const previousSibling = item.previousElementSibling;
-            if (previousSibling != null) {
-                item.classList.remove("selected");
-                previousSibling.classList.add("selected");
-                buttonUndo.disabled = true;
+    const buttonUndo = document.getElementById("buttonUndo");
+    try {
+        game.moveBackward();
+        restoreBoard();
+        for (const item of movesGrid.children) {
+            if (item.classList.contains("selected")) {
+                const previousSibling = item.previousElementSibling;
+                if (previousSibling != null) {
+                    item.classList.remove("selected");
+                    previousSibling.classList.add("selected");
+                    buttonUndo.disabled = true;
+                }
+                break;
             }
-            break;
         }
+    } catch (e) {
+        console.log("showFirst: ", e);
+        document.getElementById("gameStatus").innerHTML = (e instanceof Error ? e.message : "");
+        document.getElementById("resultString").innerHTML = 'ERROR';
     }
 }
 
 function showNext() {
     const movesGrid = document.getElementById("movesGrid");
-    for (const item of movesGrid.children) {
-        if (item.classList.contains("selected")) {
-            const nextSibling = item.nextElementSibling;
-            if (nextSibling != null) {
-                item.classList.remove("selected");
-                nextSibling.classList.add("selected");
-                nextSibling.focus();
-                buttonUndo.disabled = nextSibling.nextElementSibling != null;
+    const buttonUndo = document.getElementById("buttonUndo");
+    try {
+        game.moveForward();
+        restoreBoard();
+        for (const item of movesGrid.children) {
+            if (item.classList.contains("selected")) {
+                const nextSibling = item.nextElementSibling;
+                if (nextSibling != null) {
+                    item.classList.remove("selected");
+                    nextSibling.classList.add("selected");
+                    nextSibling.focus();
+                    buttonUndo.disabled = nextSibling.nextElementSibling != null;
+                }
+                break;
             }
-            break;
         }
+    } catch (e) {
+        console.log("showFirst: ", e);
+        document.getElementById("gameStatus").innerHTML = (e instanceof Error ? e.message : "");
+        document.getElementById("resultString").innerHTML = 'ERROR';
     }
 }
 
 function showLast() {
     const movesGrid = document.getElementById("movesGrid");
-    for (const item of movesGrid.children) {
-        if (item.classList.contains("selected")) {
-            if (item.nextElementSibling != null) {
-                item.classList.remove("selected");
-                movesGrid.lastElementChild.classList.add("selected");
-                buttonUndo.disabled = false;
+    const buttonUndo = document.getElementById("buttonUndo");
+    try {
+        game.moveTop();
+        restoreBoard();
+        for (const item of movesGrid.children) {
+            if (item.classList.contains("selected")) {
+                if (item.nextElementSibling != null) {
+                    item.classList.remove("selected");
+                    movesGrid.lastElementChild.classList.add("selected");
+                    buttonUndo.disabled = false;
+                }
+                break;
             }
-            break;
         }
+        movesGrid.scrollTop = 10000;
+    } catch (e) {
+        console.log("showFirst: ", e);
+        document.getElementById("gameStatus").innerHTML = (e instanceof Error ? e.message : "");
+        document.getElementById("resultString").innerHTML = 'ERROR';
     }
-    movesGrid.scrollTop = 10000;
 }
 
 function GetMoves() {
+    const buttonShowMoves = document.getElementById("buttonShowMoves");
+    const buttonMoves = document.getElementById("buttonMoves");
+    const buttonUndo = document.getElementById("buttonUndo");
     const movesPanelTgl1 = document.getElementById("movesPanelTgl1");
     const movesPanelTgl2 = document.getElementById("movesPanelTgl2");
     if (movesPanelTgl1.style.display == 'none') {
+        buttonMoves.innerHTML = "Copy moves";
+        buttonShowMoves.style.display = 'block';
+        buttonUndo.style.display = 'block';
         movesPanelTgl1.style.display = 'block';
         movesPanelTgl2.style.display = 'none';
     } else {
         const movesArea = document.getElementById("movesArea");
+        buttonMoves.innerHTML = "Got";
+        buttonShowMoves.style.display = 'none';
+        buttonUndo.style.display = 'none';
         movesPanelTgl1.style.display = 'none';
         movesPanelTgl2.style.display = 'block';
         movesArea.value = game.strMoves();
@@ -842,30 +941,30 @@ function LoadMoves() {
         buttonLoadMoves.style.display = "block";
         loadMovesPanel.style.display = "block";
     } else {
-        //TODO: DO NOT CLOSE IN CASE OF ERROR
         const text = lMovesArea.value.trim();
         if (text.length == 0) {
             loadMovesPanel.style.display = "none";
             RestoreButtons();
-            buttonLoadMoves.innerHTML = "Load Mvs";
+            buttonLoadMoves.innerHTML = "Load mvs";
             buttonLoadMoves.classList.remove("fullbutton");
             buttonLoadMoves.classList.add("halfbutton");
-        } else if (lMovesArea.length >= 6) {
+        } else if (text.length >= 6) {
             try {
-                if (text.length >= 6) {
-                    game.applyMoveSq(text);
-                }
+                game.applyMoveSq(text);
+                loadMovesPanel.style.display = "none";
+                RestoreButtons();
+                buttonLoadMoves.innerHTML = "Load mvs";
+                buttonLoadMoves.classList.remove("fullbutton");
+                buttonLoadMoves.classList.add("halfbutton");
+                restoreBoard();
+                displayHeuristic();
+                saveGame(); //ensure to preserve status
             } catch (e) {
-                console.log(e);
+                console.log("LoadMoves: ", e);
+                lMovesArea.value = ("LoadMoves: " + e instanceof Error ? e.toString() : String(e)) + "\n\n" + text;
+                document.getElementById("gameStatus").innerHTML = (e instanceof Error ? e.message : "");
+                document.getElementById("resultString").innerHTML = 'ERROR';
             }
-            loadMovesPanel.style.display = "none";
-            RestoreButtons();
-            buttonLoadMoves.innerHTML = "Load Mvs";
-            buttonLoadMoves.classList.remove("fullbutton");
-            buttonLoadMoves.classList.add("halfbutton");
-            restoreBoard();
-            displayHeuristic();
-            saveGame(); //ensure to preserve status
         }
     }
 }
@@ -873,7 +972,7 @@ function LoadMoves() {
 function ManualMove() {
     let move = window.prompt("Next move?");
     if (move != null && move.length >= 2) {
-        game.applyStringMove(move, true);
+        game.applyStringMove(move);
         restoreBoard();
     }
 }

@@ -60,8 +60,7 @@ class Piece {
         return Piece.isRegainablePiece(this.symbol);
     }
     toString() {
-        var _a;
-        return this.uncapitalizedSymbol + ((_a = this.position) === null || _a === void 0 ? void 0 : _a.toString());
+        return this.uncapitalizedSymbol + this.position?.toString();
     }
     get uncapitalizedSymbol() {
         return (this.color == "White" ? this.symbol : this.symbol.toLowerCase());
@@ -101,7 +100,7 @@ class Piece {
     *orthogonalMoves(board, defends = false) {
         if (this._position != null) {
             const orientation = (this.pin == null ? null : cescacs_types_1.csTypes.isOrthogonalOrientation(this.pin) ? this.pin : []);
-            for (const direction of (orientation !== null && orientation !== void 0 ? orientation : cescacs_types_1.csConvert.orthogonalDirections())) {
+            for (const direction of (orientation ?? cescacs_types_1.csConvert.orthogonalDirections())) {
                 const it = cescacs_positionHelper_1.PositionHelper.orthogonalRide(this._position, direction);
                 let v = it.next();
                 while (v.done == false) {
@@ -122,7 +121,7 @@ class Piece {
     *diagonalMoves(board, defends = false) {
         if (this._position != null) {
             const orientation = (this.pin == null ? null : cescacs_types_1.csTypes.isDiagonalOrientation(this.pin) ? this.pin : []);
-            for (const direction of (orientation !== null && orientation !== void 0 ? orientation : cescacs_types_1.csConvert.diagonalDirections())) {
+            for (const direction of (orientation ?? cescacs_types_1.csConvert.diagonalDirections())) {
                 const it = cescacs_positionHelper_1.PositionHelper.diagonalRide(this._position, direction);
                 let v = it.next();
                 while (!v.done) {

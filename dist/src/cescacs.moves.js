@@ -3,29 +3,41 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.csMoves = void 0;
 const cescacs_types_1 = require("./cescacs.types");
 const cescacs_positionHelper_1 = require("./cescacs.positionHelper");
+const cescacs_piece_1 = require("./cescacs.piece");
 var csMoves;
 (function (csMoves) {
+    function isCastlingSide(side) {
+        return (typeof side === 'string') && (side === 'K' || side === 'D' || side === 'R');
+    }
+    csMoves.isCastlingSide = isCastlingSide;
     function isCastlingInfo(mov) {
-        return mov.side !== undefined && mov.col !== undefined && mov.rPos !== undefined &&
-            (mov.kRook !== undefined || mov.qRook !== undefined) &&
-            (mov.side != 'R' || mov.r2Pos === undefined);
+        return mov.side !== undefined && isCastlingSide(mov.side)
+            && mov.col !== undefined && cescacs_types_1.csTypes.isCastlingColumn(mov.col)
+            && mov.rPos !== undefined && cescacs_types_1.csTypes.isPosition(mov.rPos)
+            && (mov.side === 'D' || mov.kRook !== undefined && mov.kRook instanceof cescacs_piece_1.Rook)
+            && (mov.side === 'K' || mov.qRook !== undefined && mov.qRook instanceof cescacs_piece_1.Rook)
+            && (mov.side != 'R' || mov.r2Pos !== undefined && cescacs_types_1.csTypes.isPosition(mov.r2Pos));
     }
     csMoves.isCastlingInfo = isCastlingInfo;
     function isPromotionInfo(mov) {
-        return mov.piece !== undefined && mov.prPos !== undefined && mov.promoted !== undefined;
+        return mov.piece !== undefined && (mov.piece instanceof cescacs_piece_1.Piece)
+            && mov.prPos !== undefined && cescacs_types_1.csTypes.isPosition(mov.prPos)
+            && mov.promoted !== undefined && (mov.promoted instanceof cescacs_piece_1.Piece);
     }
     csMoves.isPromotionInfo = isPromotionInfo;
     function isMoveInfo(mov) {
-        return mov.piece !== undefined && mov.pos !== undefined && mov.moveTo !== undefined;
+        return mov.piece !== undefined && (mov.piece instanceof cescacs_piece_1.Piece)
+            && mov.pos !== undefined && cescacs_types_1.csTypes.isPosition(mov.pos)
+            && mov.moveTo !== undefined && cescacs_types_1.csTypes.isPosition(mov.moveTo);
     }
     csMoves.isMoveInfo = isMoveInfo;
     function isCaptureInfo(mov) {
-        return mov.captured !== undefined;
+        return mov.captured !== undefined && (mov.captured instanceof cescacs_piece_1.Piece)
+            && (mov.special === undefined || cescacs_types_1.csTypes.isPosition(mov.special));
     }
     csMoves.isCaptureInfo = isCaptureInfo;
     function fullMoveNotation(info) {
-        var _a;
-        const postStr = (_a = info.check) !== null && _a !== void 0 ? _a : (info.end == "mate" ? "#" : "");
+        const postStr = info.check ?? ((info.end == "mate") ? "#" : "");
         const preStr = info.turn == 'w' ? info.n + '. ' : "";
         return preStr + moveNotation(info.move) + postStr;
     }
@@ -47,6 +59,10 @@ var csMoves;
         }
     }
     csMoves.endText = endText;
+    function undoStatusId(info) {
+        return info.turn + info.n;
+    }
+    csMoves.undoStatusId = undoStatusId;
     function moveNotation(info) {
         if (isCastlingInfo(info)) {
             const tail = info.r2Pos !== undefined ? cescacs_types_1.csConvert.columnFromIndex(info.r2Pos[0])
@@ -65,7 +81,7 @@ var csMoves;
                         || Math.abs(info.special[1] - info.moveTo[1]) == 2 ? "@" : "@@";
                 }
                 else {
-                    sep = info.captured.symbol == 'P' ? "×" : "×" + info.captured.symbol;
+                    sep = info.captured.symbol == 'P' ? "\u00D7" : "\u00D7" + info.captured.symbol;
                 }
             }
             else

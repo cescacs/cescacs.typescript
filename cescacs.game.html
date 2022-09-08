@@ -1753,11 +1753,11 @@
         <div class="w3-rest w3-right">
             <div class="w3-container">
                 <div class="btn-group w3-right">
-                    <div class="w3-bar">
-                        <label class="w3-text-purple" style="font-size:1.5em"><b id="gameStatus">Game ready!</b></label>
+                    <div class="w3-bar" style="width: 14em;">
+                        <label class="w3-text-purple" style="font-size:1.5em; display:block; width:100%; height: 3ex; overflow: hidden;"><b id="gameStatus">Game ready!</b></label>
                     </div>
                     <div class="w3-bar">
-                        <label class="w3-text-purple" style="font-size:1.5em"><b id="resultString"></b></label>
+                        <label class="w3-text-purple" style="font-size:1.5em; display:block; width:100%;"><b id="resultString"></b></label>
                     </div>
                     <div id="sepGameStatus" class="w3-bar w3-amber w3-center"
                         style="height: 3ex; width: 14em; border: 1px solid green;"><span>Game status</span>
@@ -1780,9 +1780,9 @@
                     </div>
                     <div class="btn-subgroup">
                         <button id="buttonShowMoves" class="w3-button w3-black halfbutton stacked"
-                            onclick="ShowMoves()">Show mv</button>
+                            onclick="ShowMoves()">Show mvs</button>
                         <button id="buttonLoadMoves" class="w3-button w3-black halfbutton stacked"
-                            onclick="LoadMoves()">Load mv</button>
+                            onclick="LoadMoves()">Load mvs</button>
                     </div>
                     <button id="buttonManualMove" class="w3-button w3-black fullbutton stacked"
                         onclick="ManualMove()">Enter
@@ -1887,10 +1887,11 @@
                         <textarea id="movesArea" cols="26" rows="20" class="w3-large" readonly
                             style="resize: vertical"></textarea>
                     </div>
+                    <div class="w3-tiny w3-bar w3-amber" style="clear:both;">&nbsp;</div>
                     <div class="btn-group">
-                        <button id="buttonUndo" class="w3-button w3-black w3-block stacked">Undo</button>
-                        <button id="buttonMoves" class="w3-button w3-black w3-block" onclick="GetMoves()">Get
-                            Moves</button>
+                        <button id="buttonUndo" class="w3-button w3-black w3-block stacked" onclick="UndoMove()">Undo last move</button>
+                        <button id="buttonMoves" class="w3-button w3-black w3-block" onclick="GetMoves()">Copy
+                            moves</button>
                     </div>
                 </div>
                 <div id="castlingContainer"

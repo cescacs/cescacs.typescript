@@ -29,7 +29,7 @@ var csTypes;
     csTypes.isOrthogonalDirection = (x) => _orthogonalDirection.includes(x);
     csTypes.isDiagonalDirection = (x) => _diagonalDirection.includes(x);
     csTypes.isKnightDirection = (x) => _knightDirection.includes(x);
-    csTypes.iscastlingColumn = (x) => _castlingColumn.includes(x);
+    csTypes.isCastlingColumn = (x) => _castlingColumn.includes(x);
     csTypes.isDirectionMoveRange = (x) => csTypes.isNumber(x) && Number.isInteger(x) && x >= 0 && x <= 5;
     csTypes.isDirectionFullMoveRange = (x) => csTypes.isNumber(x) && Number.isInteger(x) && x >= 0 && x <= 11;
     csTypes.isOrthogonalOrientation = (x) => Array.isArray(x) && _orthogonalOrientation.some(y => y[0] == x[0] && y[1] == x[1]);

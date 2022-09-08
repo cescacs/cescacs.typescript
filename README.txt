@@ -13,7 +13,8 @@ CONTENTS:
 3) the typescript code is on ts/src folder
 - cescacs.ts has the Board, Game classes
 - cescacs.piece.ts has the code for different pieces
-- cescacs.types.ts has different types used
+- cescacs.moves.ts has storable representation for game moves and related functions
+- cescacs.types.ts has different specific types used
 - cescacs.positionHelper.ts has some functions related with the type Position
 - ts.general.ts are a few usable general Typescript functions
 

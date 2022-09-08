@@ -57,7 +57,7 @@ export namespace csTypes {
     export const isOrthogonalDirection = (x: any): x is OrthogonalDirection => _orthogonalDirection.includes(x);
     export const isDiagonalDirection = (x: any): x is DiagonalDirection => _diagonalDirection.includes(x);
     export const isKnightDirection = (x: any): x is KnightDirection => _knightDirection.includes(x);
-    export const iscastlingColumn = (x: any): x is Column => _castlingColumn.includes(x);
+    export const isCastlingColumn = (x: any): x is Column => _castlingColumn.includes(x);
     export const isDirectionMoveRange = (x: any): x is DirectionMoveRange => isNumber(x) && Number.isInteger(x) && x >= 0 && x <= 5;
     export const isDirectionFullMoveRange = (x: any): x is DirectionFullMoveRange => isNumber(x) && Number.isInteger(x) && x >= 0 && x <= 11;
     export const isOrthogonalOrientation = (x: any): x is OrthogonalOrientation =>

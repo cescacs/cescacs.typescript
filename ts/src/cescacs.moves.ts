@@ -8,6 +8,7 @@ import { PositionHelper } from "./cescacs.positionHelper";
 import {
     Piece, King, Rook, Pawn
 } from "./cescacs.piece";
+import { cspty } from "./cescacs";
 
 
 export type MoveInfo = csMoves.Castling | csMoves.Promotion | csMoves.Move | csMoves.Capture;
@@ -30,15 +31,22 @@ export namespace csMoves {
         side: CastlingSide;
         col: CastlingColumn;
         rPos: Position;
-        r2Pos: Position | undefined;
         kRook: Rook | undefined;
         qRook: Rook | undefined;
+        r2Pos: Position | undefined;
+    }
+
+    export function isCastlingSide(side: any): side is CastlingSide {
+        return (typeof side ==='string') && (side === 'K' || side === 'D' || side === 'R');
     }
 
     export function isCastlingInfo(mov: any): mov is Castling {
-        return mov.side !== undefined && mov.col !== undefined && mov.rPos !== undefined &&
-            (mov.kRook !== undefined || mov.qRook !== undefined) &&
-            (mov.side != 'R' || mov.r2Pos === undefined);
+        return mov.side !== undefined && isCastlingSide(mov.side)
+            && mov.col !== undefined && csty.isCastlingColumn(mov.col)
+            && mov.rPos !== undefined && csty.isPosition(mov.rPos)
+            && (mov.side === 'D' || mov.kRook !== undefined && mov.kRook instanceof Rook)
+            && (mov.side === 'K' || mov.qRook !== undefined && mov.qRook instanceof Rook)
+            && (mov.side != 'R' || mov.r2Pos !== undefined && csty.isPosition(mov.r2Pos));
     }
 
     export interface Promotion {
@@ -48,7 +56,9 @@ export namespace csMoves {
     }
 
     export function isPromotionInfo(mov: any): mov is Promotion {
-        return mov.piece !== undefined && mov.prPos !== undefined && mov.promoted !== undefined;
+        return mov.piece !== undefined && (mov.piece instanceof Piece)
+            && mov.prPos !== undefined && csty.isPosition(mov.prPos)
+            && mov.promoted !== undefined && (mov.promoted instanceof Piece);
     }
 
     export interface Move {
@@ -58,7 +68,9 @@ export namespace csMoves {
     }
 
     export function isMoveInfo(mov: any): mov is Move {
-        return mov.piece !== undefined && mov.pos !== undefined && mov.moveTo !== undefined;
+        return mov.piece !== undefined && (mov.piece instanceof Piece)
+            && mov.pos !== undefined && csty.isPosition(mov.pos)
+            && mov.moveTo !== undefined && csty.isPosition(mov.moveTo);
     }
 
     export interface Capture extends Move {
@@ -67,11 +79,12 @@ export namespace csMoves {
     }
 
     export function isCaptureInfo(mov: any): mov is Capture {
-        return mov.captured !== undefined;
+        return mov.captured !== undefined && (mov.captured instanceof Piece)
+            && (mov.special === undefined || csty.isPosition(mov.special));
     }
 
     export function fullMoveNotation(info: UndoStatus): string {
-        const postStr = info.check ?? (info.end == "mate" ? "#" : "");
+        const postStr = info.check ?? ((info.end == "mate") ? "#" : "");
         const preStr = info.turn == 'w' ? info.n + '. ' : "";
         return preStr + moveNotation(info.move) + postStr;
     }
@@ -79,10 +92,10 @@ export namespace csMoves {
     export function endText(info: UndoStatus, turn: Turn) {
         if (info.end === undefined) return "";
         else {
-            switch(info.end) {
+            switch (info.end) {
                 case "mate":
-                case "resigned": return turn == "b"? "3 - 0": "0 - 3";
-                case "stalemate": return turn == "b"? "2 - 1": "1 - 2";
+                case "resigned": return turn == "b" ? "3 - 0" : "0 - 3";
+                case "stalemate": return turn == "b" ? "2 - 1" : "1 - 2";
                 case "draw": return "1 - 1";
                 default: {
                     const exhaustiveCheck: never = info.end;
@@ -90,6 +103,10 @@ export namespace csMoves {
                 }
             }
         }
+    }
+
+    export function undoStatusId(info: UndoStatus): string {
+        return info.turn + info.n;
     }
 
     export function moveNotation(info: MoveInfo): string {
@@ -108,7 +125,7 @@ export namespace csMoves {
                     sep = PositionHelper.equals(info.moveTo, info.special)
                         || Math.abs(info.special[1] - info.moveTo[1]) == 2 ? "@" : "@@";
                 } else {
-                    sep = info.captured.symbol == 'P' ? "×" : "×" + info.captured.symbol;
+                    sep = info.captured.symbol == 'P' ? "\u00D7" : "\u00D7" + info.captured.symbol;
                 }
             } else sep = "-";
             return pre + sep + PositionHelper.toString(info.moveTo) + post;

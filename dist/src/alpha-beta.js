@@ -45,7 +45,6 @@ class Minimax {
         }
     }
     static generateMoves(node, currentKing) {
-        var _a, _b;
         const color = currentKing.color;
         const closeChecks = Minimax.closeCheckBitset(node, currentKing);
         const knightChecks = Minimax.knightCheckBitset(node, currentKing);
@@ -60,7 +59,7 @@ class Minimax {
             for (const pos of node.pieceMoves(piece)) {
                 const isEnPassantCapture = cescacs_piece_1.csPieceTypes.isPawn(piece) && node.specialPawnCapture != null &&
                     node.specialPawnCapture.isEnPassantCapturable() && node.specialPawnCapture.isEnPassantCapture(pos, piece);
-                const capturedValue = (_b = (_a = node.getPiece(pos)) === null || _a === void 0 ? void 0 : _a.value) !== null && _b !== void 0 ? _b : (isEnPassantCapture ? piece.value : 0);
+                const capturedValue = node.getPiece(pos)?.value ?? (isEnPassantCapture ? piece.value : 0);
                 let pawnValue = 0;
                 let checkValue = 0;
                 if (piece.hasOnlyCloseAttack) {

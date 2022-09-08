@@ -1,6 +1,6 @@
 /27:dk/26:gjg/25:rn2/24:pe1rp/23:p1evp1/22:2p2p1/21:5n2/20:3pe2/18:5G1/17:2p5/16:1j1P1J1/15:3p4/13:4P3/8:3P3/7:3P4/6:2P4/5:PPEEPP/4:PE3/3:RNNR/2:GJ1/1:DK/0:V/ w RKRkr - 3 19
 
-/* CAS ERROR CLOSE CHECK */
+/* CLOSE CHECK: Captures */
 /* No permet menjar amb el bishop però sí amb la Víbria (Wyvern) i amb el roc */
 /28:v/27:dk/26:gjg/25:r2r/24:pejJp/23:pp2pG/22:4p2/18:3P3/15:3n4/13:5n2/6:4P2/5:PP1EPP/4:PE1EP/3:RN1R/2:1JG/1:DK/0:V/ b RKRrkr - 0 26
 
@@ -68,3 +68,11 @@
 30. VF0-E5, JD16-C13
 31. EE11×GF14, GE7-G1^+
 32. RI3×GG1, JC13×RG1^+
+
+
+//Gambit
+1. E7-E13, E21-E15
+2. EE5-E9, EE23-E19
+3. D6-D12, E15×D12
+4. EE9×D12, D22-D16
+5. E13×D16, EE19×D16
