@@ -37,9 +37,9 @@ export type Orientation = OrthogonalOrientation | DiagonalOrientation;
 export type ScornfulCaptureDirection = "FileUp" | "FileDown" | "FileInvUp" | "FileInvDown";
 export type CastlingColumn = (typeof _castlingColumn)[number];
 export type HexColor = (typeof _hexColor)[number];
-export type PieceName = (typeof _pieceName)[number];
-export type PieceColor = "White" | "Black";
 export type Turn = (typeof _turn)[number];
+export type PieceName = (typeof _pieceName)[number];
+export type PieceColor = "White" | "Black"; //TODO: PieceColor = Turn
 export type CastlingStatus = (typeof _castlingStatus)[number];
 export type CastlingString = (typeof _castlingString)[number];
 export type GrandCastlingString = (typeof _grandCastlingString)[number];

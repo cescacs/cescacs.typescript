@@ -121,22 +121,17 @@ function clickHex(hexElement) {
                 const piece = game.getHexPiece(strCoord);
                 if (piece == null) return;
                 else if (isTurn(piece.color)) {
-                    let requirePromotion = false;
-                    if (game.isAwaitingPromotion && !game.checked) {
-                        const hexColor = cescacs.PositionHelper.lineHexColor(parseInt(strCoord.slice(1)));
-                        if (game.hasRegainablePieces(hexColor)) {
-                            requirePromotion = true;
-                            if (cescacs.cspty.isPawn(piece) && piece.isAwaitingPromotion) {
-                                hexElement.classList.add('selected');
-                                lastChild.classList.add('selected');
-                                clickHex.item = hexElement;
-                                clickHex.hexElement = hexElement; //pawn position
-                                const destCoord = cescacs.PositionHelper.parse(hexElement.getAttribute("id").slice(3));
-                                showPromotionDialog(destCoord, true);
-                            }
+                    if (!game.checked && game.isAwaitingPromotion && game.hasAwaitingRegainablePieces()) {
+                        gameStatus.innerHTML = "Promotion rq";
+                        if (cescacs.cspty.isPawn(piece) && piece.awaitingPromotion != null) {
+                            hexElement.classList.add('selected');
+                            lastChild.classList.add('selected');
+                            clickHex.item = hexElement;
+                            clickHex.hexElement = hexElement; //pawn position
+                            const destCoord = cescacs.PositionHelper.parse(hexElement.getAttribute("id").slice(3));
+                            showPromotionDialog(destCoord, true);
                         }
                     }
-                    if (requirePromotion) gameStatus.innerHTML = "Promotion rq";
                     else {
                         hexElement.classList.add('selected');
                         lastChild.classList.add('selected');
@@ -256,7 +251,7 @@ function confirmCastling() {
         btnContainer.innerHTML = "";
     }
     buttonCastling.innerHTML = "Castling";
-    game.doCastling(previewCastling.move, true);
+    game.doCastling(previewCastling.move);
     previewCastling.move = undefined;
     previewCastling.k = undefined;
     previewCastling.rk = undefined;
@@ -695,7 +690,6 @@ function previewCastling(value) {
                 previewCastling.rq = null;
             }
         }
-        debugger;
         const cmove = value.split("-");
         const side = cmove[0][2] == 'R' ? 'K' : cmove[0][2];
         const kCol = cmove[1][0];

@@ -340,7 +340,8 @@ export class King extends Piece {
 
     public markThreats(board: IBoard): void {
         for (const p of this.attemptMoves(board, true)) {
-            if (!board.isThreated(p, this.color)) board.setThreat(p, this.color);
+            //if (!board.isThreated(p, this.color))
+            board.setThreat(p, this.color);
         }
     }
 
@@ -477,8 +478,8 @@ export class King extends Piece {
         return r;
     }
 
+    //NOT USED THIS WAY (castlingStrMoves is defined on Board)
     // public * castlings(board: IBoard): Generator<[Nullable<Position>, Position, Nullable<Position>], void, void> {
-    //     //TODO: Those are "attempt castlings". Must be checked the moves are possible
     //     // - No check on final king position
     //     // - Empty hexes
     //     // - Rook can do the move
@@ -825,7 +826,7 @@ export class Bishop extends Piece {
     }
 
     public * moves(board: IBoard) {
-        yield* this.diagonalMoves(board);
+        yield* super.diagonalMoves(board);
     }
 
     public canMoveTo(board: IBoard, p: Position): boolean {
@@ -833,7 +834,7 @@ export class Bishop extends Piece {
     }
 
     public markThreats(board: IBoard): void {
-        for (const p of this.diagonalMoves(board, true)) {
+        for (const p of super.diagonalMoves(board, true)) {
             board.setThreat(p, this.color);
         }
     }
@@ -992,9 +993,10 @@ export class Pawn extends Piece {
         this.captured();
     }
 
-    public get isAwaitingPromotion() {
-        if (this.position != null) return PositionHelper.isPromotionHex(this.position, this.color);
-        else return false;
+    public get awaitingPromotion(): Nullable<HexColor> {
+        if (this.position != null)
+            return PositionHelper.isPromotionHex(this.position, this.color) ? PositionHelper.lineHexColor(this.position[1]) : null;
+        else return null;
     }
 
     public canCaptureOn(board: IBoard, p: Position): boolean {

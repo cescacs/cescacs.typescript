@@ -6,6 +6,11 @@ const cescacs_positionHelper_1 = require("./cescacs.positionHelper");
 const cescacs_piece_1 = require("./cescacs.piece");
 var csMoves;
 (function (csMoves) {
+    /* TODO change Piece by PieceKey, a reference to a piece repository
+        PieceKey can be the Hex (string) where it'd been created
+        Problem: Nowadays Kings are part of Board object; change that would be the first stage
+        Moves will have no objects, but key references (allow independent storage)
+    */
     function isCastlingSide(side) {
         return (typeof side === 'string') && (side === 'K' || side === 'D' || side === 'R');
     }

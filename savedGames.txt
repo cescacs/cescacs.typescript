@@ -23,6 +23,9 @@
 
 //Wait for Promotion 
 /28:v/27:dk/26:gjg/25:rnnr/24:p1jep/23:1p1epp/22:p2jp2/21:4p3/20:P1ep3/19:3e4/16:2p4/15:3p4/8:3P3/7:3PP3/6:2PJP2/5:1PEEPP/4:PEJEP/3:RNNR/2:GJG/1:DK/0:V/ w RKRrkr - 1 6
+//Wait for Promotion, ilustrative
+/28:v/27:dk/26:gjg/25:2nr/24:r1jep/23:3epp/22:p2jp2/21:P1n1p3/20:3p3/19:3e4/18:1J5/17:2p5/16:1Re4/15:3p4/14:1pP4/8:3P3/7:3PP3/6:2P1P2/5:2EEPP/4:PEJEP/3:1NNR/2:GJG/1:DK/0:V/ w KRkr - 4 13
+13. JB18×NC21, GD26×JC21
 
 //Scornful promotion
 /28:v/27:dk/26:gjg/25:rnnr/24:p1jep/23:1p1ep1/22:p2jp2/21:4p3/20:P1ep3/19:3e4/16:2p4/15:3p4/8:3P2p/7:3PP3/6:2PJP1P/5:1PEEP1/4:PEJE1/3:RNNR/2:GJG/1:DK/0:V/ w RKRrkr - 0 11

@@ -313,8 +313,8 @@ class King extends Piece {
     }
     markThreats(board) {
         for (const p of this.attemptMoves(board, true)) {
-            if (!board.isThreated(p, this.color))
-                board.setThreat(p, this.color);
+            //if (!board.isThreated(p, this.color))
+            board.setThreat(p, this.color);
         }
     }
     computeCheckAndPins(board) {
@@ -462,8 +462,8 @@ class King extends Piece {
         }
         return r;
     }
+    //NOT USED THIS WAY (castlingStrMoves is defined on Board)
     // public * castlings(board: IBoard): Generator<[Nullable<Position>, Position, Nullable<Position>], void, void> {
-    //     //TODO: Those are "attempt castlings". Must be checked the moves are possible
     //     // - No check on final king position
     //     // - Empty hexes
     //     // - Rook can do the move
@@ -796,13 +796,13 @@ class Bishop extends Piece {
             throw new TypeError("Bishop constructor error");
     }
     *moves(board) {
-        yield* this.diagonalMoves(board);
+        yield* super.diagonalMoves(board);
     }
     canMoveTo(board, p) {
         return super.canMoveDiagonallyTo(board, p);
     }
     markThreats(board) {
-        for (const p of this.diagonalMoves(board, true)) {
+        for (const p of super.diagonalMoves(board, true)) {
             board.setThreat(p, this.color);
         }
     }
@@ -970,11 +970,11 @@ class Pawn extends Piece {
         piece.setPositionTo(this.position);
         this.captured();
     }
-    get isAwaitingPromotion() {
+    get awaitingPromotion() {
         if (this.position != null)
-            return cescacs_positionHelper_1.PositionHelper.isPromotionHex(this.position, this.color);
+            return cescacs_positionHelper_1.PositionHelper.isPromotionHex(this.position, this.color) ? cescacs_positionHelper_1.PositionHelper.lineHexColor(this.position[1]) : null;
         else
-            return false;
+            return null;
     }
     canCaptureOn(board, p) {
         return cescacs_positionHelper_1.PositionHelper.positionIteratorIncludes(this.moves(board, true, false), p);
