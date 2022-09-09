@@ -1,4 +1,5 @@
 import type { Nullable } from "./ts.general";
+import { assertCondition } from "./ts.general";
 
 const _column = ['P', 'T', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'K', 'L', 'X', 'Z'] as const;
 const _castlingColumn = ['D', 'E', 'F', 'H', 'I'] as const;
@@ -40,6 +41,8 @@ export type HexColor = (typeof _hexColor)[number];
 export type Turn = (typeof _turn)[number];
 export type PieceName = (typeof _pieceName)[number];
 export type PieceColor = "White" | "Black"; //TODO: PieceColor = Turn
+export type Side = "K" | "D";
+export type PieceKey = string;
 export type CastlingStatus = (typeof _castlingStatus)[number];
 export type CastlingString = (typeof _castlingString)[number];
 export type GrandCastlingString = (typeof _grandCastlingString)[number];
@@ -67,6 +70,7 @@ export namespace csTypes {
     export const isHexColor = (x: any): x is HexColor => _hexColor.includes(x);
     export const isPieceName = (x: any): x is PieceName => _pieceName.includes(x);
     export const isTurn = (x: any): x is Turn => _turn.includes(x);
+    export const isSide = (x: any): x is Side => x === 'K' || x === 'D';
     export const isCastlingStatus = (x: any): x is CastlingStatus => _castlingStatus.includes(x);
     export const isCastlingString = (x: any): x is CastlingString => _castlingString.includes(x);
     export const isGrandCastlingString = (x: any): x is GrandCastlingString => _grandCastlingString.includes(x);
@@ -87,6 +91,8 @@ export namespace csTypes {
 export namespace csConvert {
     export const columnFromIndex = (i: ColumnIndex): Column => _column[i];
     export const toColumnIndex = (column: Column): ColumnIndex => _column.indexOf(column) as ColumnIndex;
+    //TODO PieceColor == Turn
+    export const turnFromPieceColor = (color: PieceColor): Turn => color == 'White' ? 'w' : 'b';
     export const toOrthogonalDirectionIndex = (direction: OrthogonalDirection): DirectionMoveRange => _orthogonalDirection.indexOf(direction) as DirectionMoveRange;
     export const orthogonalDirectionFromIndex = (i: DirectionMoveRange): OrthogonalDirection => _orthogonalDirection[i];
     export const toDiagonalDirectionIndex = (direction: DiagonalDirection): DirectionMoveRange => _diagonalDirection.indexOf(direction) as DirectionMoveRange;
@@ -120,6 +126,22 @@ export namespace csConvert {
                 throw new Error(exhaustiveCheck);
             }
         }
+    }
+    export function getPieceKeyColor(key: PieceKey): PieceColor {
+        //TODO: PieceColor into Turn logic change
+        if (key[0] === 'w') return 'White';
+        else if (key[0] === 'b') return 'Black';
+        assertCondition(false, `Incorrect key ${key}`);
+    }
+    export function getPieceKeyName(key: PieceKey): PieceName {
+        assertCondition(csTypes.isPieceName(key[1]), `Incorrect key ${key}`);
+        return key[1];
+    }
+    export function getBishopKeyHexColor(key: PieceKey): Nullable<HexColor> {
+        return key[1] !== 'J' ? null : key.slice(2) as HexColor;
+    }
+    export function getRookKeySide(key: PieceKey): Nullable<Side> {
+        return key[1] !== 'R' ? null : csTypes.isSide(key[2]) ? key[2] : null;
     }
     export function* orthogonalDirections() { for (const d of _orthogonalDirection) yield d; }
     export function* diagonalDirections() { for (const d of _diagonalDirection) yield d; }

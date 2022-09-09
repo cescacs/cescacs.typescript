@@ -5,14 +5,8 @@ const cescacs_types_1 = require("./cescacs.types");
 const cescacs_positionHelper_1 = require("./cescacs.positionHelper");
 const ts_general_1 = require("./ts.general");
 class Piece {
-    constructor(color, column, line) {
+    constructor(color) {
         this.color = color;
-        if (column == undefined)
-            this._position = null;
-        else if (line == undefined)
-            throw new TypeError("Line shoud be defined when column is");
-        else
-            this._position = cescacs_positionHelper_1.PositionHelper.fromBoardPosition(column, line);
     }
     static isRegainablePiece(symbol) {
         switch (symbol) {
@@ -236,6 +230,7 @@ class King extends Piece {
         this.value = 0;
         this._moved = false;
         this.checkPosition = null;
+        this.key = cescacs_types_1.csConvert.turnFromPieceColor(color) + this.symbol;
     }
     setPositionTo(pos) {
         super.setPositionTo(pos);
@@ -620,10 +615,16 @@ class King extends Piece {
 }
 exports.King = King;
 class Queen extends Piece {
-    constructor() {
-        super(...arguments);
+    constructor(color, column, line) {
+        super(color);
         this.symbol = "D";
         this.value = 15;
+        this.key = cescacs_types_1.csConvert.turnFromPieceColor(color) + this.symbol;
+        if (column !== undefined) {
+            (0, ts_general_1.assertCondition)(cescacs_types_1.csTypes.isColumn(column));
+            (0, ts_general_1.assertNonNullish)(line, "line of the column");
+            super.setPositionTo(cescacs_positionHelper_1.PositionHelper.fromBoardPosition(column, line, true));
+        }
     }
     *moves(board) {
         yield* this.orthogonalMoves(board);
@@ -643,10 +644,16 @@ class Queen extends Piece {
 }
 exports.Queen = Queen;
 class Wyvern extends Piece {
-    constructor() {
-        super(...arguments);
+    constructor(color, column, line) {
+        super(color);
         this.symbol = "V";
         this.value = 14;
+        this.key = cescacs_types_1.csConvert.turnFromPieceColor(color) + this.symbol;
+        if (column !== undefined) {
+            (0, ts_general_1.assertCondition)(cescacs_types_1.csTypes.isColumn(column));
+            (0, ts_general_1.assertNonNullish)(line, "line of the column");
+            super.setPositionTo(cescacs_positionHelper_1.PositionHelper.fromBoardPosition(column, line, true));
+        }
     }
     *moves(board) {
         yield* this.orthogonalMoves(board);
@@ -667,20 +674,29 @@ class Wyvern extends Piece {
 }
 exports.Wyvern = Wyvern;
 class Rook extends Piece {
-    constructor(color, column, line) {
+    constructor(color, grand, columnOrNumber, line) {
         super(color);
         this.symbol = "R";
         this.value = 11;
-        if (column != undefined && line != undefined) {
-            super.setPositionTo([cescacs_types_1.csConvert.toColumnIndex(column), line]);
-            this._moved = this.defaultMoveInitialitzation();
+        if (line !== undefined) {
+            (0, ts_general_1.assertCondition)(cescacs_types_1.csTypes.isColumn(columnOrNumber));
+            super.setPositionTo(cescacs_positionHelper_1.PositionHelper.fromBoardPosition(columnOrNumber, line, true));
+            this.key = cescacs_types_1.csConvert.turnFromPieceColor(color) + this.symbol +
+                (this.isKingSide(grand) ? "k" : this.isQueenSide(grand) ? "q" : (columnOrNumber + line));
+            // first moved heuristic aprox; but needs castlingStatus
+            this._moved = !this.isKingSide(grand) && !this.isQueenSide(grand);
         }
-        else
+        else {
+            (0, ts_general_1.assertCondition)(typeof columnOrNumber == "number", `instance number of piece ${this.symbol}`);
+            this.key = cescacs_types_1.csConvert.turnFromPieceColor(color) + this.symbol + columnOrNumber;
             this._moved = false;
+        }
     }
     setPositionTo(pos) {
         super.setPositionTo(pos);
-        this._moved = this.defaultMoveInitialitzation();
+        // first moved heuristic aprox; but needs castlingStatus
+        this._moved = !this.isQueenSide(false) && !this.isKingSide(false)
+            && !this.isQueenSide(true) && !this.isKingSide(true);
     }
     isQueenSide(grand) {
         if (this.position == null)
@@ -721,17 +737,22 @@ class Rook extends Piece {
     get moved() {
         return this._moved;
     }
-    defaultMoveInitialitzation() {
-        // first heuristic aprox; but needs castlingStatus
-        return !(this.isQueenSide(false) || this.isKingSide(false) || this.isQueenSide(true) || this.isKingSide(true));
-    }
 }
 exports.Rook = Rook;
 class Pegasus extends Piece {
-    constructor() {
-        super(...arguments);
+    constructor(color, columnOrNumber, line) {
+        super(color);
         this.symbol = "G";
         this.value = 8;
+        if (line !== undefined) {
+            (0, ts_general_1.assertCondition)(cescacs_types_1.csTypes.isColumn(columnOrNumber));
+            super.setPositionTo(cescacs_positionHelper_1.PositionHelper.fromBoardPosition(columnOrNumber, line, true));
+            this.key = cescacs_types_1.csConvert.turnFromPieceColor(color) + this.symbol + columnOrNumber + line;
+        }
+        else {
+            (0, ts_general_1.assertCondition)(typeof columnOrNumber == "number", `instance number of piece ${this.symbol}`);
+            this.key = cescacs_types_1.csConvert.turnFromPieceColor(color) + this.symbol + columnOrNumber;
+        }
     }
     *moves(board) {
         yield* this.diagonalMoves(board);
@@ -752,10 +773,19 @@ class Pegasus extends Piece {
 }
 exports.Pegasus = Pegasus;
 class Knight extends Piece {
-    constructor() {
-        super(...arguments);
+    constructor(color, columnOrNumber, line) {
+        super(color);
         this.symbol = "N";
         this.value = 4;
+        if (line !== undefined) {
+            (0, ts_general_1.assertCondition)(cescacs_types_1.csTypes.isColumn(columnOrNumber));
+            super.setPositionTo(cescacs_positionHelper_1.PositionHelper.fromBoardPosition(columnOrNumber, line, true));
+            this.key = cescacs_types_1.csConvert.turnFromPieceColor(color) + this.symbol + columnOrNumber + line;
+        }
+        else {
+            (0, ts_general_1.assertCondition)(typeof columnOrNumber == "number", `instance number of piece ${this.symbol}`);
+            this.key = cescacs_types_1.csConvert.turnFromPieceColor(color) + this.symbol + columnOrNumber;
+        }
     }
     *moves(board) {
         yield* this.knightMoves(board);
@@ -785,8 +815,9 @@ class Bishop extends Piece {
         super(color);
         this.symbol = "J";
         this.value = 3;
-        if (cescacs_types_1.csTypes.isColumn(columnOrHexcolor) && line != undefined) {
-            super.setPositionTo([cescacs_types_1.csConvert.toColumnIndex(columnOrHexcolor), line]);
+        if (line !== undefined) {
+            (0, ts_general_1.assertCondition)(cescacs_types_1.csTypes.isColumn(columnOrHexcolor));
+            super.setPositionTo(cescacs_positionHelper_1.PositionHelper.fromBoardPosition(columnOrHexcolor, line, true));
             this.hexesColor = cescacs_positionHelper_1.PositionHelper.hexColor(this.position);
         }
         else if (cescacs_types_1.csTypes.isHexColor(columnOrHexcolor)) {
@@ -794,6 +825,7 @@ class Bishop extends Piece {
         }
         else
             throw new TypeError("Bishop constructor error");
+        this.key = cescacs_types_1.csConvert.turnFromPieceColor(color) + this.symbol + this.hexesColor;
     }
     *moves(board) {
         yield* super.diagonalMoves(board);
@@ -809,10 +841,13 @@ class Bishop extends Piece {
 }
 exports.Bishop = Bishop;
 class Elephant extends Piece {
-    constructor() {
-        super(...arguments);
+    constructor(color, column, line) {
+        super(color);
         this.symbol = "E";
         this.value = 2;
+        (0, ts_general_1.assertCondition)(cescacs_types_1.csTypes.isColumn(column));
+        super.setPositionTo(cescacs_positionHelper_1.PositionHelper.fromBoardPosition(column, line, true));
+        this.key = cescacs_types_1.csConvert.turnFromPieceColor(color) + this.symbol + column + line;
     }
     *moves(board, defend = false) {
         const piecePos = this.position;
@@ -858,10 +893,13 @@ class Elephant extends Piece {
 }
 exports.Elephant = Elephant;
 class Almogaver extends Piece {
-    constructor() {
-        super(...arguments);
+    constructor(color, column, line) {
+        super(color);
         this.symbol = "M";
         this.value = 2;
+        (0, ts_general_1.assertCondition)(cescacs_types_1.csTypes.isColumn(column));
+        super.setPositionTo(cescacs_positionHelper_1.PositionHelper.fromBoardPosition(column, line, true));
+        this.key = cescacs_types_1.csConvert.turnFromPieceColor(color) + this.symbol + column + line;
     }
     *moves(board, onlyCaptures = false, defends = false) {
         const piecePos = this.position;
@@ -904,10 +942,13 @@ class Almogaver extends Piece {
 }
 exports.Almogaver = Almogaver;
 class Pawn extends Piece {
-    constructor() {
-        super(...arguments);
+    constructor(color, column, line) {
+        super(color);
         this.symbol = "P";
         this.value = 1;
+        (0, ts_general_1.assertCondition)(cescacs_types_1.csTypes.isColumn(column));
+        super.setPositionTo(cescacs_positionHelper_1.PositionHelper.fromBoardPosition(column, line, true));
+        this.key = cescacs_types_1.csConvert.turnFromPieceColor(color) + this.symbol + column + line;
     }
     *moves(board, onlyCaptures = false, defend = false) {
         const pawnPos = this.position;

@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.csConvert = exports.csTypes = void 0;
+const ts_general_1 = require("./ts.general");
 const _column = ['P', 'T', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'K', 'L', 'X', 'Z'];
 const _castlingColumn = ['D', 'E', 'F', 'H', 'I'];
 const _orthogonalDirection = ["ColumnUp", "ColumnDown", "FileUp", "FileDown", "FileInvUp", "FileInvDown"];
@@ -37,6 +38,7 @@ var csTypes;
     csTypes.isHexColor = (x) => _hexColor.includes(x);
     csTypes.isPieceName = (x) => _pieceName.includes(x);
     csTypes.isTurn = (x) => _turn.includes(x);
+    csTypes.isSide = (x) => x === 'K' || x === 'D';
     csTypes.isCastlingStatus = (x) => _castlingStatus.includes(x);
     csTypes.isCastlingString = (x) => _castlingString.includes(x);
     csTypes.isGrandCastlingString = (x) => _grandCastlingString.includes(x);
@@ -56,6 +58,8 @@ var csConvert;
 (function (csConvert) {
     csConvert.columnFromIndex = (i) => _column[i];
     csConvert.toColumnIndex = (column) => _column.indexOf(column);
+    //TODO PieceColor == Turn
+    csConvert.turnFromPieceColor = (color) => color == 'White' ? 'w' : 'b';
     csConvert.toOrthogonalDirectionIndex = (direction) => _orthogonalDirection.indexOf(direction);
     csConvert.orthogonalDirectionFromIndex = (i) => _orthogonalDirection[i];
     csConvert.toDiagonalDirectionIndex = (direction) => _diagonalDirection.indexOf(direction);
@@ -92,6 +96,28 @@ var csConvert;
         }
     }
     csConvert.getDiagonalOrientation = getDiagonalOrientation;
+    function getPieceKeyColor(key) {
+        //TODO: PieceColor into Turn logic change
+        if (key[0] === 'w')
+            return 'White';
+        else if (key[0] === 'b')
+            return 'Black';
+        (0, ts_general_1.assertCondition)(false, `Incorrect key ${key}`);
+    }
+    csConvert.getPieceKeyColor = getPieceKeyColor;
+    function getPieceKeyName(key) {
+        (0, ts_general_1.assertCondition)(csTypes.isPieceName(key[1]), `Incorrect key ${key}`);
+        return key[1];
+    }
+    csConvert.getPieceKeyName = getPieceKeyName;
+    function getBishopKeyHexColor(key) {
+        return key[1] !== 'J' ? null : key.slice(2);
+    }
+    csConvert.getBishopKeyHexColor = getBishopKeyHexColor;
+    function getRookKeySide(key) {
+        return key[1] !== 'R' ? null : csTypes.isSide(key[2]) ? key[2] : null;
+    }
+    csConvert.getRookKeySide = getRookKeySide;
     function* orthogonalDirections() { for (const d of _orthogonalDirection)
         yield d; }
     csConvert.orthogonalDirections = orthogonalDirections;

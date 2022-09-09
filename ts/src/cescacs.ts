@@ -207,6 +207,7 @@ export abstract class Board implements IBoard {
     private readonly bPositions: number[] = [0, 0, 0, 0, 0, 0, 0, 0];
     private readonly wThreats: number[] = [0, 0, 0, 0, 0, 0, 0, 0];
     private readonly bThreats: number[] = [0, 0, 0, 0, 0, 0, 0, 0];
+    private readonly pieces = new Map<string, Piece>();
     private readonly wPieces = new Map<string, Piece>();
     private readonly bPieces = new Map<string, Piece>();
     private readonly _regainablePieces: Piece[] = [];
@@ -224,6 +225,32 @@ export abstract class Board implements IBoard {
     constructor(grand: boolean, turn?: Turn) {
         this._grand = grand;
         this._turn = turn ?? 'w';
+        this.pieces.set(this.wKing.key, this.wKing);
+        this.pieces.set(this.bKing.key, this.bKing);
+    }
+
+    protected createPiece(pieceName: PieceName, color: PieceColor, columnIndex: ColumnIndex, line: Line) :Piece {
+        const column = cscnv.columnFromIndex(columnIndex);
+        let piece: Piece;
+        switch (pieceName) {
+            //TODO: King creation
+            case "K": throw new Error("King must be created before setting it on the board");
+            case "D": piece = new Queen(color, column, line); break;
+            case "V": piece = new Wyvern(color, column, line); break;
+            case "R": piece = new Rook(color, this._grand, column, line); break;
+            case "G": piece = new Pegasus(color, column, line); break;
+            case "N": piece = new Knight(color, column, line); break;
+            case "J": piece = new Bishop(color, column, line); break;
+            case "E": piece = new Elephant(color, column, line); break;
+            case "M": piece = new Almogaver(color, column, line); break;
+            case "P": piece = new Pawn(color, column, line); break;
+            default: {
+                const exhaustiveCheck: never = pieceName;
+                throw new Error(exhaustiveCheck);
+            }
+        }
+        this.pieces.set(piece.key, piece);
+        return piece;
     }
 
     public get isGrand() { return this._grand; }
@@ -301,7 +328,10 @@ export abstract class Board implements IBoard {
     }
 
     protected addRegainablePiece(piece: Piece) {
-        if (piece.position == null) this._regainablePieces.push(piece);
+        if (piece.position == null) {
+            this._regainablePieces.push(piece);
+            this.pieces.set(piece.key, piece);
+        }
     }
 
     public hasRegainablePieces(hexColor: HexColor): boolean {
@@ -832,47 +862,6 @@ export class Game extends Board {
         return PositionHelper.knightJump(kingPosition, kingCastleMove)!;
     }
 
-    private static createPiece(pieceName: PieceName, color: PieceColor): Piece
-    private static createPiece(pieceName: PieceName, color: PieceColor, columnIndex: ColumnIndex, line: Line): Piece
-    private static createPiece(pieceName: PieceName, color: PieceColor, columnIndex?: ColumnIndex, line?: Line): Piece {
-        if (columnIndex != null && line != null) {
-            const column = cscnv.columnFromIndex(columnIndex);
-            switch (pieceName) {
-                case "K": throw new Error("King must be created before setting it on the board (without position)");
-                case "D": return new Queen(color, column, line);
-                case "V": return new Wyvern(color, column, line);
-                case "R": return new Rook(color, column, line);
-                case "G": return new Pegasus(color, column, line);
-                case "N": return new Knight(color, column, line);
-                case "J": return new Bishop(color, column, line);
-                case "E": return new Elephant(color, column, line);
-                case "M": return new Almogaver(color, column, line);
-                case "P": return new Pawn(color, column, line);
-                default: {
-                    const exhaustiveCheck: never = pieceName;
-                    throw new Error(exhaustiveCheck);
-                }
-            }
-        } else {
-            switch (pieceName) {
-                case "K": return new King(color);
-                case "D": return new Queen(color);
-                case "V": return new Wyvern(color);
-                case "R": return new Rook(color);
-                case "G": return new Pegasus(color);
-                case "N": return new Knight(color);
-                case "J": throw new Error("Bishop needs position or HexColor to be created");
-                case "E": return new Elephant(color);
-                case "M": return new Almogaver(color);
-                case "P": return new Pawn(color);
-                default: {
-                    const exhaustiveCheck: never = pieceName;
-                    throw new Error(exhaustiveCheck);
-                }
-            }
-        }
-    }
-
     private static convertPieceAliases(pieceSymbol: string): PieceName {
         switch (pieceSymbol) {
             case "Q": return "D";
@@ -896,12 +885,12 @@ export class Game extends Board {
         pieces.push(new Queen("White", 'E', 1), new Wyvern("White", 'F', 0));
         pieces.push(new Pegasus("White", 'D', 2), new Bishop("White", 'F', 2), new Pegasus("White", 'H', 2));
         if (grand) {
-            pieces.push(new Pawn("White", 'B', 6), new Rook("White", 'B', 4), new Knight("White", 'C', 3));
-            pieces.push(new Knight("White", 'I', 3), new Rook("White", 'K', 4), new Pawn("White", 'K', 6));
+            pieces.push(new Pawn("White", 'B', 6), new Rook("White", true, 'B', 4), new Knight("White", 'C', 3));
+            pieces.push(new Knight("White", 'I', 3), new Rook("White", true, 'K', 4), new Pawn("White", 'K', 6));
             pieces.push(new Pawn("White", 'P', 7), new Pawn("White", 'T', 8), new Pawn("White", 'X', 8), new Pawn("White", 'Z', 7))
             pieces.push(new Almogaver("White", 'C', 7), new Almogaver("White", 'A', 7), new Almogaver("White", 'L', 7), new Almogaver("White", 'I', 7));
         } else {
-            pieces.push(new Pawn("White", 'B', 4), new Rook("White", 'C', 3), new Rook("White", 'I', 3), new Pawn("White", 'K', 4));
+            pieces.push(new Pawn("White", 'B', 4), new Rook("White", false, 'C', 3), new Rook("White", false, 'I', 3), new Pawn("White", 'K', 4));
         }
         pieces.push(new Knight("White", 'E', 3), new Knight("White", 'G', 3));
         pieces.push(new Elephant("White", 'D', 4), new Bishop("White", 'F', 4), new Elephant("White", 'H', 4));
@@ -911,12 +900,12 @@ export class Game extends Board {
         pieces.push(new Queen("Black", 'E', 27), new Wyvern("Black", 'F', 28));
         pieces.push(new Pegasus("Black", 'D', 26), new Bishop("Black", 'F', 26), new Pegasus("Black", 'H', 26));
         if (grand) {
-            pieces.push(new Pawn("Black", 'B', 22), new Rook("Black", 'B', 24), new Knight("Black", 'C', 25));
-            pieces.push(new Knight("Black", 'I', 25), new Rook("Black", 'K', 24), new Pawn("Black", 'K', 22));
+            pieces.push(new Pawn("Black", 'B', 22), new Rook("Black", true, 'B', 24), new Knight("Black", 'C', 25));
+            pieces.push(new Knight("Black", 'I', 25), new Rook("Black", true, 'K', 24), new Pawn("Black", 'K', 22));
             pieces.push(new Pawn("Black", 'P', 21), new Pawn("Black", 'T', 20), new Pawn("Black", 'X', 20), new Pawn("Black", 'Z', 21))
             pieces.push(new Almogaver("Black", 'C', 21), new Almogaver("Black", 'A', 21), new Almogaver("Black", 'I', 21), new Almogaver("Black", 'L', 21));
         } else {
-            pieces.push(new Pawn("Black", 'B', 24), new Rook("Black", 'C', 25), new Rook("Black", 'I', 25), new Pawn("Black", 'K', 24));
+            pieces.push(new Pawn("Black", 'B', 24), new Rook("Black", false, 'C', 25), new Rook("Black", false, 'I', 25), new Pawn("Black", 'K', 24));
         }
         pieces.push(new Knight("Black", 'E', 25), new Knight("Black", 'G', 25));
         pieces.push(new Elephant("Black", 'D', 24), new Bishop("Black", 'F', 24), new Elephant("Black", 'H', 24));
@@ -955,7 +944,6 @@ export class Game extends Board {
     }
 
     private _moves: UndoStatus[] = [];
-    // REVIEW OPERATIONS UPDATING _top
     private _top: number = -1;
     private moveNumber: number;
     private halfmoveClock: number;
@@ -1620,7 +1608,7 @@ export class Game extends Board {
                                     } else {
                                         //TODO: change signature createPiece to use position. First check position is empty
                                         //TODO: position will be used to make the key; other createPiece signature will allow a string as the key
-                                        const newPiece = Game.createPiece(pieceSymbol, color, actualColumnIndex as ColumnIndex, actualLine as Line);
+                                        const newPiece = super.createPiece(pieceSymbol, color, actualColumnIndex as ColumnIndex, actualLine as Line);
                                         if (cspty.isRook(newPiece)) rooks.push(newPiece);
                                         else if (cspty.isPawn(newPiece) && newPiece.awaitingPromotion != null) super.setAwaitingPromotion(newPiece.color);
                                         if (this.hasPiece(newPiece.position!) == null) {
@@ -1648,15 +1636,15 @@ export class Game extends Board {
                 const pieceSet = (color == 'White' ? wPiece : bPiece);
                 let n = countOccurrences(pieceSet, 'D');
                 if (n > 1) throw new Error(`Too many ${color} Queens`);
-                else if (n == 0) this.addRegainablePiece(Game.createPiece("D", color));
+                else if (n == 0) this.addRegainablePiece(new Queen(color));
                 n = countOccurrences(pieceSet, 'V');
                 if (n > 1) throw new Error(`Too many ${color} Wyverns`);
-                else if (n == 0) this.addRegainablePiece(Game.createPiece("V", color));
+                else if (n == 0) this.addRegainablePiece(new Wyvern(color));
                 n = countOccurrences(pieceSet, 'R');
                 if (n > 2) throw new Error(`Too many ${color} Rooks`);
                 else {
                     while (n < 2) {
-                        this.addRegainablePiece(Game.createPiece("R", color));
+                        this.addRegainablePiece(new Rook(color, this.isGrand, n));
                         n++;
                     }
                 }
@@ -1664,15 +1652,15 @@ export class Game extends Board {
                 if (n > 2) throw new Error(`Too many ${color} Pegasus`);
                 else {
                     while (n < 2) {
-                        this.addRegainablePiece(Game.createPiece("G", color));
+                        this.addRegainablePiece(new Pegasus(color, n));
                         n++;
                     }
                 }
                 n = countOccurrences(pieceSet, 'N');
-                if (n > 2) throw new Error(`Too many ${color} Knights`);
+                if (!this.isGrand && n > 2 || this.isGrand && n > 4) throw new Error(`Too many ${color} Knights`);
                 else {
                     while (n < 2) {
-                        this.addRegainablePiece(Game.createPiece("N", color));
+                        this.addRegainablePiece(new Knight(color, n));
                         n++;
                     }
                 }

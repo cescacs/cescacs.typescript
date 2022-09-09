@@ -1,6 +1,6 @@
-import type { Nullable } from "./ts.general";
+import { isNotNullNorEmpty, Nullable } from "./ts.general";
 import type {
-    Column, ColumnIndex, Line, Position,
+    Column, ColumnIndex, Line, Position, PieceKey,
     OrthogonalDirection, DiagonalDirection,
     Orientation, OrthogonalOrientation, DiagonalOrientation,
     ScornfulCaptureDirection,
@@ -34,6 +34,8 @@ export interface IBoard {
     specialPawnCapture: Nullable<IPawnSpecialCaptureStatus>;
 }
 
+
+
 export abstract class Piece {
 
     public static isRegainablePiece(symbol: PieceName): boolean {
@@ -43,20 +45,14 @@ export abstract class Piece {
         }
     }
 
+    public abstract readonly key: PieceKey;
     public abstract readonly symbol: PieceName;
     public abstract readonly value: number;
 
     private _position: Nullable<Position>;
     private _pin: Nullable<Orientation>;
 
-    constructor(color: PieceColor)
-    constructor(color: PieceColor, column: Column, line: Line)
-    constructor(public readonly color: PieceColor, column?: Column, line?: Line
-    ) {
-        if (column == undefined) this._position = null;
-        else if (line == undefined) throw new TypeError("Line shoud be defined when column is");
-        else this._position = PositionHelper.fromBoardPosition(column, line);
-    }
+    constructor(public readonly color: PieceColor) { }
 
     public abstract moves(board: IBoard): Generator<Position, void, void>;
     public abstract markThreats(board: IBoard): void;
@@ -257,6 +253,7 @@ export abstract class Piece {
 
 export class King extends Piece {
 
+    public readonly key;
     public readonly symbol = "K";
     public readonly value = 0;
     private _moved: boolean = false;
@@ -264,6 +261,7 @@ export class King extends Piece {
 
     constructor(color: PieceColor) {
         super(color);
+        this.key = cscnv.turnFromPieceColor(color) + this.symbol;
     }
 
     public setPositionTo(pos: Position) {
@@ -636,8 +634,21 @@ export class King extends Piece {
 }
 
 export class Queen extends Piece {
+    public readonly key;
     public readonly symbol = "D";
     public readonly value = 15;
+
+    constructor(color: PieceColor)
+    constructor(color: PieceColor, column: Column, line: Line)
+    constructor(color: PieceColor, column?: Column, line?: Line) {
+        super(color);
+        this.key = cscnv.turnFromPieceColor(color) + this.symbol;
+        if (column !== undefined) {
+            assertCondition(csty.isColumn(column));
+            assertNonNullish(line, "line of the column");
+            super.setPositionTo(PositionHelper.fromBoardPosition(column, line, true));
+        }
+    }
 
     public * moves(board: IBoard) {
         yield* this.orthogonalMoves(board);
@@ -659,8 +670,21 @@ export class Queen extends Piece {
 }
 
 export class Wyvern extends Piece {
+    public readonly key;
     public readonly symbol = "V";
     public readonly value = 14;
+
+    constructor(color: PieceColor)
+    constructor(color: PieceColor, column: Column, line: Line)
+    constructor(color: PieceColor, column?: Column, line?: Line) {
+        super(color);
+        this.key = cscnv.turnFromPieceColor(color) + this.symbol;
+        if (column !== undefined) {
+            assertCondition(csty.isColumn(column));
+            assertNonNullish(line, "line of the column");
+            super.setPositionTo(PositionHelper.fromBoardPosition(column, line, true));
+        }
+    }
 
     public * moves(board: IBoard) {
         yield* this.orthogonalMoves(board);
@@ -684,24 +708,34 @@ export class Wyvern extends Piece {
 
 export class Rook extends Piece {
 
+    public readonly key;
     public readonly symbol = "R";
     public readonly value = 11;
     private _moved: boolean;
 
-    constructor(color: PieceColor)
-    constructor(color: PieceColor, column: Column, line: Line)
-    constructor(color: PieceColor, column?: Column, line?: Line) {
+    constructor(color: PieceColor, grand: boolean, n: number)
+    constructor(color: PieceColor, grand: boolean, column: Column, line: Line)
+    constructor(color: PieceColor, grand: boolean, columnOrNumber: Column | number, line?: Line) {
         super(color);
-        if (column != undefined && line != undefined) {
-            super.setPositionTo([cscnv.toColumnIndex(column), line]);
-            this._moved = this.defaultMoveInitialitzation();
+        if (line !== undefined) {
+            assertCondition(csty.isColumn(columnOrNumber));
+            super.setPositionTo(PositionHelper.fromBoardPosition(columnOrNumber, line, true));
+            this.key = cscnv.turnFromPieceColor(color) + this.symbol +
+                (this.isKingSide(grand) ? "k" : this.isQueenSide(grand) ? "q" : (columnOrNumber + line));
+            // first moved heuristic aprox; but needs castlingStatus
+            this._moved = !this.isKingSide(grand) && !this.isQueenSide(grand);
+        } else {
+            assertCondition(typeof columnOrNumber == "number", `instance number of piece ${this.symbol}`);
+            this.key = cscnv.turnFromPieceColor(color) + this.symbol + columnOrNumber;
+            this._moved = false;
         }
-        else this._moved = false;
     }
 
     public setPositionTo(pos: Position) {
         super.setPositionTo(pos);
-        this._moved = this.defaultMoveInitialitzation();
+        // first moved heuristic aprox; but needs castlingStatus
+        this._moved = !this.isQueenSide(false) && !this.isKingSide(false)
+            && !this.isQueenSide(true) && !this.isKingSide(true);
     }
 
     public isQueenSide(grand: boolean): boolean {
@@ -749,16 +783,26 @@ export class Rook extends Piece {
         return this._moved;
     }
 
-    private defaultMoveInitialitzation(): boolean {
-        // first heuristic aprox; but needs castlingStatus
-        return !(this.isQueenSide(false) || this.isKingSide(false) || this.isQueenSide(true) || this.isKingSide(true));
-    }
-
 }
 
 export class Pegasus extends Piece {
+    public readonly key;
     public readonly symbol = "G";
     public readonly value = 8;
+
+    constructor(color: PieceColor, n: number)
+    constructor(color: PieceColor, column: Column, line: Line)
+    constructor(color: PieceColor, columnOrNumber: Column | number, line?: Line) {
+        super(color);
+        if (line !== undefined) {
+            assertCondition(csty.isColumn(columnOrNumber));
+            super.setPositionTo(PositionHelper.fromBoardPosition(columnOrNumber, line, true));
+            this.key = cscnv.turnFromPieceColor(color) + this.symbol + columnOrNumber + line;
+        } else {
+            assertCondition(typeof columnOrNumber == "number", `instance number of piece ${this.symbol}`);
+            this.key = cscnv.turnFromPieceColor(color) + this.symbol + columnOrNumber;
+        }
+    }
 
     public * moves(board: IBoard) {
         yield* this.diagonalMoves(board);
@@ -781,8 +825,23 @@ export class Pegasus extends Piece {
 }
 
 export class Knight extends Piece {
+    public readonly key;
     public readonly symbol = "N";
     public readonly value = 4;
+
+    constructor(color: PieceColor, n: number)
+    constructor(color: PieceColor, column: Column, line: Line)
+    constructor(color: PieceColor, columnOrNumber: Column | number, line?: Line) {
+        super(color);
+        if (line !== undefined) {
+            assertCondition(csty.isColumn(columnOrNumber));
+            super.setPositionTo(PositionHelper.fromBoardPosition(columnOrNumber, line, true));
+            this.key = cscnv.turnFromPieceColor(color) + this.symbol + columnOrNumber + line;
+        } else {
+            assertCondition(typeof columnOrNumber == "number", `instance number of piece ${this.symbol}`);
+            this.key = cscnv.turnFromPieceColor(color) + this.symbol + columnOrNumber;
+        }
+    }
 
     public * moves(board: IBoard): Generator<Position, void, void> {
         yield* this.knightMoves(board);
@@ -809,6 +868,7 @@ export class Knight extends Piece {
 }
 
 export class Bishop extends Piece {
+    public readonly key;
     public readonly symbol = "J";
     public readonly value = 3;
     public readonly hexesColor: HexColor;
@@ -817,12 +877,14 @@ export class Bishop extends Piece {
     constructor(color: PieceColor, column: Column, line: Line)
     constructor(color: PieceColor, columnOrHexcolor: Column | HexColor, line?: Line) {
         super(color);
-        if (csty.isColumn(columnOrHexcolor) && line != undefined) {
-            super.setPositionTo([cscnv.toColumnIndex(columnOrHexcolor), line]);
+        if (line !== undefined) {
+            assertCondition(csty.isColumn(columnOrHexcolor));
+            super.setPositionTo(PositionHelper.fromBoardPosition(columnOrHexcolor, line, true));
             this.hexesColor = PositionHelper.hexColor(this.position!);
         } else if (csty.isHexColor(columnOrHexcolor)) {
             this.hexesColor = columnOrHexcolor;
         } else throw new TypeError("Bishop constructor error");
+        this.key = cscnv.turnFromPieceColor(color) + this.symbol + this.hexesColor;
     }
 
     public * moves(board: IBoard) {
@@ -841,8 +903,16 @@ export class Bishop extends Piece {
 }
 
 export class Elephant extends Piece {
+    public readonly key;
     public readonly symbol = "E";
     public readonly value = 2;
+
+    constructor(color: PieceColor, column: Column, line: Line) {
+        super(color);
+        assertCondition(csty.isColumn(column));
+        super.setPositionTo(PositionHelper.fromBoardPosition(column, line, true));
+        this.key = cscnv.turnFromPieceColor(color) + this.symbol + column + line;
+    }
 
     public * moves(board: IBoard, defend: boolean = false) {
         const piecePos = this.position;
@@ -887,8 +957,16 @@ export class Elephant extends Piece {
 }
 
 export class Almogaver extends Piece {
+    public readonly key;
     public readonly symbol = "M";
     public readonly value = 2;
+
+    constructor(color: PieceColor, column: Column, line: Line) {
+        super(color);
+        assertCondition(csty.isColumn(column));
+        super.setPositionTo(PositionHelper.fromBoardPosition(column, line, true));
+        this.key = cscnv.turnFromPieceColor(color) + this.symbol + column + line;
+    }
 
     public * moves(board: IBoard, onlyCaptures: boolean = false, defends: boolean = false) {
         const piecePos = this.position;
@@ -932,8 +1010,16 @@ export class Almogaver extends Piece {
 }
 
 export class Pawn extends Piece {
+    public readonly key;
     public readonly symbol = "P";
     public readonly value = 1;
+
+    constructor(color: PieceColor, column: Column, line: Line) {
+        super(color);
+        assertCondition(csty.isColumn(column));
+        super.setPositionTo(PositionHelper.fromBoardPosition(column, line, true));
+        this.key = cscnv.turnFromPieceColor(color) + this.symbol + column + line;
+    }
 
     public * moves(board: IBoard, onlyCaptures: boolean = false, defend: boolean = false) {
         const pawnPos = this.position;

@@ -300,6 +300,7 @@ function restoreGame() {
         movesGrid.innerHTML = "";
         try {
             game.loadTLPD(localStorage.getItem("cescacs"));
+            debugger;
             game.restoreMovesJSON(localStorage.getItem("cescacs-mv"))
             restoreBoard();
             const gend = localStorage.getItem("cescacs-end");
@@ -746,11 +747,11 @@ function ShowMoves() {
         buttonShowMoves.style.display = "block";
         const n = movesGrid.childElementCount;
         for (const mv of game.moves(n)) {
-            const div = document.createElement('div');
-            div.setAttribute("id", cescacs.csmv.undoStatusId(mv));
-            div.innerHTML = cescacs.csmv.fullMoveNotation(mv);
-            div.onclick = function () { showId(this, this.getAttribute("id")); }
-            movesGrid.appendChild(div);
+            const newdiv = document.createElement('div');
+            newdiv.setAttribute("id", cescacs.csmv.undoStatusId(mv));
+            newdiv.innerHTML = cescacs.csmv.fullMoveNotation(mv);
+            newdiv.onclick = function () { showId(this, this.getAttribute("id")); }
+            movesGrid.appendChild(newdiv);
         }
         if (movesGrid.childElementCount > 0) {
             movesGrid.lastChild.classList.add("selected");

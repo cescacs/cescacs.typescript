@@ -1,6 +1,6 @@
 
 import {
-    Position, Turn, CastlingColumn, CastlingStatus
+    Position, Turn, Side, CastlingColumn, CastlingStatus
 } from "./cescacs.types";
 
 import { csTypes as csty, csConvert as cscnv } from "./cescacs.types";
@@ -12,7 +12,7 @@ import { cspty } from "./cescacs";
 
 
 export type MoveInfo = csMoves.Castling | csMoves.Promotion | csMoves.Move | csMoves.Capture;
-export type CastlingSide = "K" | "D" | "R";
+export type CastlingSide = Side | "R";
 
 export interface UndoStatus {
     n: number;
@@ -50,8 +50,8 @@ export namespace csMoves {
         return mov.side !== undefined && isCastlingSide(mov.side)
             && mov.col !== undefined && csty.isCastlingColumn(mov.col)
             && mov.rPos !== undefined && csty.isPosition(mov.rPos)
-            && (mov.side === 'D' || mov.kRook !== undefined && mov.kRook instanceof Rook)
-            && (mov.side === 'K' || mov.qRook !== undefined && mov.qRook instanceof Rook)
+            && (mov.side === 'D' || mov.kRook !== undefined) // && mov.kRook instanceof Rook)
+            && (mov.side === 'K' || mov.qRook !== undefined) // && mov.qRook instanceof Rook)
             && (mov.side != 'R' || mov.r2Pos !== undefined && csty.isPosition(mov.r2Pos));
     }
 
@@ -62,9 +62,9 @@ export namespace csMoves {
     }
 
     export function isPromotionInfo(mov: any): mov is Promotion {
-        return mov.piece !== undefined && (mov.piece instanceof Piece)
+        return mov.piece !== undefined // && (mov.piece instanceof Piece)
             && mov.prPos !== undefined && csty.isPosition(mov.prPos)
-            && mov.promoted !== undefined && (mov.promoted instanceof Piece);
+            && mov.promoted !== undefined; // && (mov.promoted instanceof Piece);
     }
 
     export interface Move {
@@ -74,7 +74,7 @@ export namespace csMoves {
     }
 
     export function isMoveInfo(mov: any): mov is Move {
-        return mov.piece !== undefined && (mov.piece instanceof Piece)
+        return mov.piece !== undefined // && (mov.piece instanceof Piece)
             && mov.pos !== undefined && csty.isPosition(mov.pos)
             && mov.moveTo !== undefined && csty.isPosition(mov.moveTo);
     }
@@ -85,14 +85,14 @@ export namespace csMoves {
     }
 
     export function isCaptureInfo(mov: any): mov is Capture {
-        return mov.captured !== undefined && (mov.captured instanceof Piece)
+        return mov.captured !== undefined // && (mov.captured instanceof Piece)
             && (mov.special === undefined || csty.isPosition(mov.special));
     }
 
     export function fullMoveNotation(info: UndoStatus): string {
         const postStr = info.check ?? ((info.end == "mate") ? "#" : "");
         const preStr = info.turn == 'w' ? info.n + '. ' : "";
-        return preStr + moveNotation(info.move) + postStr;
+        return preStr + csMoves.moveNotation(info.move) + postStr;
     }
 
     export function endText(info: UndoStatus, turn: Turn) {
@@ -116,13 +116,13 @@ export namespace csMoves {
     }
 
     export function moveNotation(info: MoveInfo): string {
-        if (isCastlingInfo(info)) {
+        if (csMoves.isCastlingInfo(info)) {
             const tail = info.r2Pos !== undefined ? cscnv.columnFromIndex(info.r2Pos[0])
                 : (info.side == 'K' && info.col == 'H' && info.rPos[0] == 10) ?
                     (info.rPos[1] == 5 || info.rPos[1] == 23 ? 'O' : info.rPos[1] == 7 || info.rPos[1] == 21 ? 'OO' : "")
                     : "";
             return "KR" + info.side + "-" + info.col + cscnv.columnFromIndex(info.rPos[0]) + tail;
-        } else if (isMoveInfo(info)) {
+        } else if (csMoves.isMoveInfo(info)) {
             const pre = (info.piece.symbol == 'P' ? "" : info.piece.symbol) + PositionHelper.toString(info.pos);
             const post = isPromotionInfo(info) ? "=" + info.promoted.symbol : "";
             let sep: string;
@@ -135,9 +135,12 @@ export namespace csMoves {
                 }
             } else sep = "-";
             return pre + sep + PositionHelper.toString(info.moveTo) + post;
-        } else if (isPromotionInfo(info)) {
+        } else if (csMoves.isPromotionInfo(info)) {
             return PositionHelper.toString(info.prPos) + "=" + info.promoted.symbol;
-        } else throw new TypeError("must be a move notation")
+        } else {
+            debugger;
+            throw new TypeError("must be a move notation");
+        }
     }
 
 }
