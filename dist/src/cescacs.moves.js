@@ -40,9 +40,9 @@ var csMoves;
             && (mov.special === undefined || cescacs_types_1.csTypes.isPosition(mov.special));
     }
     csMoves.isCaptureInfo = isCaptureInfo;
-    function fullMoveNotation(info) {
+    function fullMoveNotation(info, mvNum = true) {
         const postStr = info.check ?? ((info.end == "mate") ? "#" : "");
-        const preStr = info.turn == 'w' ? info.n + '. ' : "";
+        const preStr = mvNum && info.turn == 'w' ? info.n + '. ' : "";
         return preStr + csMoves.moveNotation(info.move) + postStr;
     }
     csMoves.fullMoveNotation = fullMoveNotation;

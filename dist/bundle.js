@@ -124,7 +124,7 @@ class EnPassantCapturable extends PawnSpecialCaptureStatus {
         else if (isEnPassantCapturePos && capturerPawn.position != null) {
             const capturerPos = capturerPawn.position;
             if (Math.abs(pos[0] - capturerPos[0]) == 1) {
-                if (capturerPawn.color == 'White')
+                if (capturerPawn.color == 'w')
                     return pos[1] - capturerPos[1] == 3;
                 else
                     return capturerPos[1] - pos[1] == 3;
@@ -164,8 +164,8 @@ class Board {
         this.wPieces = new Map();
         this.bPieces = new Map();
         this._regainablePieces = [];
-        this.wKing = new cescacs_piece_2.King('White');
-        this.bKing = new cescacs_piece_2.King('Black');
+        this.wKing = new cescacs_piece_2.King('w');
+        this.bKing = new cescacs_piece_2.King('b');
         this._specialPawnCapture = null;
         this._currentHeuristic = Board.newHeuristic();
         this._wAwaitingPromotion = false;
@@ -215,20 +215,20 @@ class Board {
     set specialPawnCapture(value) { this._specialPawnCapture = value; }
     get isAwaitingPromotion() { return this._turn == 'w' ? this._wAwaitingPromotion : this._bAwaitingPromotion; }
     setAwaitingPromotion(color) {
-        if (color == 'White')
+        if (color == 'w')
             this._wAwaitingPromotion = true;
         else
             this._bAwaitingPromotion = true;
     }
     computeAwaitingPromotion(color) {
         let value = false;
-        for (const piece of (color == 'White' ? this.wPieces : this.bPieces).values()) {
+        for (const piece of (color == 'w' ? this.wPieces : this.bPieces).values()) {
             if (cescacs_piece_1.csPieceTypes.isPawn(piece) && piece.awaitingPromotion) {
                 value = true;
                 break;
             }
         }
-        if (color == 'White')
+        if (color == 'w')
             this._wAwaitingPromotion = value;
         else
             this._bAwaitingPromotion = value;
@@ -286,21 +286,21 @@ class Board {
     addPiece(piece) {
         (0, ts_general_1.assertNonNullish)(piece.position, `${piece.symbol} position`);
         const toPos = piece.position;
-        const pieces = (piece.color == "White" ? this.wPieces : this.bPieces);
+        const pieces = (piece.color == "w" ? this.wPieces : this.bPieces);
         pieces.set(cescacs_positionHelper_1.PositionHelper.positionKey(toPos), piece);
         const posCol = (toPos[0] + 1) >>> 1;
         const posLineMask = Board.lineMask(toPos[1]);
-        const positions = (piece.color == "White" ? this.wPositions : this.bPositions);
+        const positions = (piece.color == "w" ? this.wPositions : this.bPositions);
         positions[posCol] |= posLineMask;
     }
     hasPiece(pos) {
         const posCol = (pos[0] + 1) >>> 1;
         const posLineMask = Board.lineMask(pos[1]);
         if ((this.wPositions[posCol] & posLineMask) != 0) {
-            return 'White';
+            return 'w';
         }
         else if ((this.bPositions[posCol] & posLineMask) != 0) {
-            return 'Black';
+            return 'b';
         }
         else
             return null;
@@ -309,7 +309,7 @@ class Board {
         const color = this.hasPiece(pos);
         if (color == null)
             return null;
-        else if (color == 'White') {
+        else if (color == 'w') {
             return this.wPieces.get(cescacs_positionHelper_1.PositionHelper.positionKey(pos));
         }
         else {
@@ -318,15 +318,15 @@ class Board {
     }
     hasThreat(pos, color) {
         const posCol = (pos[0] + 1) >>> 1;
-        return ((color == "White" ? this.wThreats : this.bThreats)[posCol] & Board.lineMask(pos[1])) != 0;
+        return ((color == "w" ? this.wThreats : this.bThreats)[posCol] & Board.lineMask(pos[1])) != 0;
     }
     isThreated(pos, color) {
         const posCol = (pos[0] + 1) >>> 1;
-        return ((color == "White" ? this.bThreats : this.wThreats)[posCol] & Board.lineMask(pos[1])) != 0;
+        return ((color == "w" ? this.bThreats : this.wThreats)[posCol] & Board.lineMask(pos[1])) != 0;
     }
     setThreat(pos, color) {
         const posCol = (pos[0] + 1) >>> 1;
-        (color == "White" ? this.wThreats : this.bThreats)[posCol] |= Board.lineMask(pos[1]);
+        (color == "w" ? this.wThreats : this.bThreats)[posCol] |= Board.lineMask(pos[1]);
     }
     //#region Regainable pieces
     addRegainablePiece(piece) {
@@ -336,11 +336,11 @@ class Board {
         }
     }
     hasRegainablePieces(hexColor) {
-        const currentColor = this._turn == 'w' ? 'White' : 'Black';
+        const currentColor = this._turn;
         return this._regainablePieces.reduce((found, p) => found || p.color == currentColor && (!cescacs_piece_1.csPieceTypes.isBishop(p) || p.hexesColor == hexColor), false);
     }
     hasAwaitingRegainablePieces() {
-        const currentColor = this._turn == 'w' ? 'White' : 'Black';
+        const currentColor = this._turn;
         if (this._regainablePieces.reduce((found, p) => found || p.color == currentColor && p.symbol != 'J', false))
             return true;
         else {
@@ -366,11 +366,11 @@ class Board {
         return piece;
     }
     currentRegainablePieceNames(hexColor) {
-        const currentColor = this._turn == 'w' ? 'White' : 'Black';
+        const currentColor = this._turn;
         return this._regainablePieces.reduce((s, x) => x.color == currentColor && (!cescacs_piece_1.csPieceTypes.isBishop(x) || x.hexesColor == hexColor) ? s.add(x.symbol) : s, new Set());
     }
     maxRegainablePiecesValue(hexColor) {
-        const currentColor = this._turn == 'w' ? 'White' : 'Black';
+        const currentColor = this._turn;
         return this._regainablePieces.reduce((acc, x) => x.value > acc && x.color == currentColor && (!cescacs_piece_1.csPieceTypes.isBishop(x) || x.hexesColor == hexColor) ? x.value : acc, 0);
     }
     //#endregion
@@ -407,7 +407,7 @@ class Board {
         const piecePos = piece.position;
         const fromPosCol = (piecePos[0] + 1) >>> 1;
         const fromPosLineMask = Board.lineMask(piecePos[1]);
-        const pieces = (piece.color == "White" ? this.wPieces : this.bPieces);
+        const pieces = (piece.color == "w" ? this.wPieces : this.bPieces);
         if (cescacs_piece_1.csPieceTypes.isPawn(piece)) {
             let scornedPawn = null;
             let multipleStep = null;
@@ -442,7 +442,7 @@ class Board {
                 this._specialPawnCapture = null;
             }
             if (cescacs_positionHelper_1.PositionHelper.isPromotionPos(toColumnIndex, toLine, piece.color)) {
-                if (piece.color == 'White')
+                if (piece.color == 'w')
                     this._wAwaitingPromotion = true;
                 else
                     this._bAwaitingPromotion = true;
@@ -456,12 +456,12 @@ class Board {
         pieces.set(cescacs_positionHelper_1.PositionHelper.positionKey(piecePos), piece);
         const toPosCol = (piecePos[0] + 1) >>> 1;
         const toPosLineMask = Board.lineMask(piecePos[1]);
-        const positions = (piece.color == "White" ? this.wPositions : this.bPositions);
+        const positions = (piece.color == "w" ? this.wPositions : this.bPositions);
         positions[fromPosCol] &= ~fromPosLineMask;
         positions[toPosCol] |= toPosLineMask;
     }
     undoPieceMove(piece, fromColumnIndex, fromLine) {
-        const pieces = (piece.color == "White" ? this.wPieces : this.bPieces);
+        const pieces = (piece.color == "w" ? this.wPieces : this.bPieces);
         const piecePos = piece.position;
         const actualPosCol = (piecePos[0] + 1) >>> 1;
         const actualPosLineMask = Board.lineMask(piecePos[1]);
@@ -470,7 +470,7 @@ class Board {
         pieces.set(cescacs_positionHelper_1.PositionHelper.positionKey(piecePos), piece);
         const fromPosCol = (piecePos[0] + 1) >>> 1;
         const fromPosLineMask = Board.lineMask(piecePos[1]);
-        const positions = (piece.color == "White" ? this.wPositions : this.bPositions);
+        const positions = (piece.color == "w" ? this.wPositions : this.bPositions);
         positions[actualPosCol] &= ~actualPosLineMask;
         positions[fromPosCol] |= fromPosLineMask;
     }
@@ -479,9 +479,9 @@ class Board {
         const fromPos = piece.position;
         const posCol = (fromPos[0] + 1) >>> 1;
         const posLineMask = Board.lineMask(fromPos[1]);
-        const positions = (piece.color == "White" ? this.wPositions : this.bPositions);
+        const positions = (piece.color == "w" ? this.wPositions : this.bPositions);
         positions[posCol] &= ~posLineMask;
-        const pieces = (piece.color == "White" ? this.wPieces : this.bPieces);
+        const pieces = (piece.color == "w" ? this.wPieces : this.bPieces);
         pieces.delete(cescacs_positionHelper_1.PositionHelper.positionKey(fromPos));
         piece.captured();
         if (piece.isRegainable)
@@ -498,7 +498,7 @@ class Board {
     }
     promotePawn(pawn, piece) {
         if (this._regainablePieces.includes(piece)) {
-            const pieces = (piece.color == "White" ? this.wPieces : this.bPieces);
+            const pieces = (piece.color == "w" ? this.wPieces : this.bPieces);
             pieces.delete(cescacs_positionHelper_1.PositionHelper.positionKey(pawn.position));
             pawn.promoteTo(piece);
             pieces.set(cescacs_positionHelper_1.PositionHelper.positionKey(piece.position), piece);
@@ -512,14 +512,14 @@ class Board {
             }
             const pos = this._regainablePieces.indexOf(piece);
             this._regainablePieces.splice(pos, 1);
-            if (piece.color == 'White')
+            if (piece.color == 'w')
                 this._wAwaitingPromotion = false;
             else
                 this._bAwaitingPromotion = false;
         }
     }
     undoPromotePawn(pawn, piece) {
-        const pieces = (piece.color == "White" ? this.wPieces : this.bPieces);
+        const pieces = (piece.color == "w" ? this.wPieces : this.bPieces);
         pieces.delete(cescacs_positionHelper_1.PositionHelper.positionKey(piece.position));
         pawn.setPositionTo([piece.position[0], piece.position[1]]);
         piece.captured();
@@ -531,16 +531,16 @@ class Board {
     }
     prepareTurn(currentKing) {
         const color = currentKing.color;
-        const threats = (color == "White" ? this.bThreats : this.wThreats);
+        const threats = (color == "w" ? this.bThreats : this.wThreats);
         for (let i = 0; i <= 7; i++)
             threats[i] = 0;
         {
-            const threatingPieces = (color == 'White' ? this.bPieces.values() : this.wPieces.values());
+            const threatingPieces = (color == 'w' ? this.bPieces.values() : this.wPieces.values());
             for (const piece of threatingPieces)
                 piece.markThreats(this);
         }
         {
-            const ownPieces = (color == "White" ? this.wPieces.values() : this.bPieces.values());
+            const ownPieces = (color == "w" ? this.wPieces.values() : this.bPieces.values());
             for (const piece of ownPieces)
                 piece.pin = null;
         }
@@ -734,8 +734,8 @@ class Board {
             let troupDeveloped = 0;
             let pieceDeveloped = 0;
             let advancedPawn = 0;
-            const isTroupDeveloped = (pos, color) => color == 'White' ? pos[1] > 8 : pos[1] < 20;
-            const isPieceDeveloped = (pos, color) => color == 'White' ? pos[1] > (pos[0] == 7 ? 6 : 3) : pos[1] < (pos[0] == 7 ? 22 : 25);
+            const isTroupDeveloped = (pos, color) => color == 'w' ? pos[1] > 8 : pos[1] < 20;
+            const isPieceDeveloped = (pos, color) => color == 'w' ? pos[1] > (pos[0] == 7 ? 6 : 3) : pos[1] < (pos[0] == 7 ? 22 : 25);
             for (const piece of pieces.values()) {
                 if (piece.position != null) {
                     const defended = this.hasThreat(piece.position, color);
@@ -926,8 +926,8 @@ class Game extends Board {
         this.initGame();
     }
     static kingCastlingPosition(color, column) {
-        const kingPosition = (color == 'White' ? cescacs_positionHelper_1.PositionHelper.whiteKingInitPosition : cescacs_positionHelper_1.PositionHelper.blackKingInitPosition);
-        const kingCastleMove = (color == 'White' ? Game.whiteKingCastlingMove : Game.blackKingCastlingMove)[column];
+        const kingPosition = (color == 'w' ? cescacs_positionHelper_1.PositionHelper.whiteKingInitPosition : cescacs_positionHelper_1.PositionHelper.blackKingInitPosition);
+        const kingCastleMove = (color == 'w' ? Game.whiteKingCastlingMove : Game.blackKingCastlingMove)[column];
         return cescacs_positionHelper_1.PositionHelper.knightJump(kingPosition, kingCastleMove);
     }
     //#region PRIVATE STATIC
@@ -953,17 +953,17 @@ class Game extends Board {
     static rookCastleMove(kingDestinationColumn, rookDestinationColumn, color, side, grand) {
         if (side == 'K') {
             if (rookDestinationColumn == 'K')
-                return grand ? (color == 'White' ? "ColumnUp" : "ColumnDown") : color == 'White' ? "FileUp" : "FileDown";
+                return grand ? (color == 'w' ? "ColumnUp" : "ColumnDown") : color == 'w' ? "FileUp" : "FileDown";
             else if (rookDestinationColumn == 'I')
-                return grand ? (color == 'White' ? "FileInvDown" : "FileInvUp") : color == 'White' ? "ColumnUp" : "ColumnDown";
+                return grand ? (color == 'w' ? "FileInvDown" : "FileInvUp") : color == 'w' ? "ColumnUp" : "ColumnDown";
             else
-                return color == 'White' ? "FileInvUp" : "FileInvDown";
+                return color == 'w' ? "FileInvUp" : "FileInvDown";
         }
         else {
             if (rookDestinationColumn == 'E' && kingDestinationColumn == 'D')
-                return color == 'White' ? "FileDown" : "FileUp";
+                return color == 'w' ? "FileDown" : "FileUp";
             else
-                return color == 'White' ? "FileUp" : "FileDown";
+                return color == 'w' ? "FileUp" : "FileDown";
         }
     }
     get gameEnd() { return this._mate || this._stalemate || this._draw || this._resigned; }
@@ -982,7 +982,7 @@ class Game extends Board {
     }
     get lastMove() {
         if (this._top >= 0)
-            return cescacs_moves_1.csMoves.moveNotation(this._moves[this._top].move);
+            return cescacs_moves_1.csMoves.fullMoveNotation(this._moves[this._top], false);
         else
             return null;
     }
@@ -1131,7 +1131,7 @@ class Game extends Board {
             else
                 (0, ts_general_1.assertCondition)(cescacs_types_1.csTypes.isCastlingString(strMove), "castling move string");
             const currentKing = super.turnKing;
-            const currentColor = this.turn == 'w' ? 'White' : 'Black';
+            const currentColor = this.turn;
             const cmove = strMove.split("-");
             const side = cmove[0][2] == 'R' ? 'K' : cmove[0][2];
             const kCol = cmove[1][0];
@@ -1199,7 +1199,7 @@ class Game extends Board {
             if (this.isAwaitingPromotion) {
                 if (cescacs_moves_1.csMoves.isMoveInfo(turnInfo.move) && cescacs_piece_1.csPieceTypes.isPawn(turnInfo.move.piece)
                     || cescacs_moves_1.csMoves.isPromotionInfo(turnInfo.move))
-                    this.computeAwaitingPromotion(turnInfo.turn == 'b' ? 'White' : 'Black');
+                    this.computeAwaitingPromotion(turnInfo.turn == 'b' ? 'w' : 'b');
             }
             if (this.turn === 'b')
                 this.moveNumber--;
@@ -1302,7 +1302,7 @@ class Game extends Board {
         }
     }
     castlingRookPosition(kingColumn, rookColumn, side, singleStep) {
-        const currentColor = this.turn == 'w' ? 'White' : 'Black';
+        const currentColor = this.turn;
         const rookPos = side == 'K' ? cescacs_positionHelper_1.PositionHelper.initialKingSideRookPosition(currentColor, this.isGrand)
             : cescacs_positionHelper_1.PositionHelper.initialQueenSideRookPosition(currentColor, this.isGrand);
         (0, ts_general_1.assertCondition)(cescacs_types_1.csTypes.isCastlingColumn(kingColumn), `King column: ${kingColumn} has to be a king castling column`);
@@ -1507,9 +1507,9 @@ class Game extends Board {
                                 const value = Number(pieceName);
                                 if (isNaN(value)) {
                                     const pieceSymbol = cescacs_types_1.csTypes.isPieceName(pieceName) ? pieceName : Game.convertPieceAliases(pieceName.toUpperCase());
-                                    const color = pieceName.toUpperCase() == pieceName ? "White" : "Black";
+                                    const color = pieceName.toUpperCase() == pieceName ? "w" : "b";
                                     if (pieceSymbol == 'K') {
-                                        if (color == 'White') {
+                                        if (color == 'w') {
                                             if (this.wKing.position != null)
                                                 throw new Error("Can't place two White Kings");
                                             else
@@ -1536,7 +1536,7 @@ class Game extends Board {
                                             rooks.push(newPiece);
                                         else if (cescacs_piece_1.csPieceTypes.isPawn(newPiece) && newPiece.awaitingPromotion != null)
                                             super.setAwaitingPromotion(newPiece.color);
-                                        (color == 'White' ? wPiece : bPiece).push(newPiece);
+                                        (color == 'w' ? wPiece : bPiece).push(newPiece);
                                     }
                                     actualColumnIndex += 2;
                                 }
@@ -1558,8 +1558,8 @@ class Game extends Board {
             throw new Error("There must be a Black King");
         {
             const countOccurrences = (arr, val) => arr.reduce((n, v) => (v.symbol === val ? n + 1 : n), 0);
-            for (let color of ['White', 'Black']) {
-                const pieceSet = (color == 'White' ? wPiece : bPiece);
+            for (let color of ['w', 'b']) {
+                const pieceSet = (color == 'w' ? wPiece : bPiece);
                 let n = countOccurrences(pieceSet, 'D');
                 if (n > 1)
                     throw new Error(`Too many ${color} Queens`);
@@ -1621,7 +1621,7 @@ class Game extends Board {
         this.wKing.castlingStatus = wCastlingStatus;
         this.bKing.castlingStatus = bCastlingStatus;
         for (const r of rooks) {
-            r.setCastlingStatus(r.color == "White" ? wCastlingStatus : bCastlingStatus, this.isGrand);
+            r.setCastlingStatus(r.color == "w" ? wCastlingStatus : bCastlingStatus, this.isGrand);
         }
     }
     //#endregion
@@ -1739,7 +1739,7 @@ class Game extends Board {
     }
     *threatedPieceStringPositions() {
         const piecePositionsGenerator = this.turn == 'w' ? this.whitePiecePositions() : this.blackPiecePositions();
-        const color = this.turn == 'w' ? 'White' : 'Black';
+        const color = this.turn;
         for (const pos of piecePositionsGenerator) {
             if (this.isThreated(pos, color))
                 yield cescacs_positionHelper_1.PositionHelper.toString(pos);
@@ -1747,7 +1747,7 @@ class Game extends Board {
     }
     *ownThreatedPieceStringPositions() {
         const piecePositionsGenerator = this.turn == 'w' ? this.blackPiecePositions() : this.whitePiecePositions();
-        const color = this.turn == 'w' ? 'Black' : 'White';
+        const color = this.turn;
         for (const pos of piecePositionsGenerator) {
             if (this.isThreated(pos, color))
                 yield cescacs_positionHelper_1.PositionHelper.toString(pos);
@@ -1805,7 +1805,7 @@ class Game extends Board {
     }
     applyMove(move, turn) {
         if (cescacs_moves_1.csMoves.isCastlingInfo(move))
-            this.applyCastling(move, turn == 'w' ? 'White' : 'Black');
+            this.applyCastling(move, turn);
         else {
             const piece = move.piece;
             if (cescacs_moves_1.csMoves.isMoveInfo(move)) {
@@ -1824,7 +1824,7 @@ class Game extends Board {
         }
     }
     applyCastling(mov, color) {
-        const currentKing = color == 'White' ? this.wKing : this.bKing;
+        const currentKing = color == 'w' ? this.wKing : this.bKing;
         const kpos = Game.kingCastlingPosition(currentKing.color, mov.col);
         switch (mov.side) {
             case 'K':
@@ -1841,7 +1841,7 @@ class Game extends Board {
     }
     undoMove(move, turn) {
         if (cescacs_moves_1.csMoves.isCastlingInfo(move))
-            this.undoCastling(move, turn == 'w' ? 'White' : 'Black');
+            this.undoCastling(move, turn);
         else if (cescacs_moves_1.csMoves.isMoveInfo(move)) {
             if (cescacs_moves_1.csMoves.isPromotionInfo(move))
                 super.undoPromotePawn(move.piece, move.promoted);
@@ -1856,8 +1856,8 @@ class Game extends Board {
     }
     undoCastling(castling, color) {
         const isGrand = this.isGrand;
-        const currentKing = color == 'White' ? this.wKing : this.bKing;
-        const kingInitialPos = color == 'White' ? cescacs_positionHelper_1.PositionHelper.whiteKingInitPosition : cescacs_positionHelper_1.PositionHelper.blackKingInitPosition;
+        const currentKing = color == 'w' ? this.wKing : this.bKing;
+        const kingInitialPos = color == 'w' ? cescacs_positionHelper_1.PositionHelper.whiteKingInitPosition : cescacs_positionHelper_1.PositionHelper.blackKingInitPosition;
         const rookInitialPos = castling.side == 'D' ?
             cescacs_positionHelper_1.PositionHelper.initialQueenSideRookPosition(color, isGrand)
             : cescacs_positionHelper_1.PositionHelper.initialKingSideRookPosition(color, isGrand);
@@ -1877,95 +1877,95 @@ class Game extends Board {
     }
     fillDefaultPositions() {
         //whites
-        super.createPiece('D', 'White', 'E', 1);
-        super.createPiece('V', "White", 'F', 0);
-        super.createPiece('G', "White", 'D', 2);
-        super.createPiece('J', "White", 'F', 2);
-        super.createPiece('G', "White", 'H', 2);
+        super.createPiece('D', 'w', 'E', 1);
+        super.createPiece('V', "w", 'F', 0);
+        super.createPiece('G', "w", 'D', 2);
+        super.createPiece('J', "w", 'F', 2);
+        super.createPiece('G', "w", 'H', 2);
         if (this.isGrand) {
-            super.createPiece('P', "White", 'B', 6);
-            super.createPiece('R', "White", 'B', 4);
-            super.createPiece('N', "White", 'C', 3);
-            super.createPiece('N', "White", 'I', 3);
-            super.createPiece('R', "White", 'K', 4);
-            super.createPiece('P', "White", 'K', 6);
-            super.createPiece('P', "White", 'P', 7);
-            super.createPiece('P', "White", 'T', 8);
-            super.createPiece('P', "White", 'X', 8);
-            super.createPiece('P', "White", 'Z', 7);
-            super.createPiece('M', "White", 'C', 7);
-            super.createPiece('M', "White", 'A', 7);
-            super.createPiece('M', "White", 'L', 7);
-            super.createPiece('M', "White", 'I', 7);
+            super.createPiece('P', "w", 'B', 6);
+            super.createPiece('R', "w", 'B', 4);
+            super.createPiece('N', "w", 'C', 3);
+            super.createPiece('N', "w", 'I', 3);
+            super.createPiece('R', "w", 'K', 4);
+            super.createPiece('P', "w", 'K', 6);
+            super.createPiece('P', "w", 'P', 7);
+            super.createPiece('P', "w", 'T', 8);
+            super.createPiece('P', "w", 'X', 8);
+            super.createPiece('P', "w", 'Z', 7);
+            super.createPiece('M', "w", 'C', 7);
+            super.createPiece('M', "w", 'A', 7);
+            super.createPiece('M', "w", 'L', 7);
+            super.createPiece('M', "w", 'I', 7);
         }
         else {
-            super.createPiece('P', "White", 'B', 4);
-            super.createPiece('R', "White", 'C', 3),
-                super.createPiece('R', "White", 'I', 3);
-            super.createPiece('P', "White", 'K', 4);
+            super.createPiece('P', "w", 'B', 4);
+            super.createPiece('R', "w", 'C', 3),
+                super.createPiece('R', "w", 'I', 3);
+            super.createPiece('P', "w", 'K', 4);
         }
-        super.createPiece('N', "White", 'E', 3);
-        super.createPiece('N', "White", 'G', 3);
-        super.createPiece('E', "White", 'D', 4);
-        super.createPiece('J', "White", 'F', 4);
-        super.createPiece('E', "White", 'H', 4);
-        super.createPiece('P', "White", 'A', 5);
-        super.createPiece('P', "White", 'C', 5);
-        super.createPiece('E', "White", 'E', 5);
-        super.createPiece('E', "White", 'G', 5);
-        super.createPiece('P', "White", 'I', 5);
-        super.createPiece('P', "White", 'L', 5);
-        super.createPiece('P', "White", 'D', 6);
-        super.createPiece('J', "White", 'F', 6);
-        super.createPiece('P', "White", 'H', 6);
-        super.createPiece('P', "White", 'E', 7);
-        super.createPiece('P', "White", 'F', 8);
-        super.createPiece('P', "White", 'G', 7);
+        super.createPiece('N', "w", 'E', 3);
+        super.createPiece('N', "w", 'G', 3);
+        super.createPiece('E', "w", 'D', 4);
+        super.createPiece('J', "w", 'F', 4);
+        super.createPiece('E', "w", 'H', 4);
+        super.createPiece('P', "w", 'A', 5);
+        super.createPiece('P', "w", 'C', 5);
+        super.createPiece('E', "w", 'E', 5);
+        super.createPiece('E', "w", 'G', 5);
+        super.createPiece('P', "w", 'I', 5);
+        super.createPiece('P', "w", 'L', 5);
+        super.createPiece('P', "w", 'D', 6);
+        super.createPiece('J', "w", 'F', 6);
+        super.createPiece('P', "w", 'H', 6);
+        super.createPiece('P', "w", 'E', 7);
+        super.createPiece('P', "w", 'F', 8);
+        super.createPiece('P', "w", 'G', 7);
         //blacks
-        super.createPiece('D', "Black", 'E', 27);
-        super.createPiece('V', "Black", 'F', 28);
-        super.createPiece('G', "Black", 'D', 26);
-        super.createPiece('J', "Black", 'F', 26);
-        super.createPiece('G', "Black", 'H', 26);
+        super.createPiece('D', "b", 'E', 27);
+        super.createPiece('V', "b", 'F', 28);
+        super.createPiece('G', "b", 'D', 26);
+        super.createPiece('J', "b", 'F', 26);
+        super.createPiece('G', "b", 'H', 26);
         if (this.isGrand) {
-            super.createPiece('P', "Black", 'B', 22);
-            super.createPiece('R', "Black", 'B', 24);
-            super.createPiece('N', "Black", 'C', 25);
-            super.createPiece('N', "Black", 'I', 25);
-            super.createPiece('R', "Black", 'K', 24);
-            super.createPiece('P', "Black", 'K', 22);
-            super.createPiece('P', "Black", 'P', 21);
-            super.createPiece('P', "Black", 'T', 20);
-            super.createPiece('P', "Black", 'X', 20);
-            super.createPiece('P', "Black", 'Z', 21);
-            super.createPiece('M', "Black", 'C', 21);
-            super.createPiece('M', "Black", 'A', 21);
-            super.createPiece('M', "Black", 'I', 21);
-            super.createPiece('M', "Black", 'L', 21);
+            super.createPiece('P', "b", 'B', 22);
+            super.createPiece('R', "b", 'B', 24);
+            super.createPiece('N', "b", 'C', 25);
+            super.createPiece('N', "b", 'I', 25);
+            super.createPiece('R', "b", 'K', 24);
+            super.createPiece('P', "b", 'K', 22);
+            super.createPiece('P', "b", 'P', 21);
+            super.createPiece('P', "b", 'T', 20);
+            super.createPiece('P', "b", 'X', 20);
+            super.createPiece('P', "b", 'Z', 21);
+            super.createPiece('M', "b", 'C', 21);
+            super.createPiece('M', "b", 'A', 21);
+            super.createPiece('M', "b", 'I', 21);
+            super.createPiece('M', "b", 'L', 21);
         }
         else {
-            super.createPiece('P', "Black", 'B', 24);
-            super.createPiece('R', "Black", 'C', 25);
-            super.createPiece('R', "Black", 'I', 25);
-            super.createPiece('P', "Black", 'K', 24);
+            super.createPiece('P', "b", 'B', 24);
+            super.createPiece('R', "b", 'C', 25);
+            super.createPiece('R', "b", 'I', 25);
+            super.createPiece('P', "b", 'K', 24);
         }
-        super.createPiece('N', "Black", 'E', 25);
-        super.createPiece('N', "Black", 'G', 25);
-        super.createPiece('E', "Black", 'D', 24);
-        super.createPiece('J', "Black", 'F', 24);
-        super.createPiece('E', "Black", 'H', 24);
-        super.createPiece('P', "Black", 'A', 23);
-        super.createPiece('P', "Black", 'C', 23);
-        super.createPiece('E', "Black", 'E', 23);
-        super.createPiece('E', "Black", 'G', 23);
-        super.createPiece('P', "Black", 'I', 23);
-        super.createPiece('P', "Black", 'L', 23);
-        super.createPiece('P', "Black", 'D', 22);
-        super.createPiece('J', "Black", 'F', 22);
-        super.createPiece('P', "Black", 'H', 22);
-        super.createPiece('P', "Black", 'E', 21);
-        super.createPiece('P', "Black", 'F', 20);
-        super.createPiece('P', "Black", 'G', 21);
+        super.createPiece('N', "b", 'E', 25);
+        super.createPiece('N', "b", 'G', 25);
+        super.createPiece('E', "b", 'D', 24);
+        super.createPiece('J', "b", 'F', 24);
+        super.createPiece('E', "b", 'H', 24);
+        super.createPiece('P', "b", 'A', 23);
+        super.createPiece('P', "b", 'C', 23);
+        super.createPiece('E', "b", 'E', 23);
+        super.createPiece('E', "b", 'G', 23);
+        super.createPiece('P', "b", 'I', 23);
+        super.createPiece('P', "b", 'L', 23);
+        super.createPiece('P', "b", 'D', 22);
+        super.createPiece('J', "b", 'F', 22);
+        super.createPiece('P', "b", 'H', 22);
+        super.createPiece('P', "b", 'E', 21);
+        super.createPiece('P', "b", 'F', 20);
+        super.createPiece('P', "b", 'G', 21);
     }
     ;
     initGame() {
@@ -2045,9 +2045,9 @@ var csMoves;
             && (mov.special === undefined || cescacs_types_1.csTypes.isPosition(mov.special));
     }
     csMoves.isCaptureInfo = isCaptureInfo;
-    function fullMoveNotation(info) {
+    function fullMoveNotation(info, mvNum = true) {
         const postStr = info.check ?? ((info.end == "mate") ? "#" : "");
-        const preStr = info.turn == 'w' ? info.n + '. ' : "";
+        const preStr = mvNum && info.turn == 'w' ? info.n + '. ' : "";
         return preStr + csMoves.moveNotation(info.move) + postStr;
     }
     csMoves.fullMoveNotation = fullMoveNotation;
@@ -2168,7 +2168,7 @@ class Piece {
         return this.uncapitalizedSymbol + this.position?.toString();
     }
     get uncapitalizedSymbol() {
-        return (this.color == "White" ? this.symbol : this.symbol.toLowerCase());
+        return (this.color == "w" ? this.symbol : this.symbol.toLowerCase());
     }
     get symbolPositionString() {
         return this.symbol + (this.position == null ? "" : cescacs_positionHelper_1.PositionHelper.toString(this.position));
@@ -2341,7 +2341,7 @@ class King extends Piece {
         this.value = 0;
         this._moved = false;
         this.checkPosition = null;
-        this.key = cescacs_types_1.csConvert.turnFromPieceColor(color) + this.symbol;
+        this.key = color + this.symbol;
     }
     setPositionTo(pos) {
         super.setPositionTo(pos);
@@ -2714,14 +2714,14 @@ class King extends Piece {
         }
     }
     get initialPosiition() {
-        return this.color == "White" ? cescacs_positionHelper_1.PositionHelper.whiteKingInitPosition : cescacs_positionHelper_1.PositionHelper.blackKingInitPosition;
+        return this.color == "w" ? cescacs_positionHelper_1.PositionHelper.whiteKingInitPosition : cescacs_positionHelper_1.PositionHelper.blackKingInitPosition;
     }
     get isInitialPosition() {
         if (this.position == null)
             return false;
         else
             return this.position[0] == 8
-                && (this.color == "White" && this.position[1] == 1 || this.color == "Black" && this.position[1] == 27);
+                && (this.color == "w" && this.position[1] == 1 || this.color == "b" && this.position[1] == 27);
     }
 }
 exports.King = King;
@@ -2730,7 +2730,7 @@ class Queen extends Piece {
         super(color);
         this.symbol = "D";
         this.value = 15;
-        this.key = cescacs_types_1.csConvert.turnFromPieceColor(color) + this.symbol;
+        this.key = color + this.symbol;
         if (column !== undefined) {
             (0, ts_general_1.assertCondition)(cescacs_types_1.csTypes.isColumn(column));
             (0, ts_general_1.assertNonNullish)(line, "line of the column");
@@ -2759,7 +2759,7 @@ class Wyvern extends Piece {
         super(color);
         this.symbol = "V";
         this.value = 14;
-        this.key = cescacs_types_1.csConvert.turnFromPieceColor(color) + this.symbol;
+        this.key = color + this.symbol;
         if (column !== undefined) {
             (0, ts_general_1.assertCondition)(cescacs_types_1.csTypes.isColumn(column));
             (0, ts_general_1.assertNonNullish)(line, "line of the column");
@@ -2792,14 +2792,14 @@ class Rook extends Piece {
         if (line !== undefined) {
             (0, ts_general_1.assertCondition)(cescacs_types_1.csTypes.isColumn(columnOrNumber));
             super.setPositionTo(cescacs_positionHelper_1.PositionHelper.fromBoardPosition(columnOrNumber, line, true));
-            this.key = cescacs_types_1.csConvert.turnFromPieceColor(color) + this.symbol +
+            this.key = color + this.symbol +
                 (this.isKingSide(grand) ? "k" : this.isQueenSide(grand) ? "q" : (columnOrNumber + line));
             // first moved heuristic aprox; but needs castlingStatus
             this._moved = !this.isKingSide(grand) && !this.isQueenSide(grand);
         }
         else {
             (0, ts_general_1.assertCondition)(typeof columnOrNumber == "number", `instance number of piece ${this.symbol}`);
-            this.key = cescacs_types_1.csConvert.turnFromPieceColor(color) + this.symbol + columnOrNumber;
+            this.key = color + this.symbol + columnOrNumber;
             this._moved = false;
         }
     }
@@ -2813,17 +2813,17 @@ class Rook extends Piece {
         if (this.position == null)
             return false;
         else if (grand)
-            return this.position[0] == 3 && (this.color == "White" ? this.position[1] == 4 : this.position[1] == 24);
+            return this.position[0] == 3 && (this.color == "w" ? this.position[1] == 4 : this.position[1] == 24);
         else
-            return this.position[0] == 4 && (this.color == "White" ? this.position[1] == 3 : this.position[1] == 25);
+            return this.position[0] == 4 && (this.color == "w" ? this.position[1] == 3 : this.position[1] == 25);
     }
     isKingSide(grand) {
         if (this.position == null)
             return false;
         else if (grand)
-            return this.position[0] == 11 && (this.color == "White" ? this.position[1] == 4 : this.position[1] == 24);
+            return this.position[0] == 11 && (this.color == "w" ? this.position[1] == 4 : this.position[1] == 24);
         else
-            return this.position[0] == 10 && (this.color == "White" ? this.position[1] == 3 : this.position[1] == 25);
+            return this.position[0] == 10 && (this.color == "w" ? this.position[1] == 3 : this.position[1] == 25);
     }
     *moves(board) {
         yield* this.orthogonalMoves(board);
@@ -2858,11 +2858,11 @@ class Pegasus extends Piece {
         if (line !== undefined) {
             (0, ts_general_1.assertCondition)(cescacs_types_1.csTypes.isColumn(columnOrNumber));
             super.setPositionTo(cescacs_positionHelper_1.PositionHelper.fromBoardPosition(columnOrNumber, line, true));
-            this.key = cescacs_types_1.csConvert.turnFromPieceColor(color) + this.symbol + columnOrNumber + line;
+            this.key = color + this.symbol + columnOrNumber + line;
         }
         else {
             (0, ts_general_1.assertCondition)(typeof columnOrNumber == "number", `instance number of piece ${this.symbol}`);
-            this.key = cescacs_types_1.csConvert.turnFromPieceColor(color) + this.symbol + columnOrNumber;
+            this.key = color + this.symbol + columnOrNumber;
         }
     }
     *moves(board) {
@@ -2891,11 +2891,11 @@ class Knight extends Piece {
         if (line !== undefined) {
             (0, ts_general_1.assertCondition)(cescacs_types_1.csTypes.isColumn(columnOrNumber));
             super.setPositionTo(cescacs_positionHelper_1.PositionHelper.fromBoardPosition(columnOrNumber, line, true));
-            this.key = cescacs_types_1.csConvert.turnFromPieceColor(color) + this.symbol + columnOrNumber + line;
+            this.key = color + this.symbol + columnOrNumber + line;
         }
         else {
             (0, ts_general_1.assertCondition)(typeof columnOrNumber == "number", `instance number of piece ${this.symbol}`);
-            this.key = cescacs_types_1.csConvert.turnFromPieceColor(color) + this.symbol + columnOrNumber;
+            this.key = color + this.symbol + columnOrNumber;
         }
     }
     *moves(board) {
@@ -2936,7 +2936,7 @@ class Bishop extends Piece {
         }
         else
             throw new TypeError("Bishop constructor error");
-        this.key = cescacs_types_1.csConvert.turnFromPieceColor(color) + this.symbol + this.hexesColor;
+        this.key = color + this.symbol + this.hexesColor;
     }
     *moves(board) {
         yield* super.diagonalMoves(board);
@@ -2958,7 +2958,7 @@ class Elephant extends Piece {
         this.value = 2;
         (0, ts_general_1.assertCondition)(cescacs_types_1.csTypes.isColumn(column));
         super.setPositionTo(cescacs_positionHelper_1.PositionHelper.fromBoardPosition(column, line, true));
-        this.key = cescacs_types_1.csConvert.turnFromPieceColor(color) + this.symbol + column + line;
+        this.key = color + this.symbol + column + line;
     }
     *moves(board, defend = false) {
         const piecePos = this.position;
@@ -2999,7 +2999,7 @@ class Elephant extends Piece {
         }
     }
     get ownOrthogonalDirection() {
-        return this.color === 'White' ? "ColumnUp" : "ColumnDown";
+        return this.color === 'w' ? "ColumnUp" : "ColumnDown";
     }
 }
 exports.Elephant = Elephant;
@@ -3010,7 +3010,7 @@ class Almogaver extends Piece {
         this.value = 2;
         (0, ts_general_1.assertCondition)(cescacs_types_1.csTypes.isColumn(column));
         super.setPositionTo(cescacs_positionHelper_1.PositionHelper.fromBoardPosition(column, line, true));
-        this.key = cescacs_types_1.csConvert.turnFromPieceColor(color) + this.symbol + column + line;
+        this.key = color + this.symbol + column + line;
     }
     *moves(board, onlyCaptures = false, defends = false) {
         const piecePos = this.position;
@@ -3059,7 +3059,7 @@ class Pawn extends Piece {
         this.value = 1;
         (0, ts_general_1.assertCondition)(cescacs_types_1.csTypes.isColumn(column));
         super.setPositionTo(cescacs_positionHelper_1.PositionHelper.fromBoardPosition(column, line, true));
-        this.key = cescacs_types_1.csConvert.turnFromPieceColor(color) + this.symbol + column + line;
+        this.key = color + this.symbol + column + line;
     }
     *moves(board, onlyCaptures = false, defend = false) {
         const pawnPos = this.position;
@@ -3141,16 +3141,16 @@ class Pawn extends Piece {
         if (p != null) {
             const c = p[0];
             if (c > 3 && c < 7 || c == 3 && !grand) {
-                return p[1] == (this.color == "White" ? c + 1 : 27 - c);
+                return p[1] == (this.color == "w" ? c + 1 : 27 - c);
             }
             else if (c > 7 && c < 11 || c == 11 && !grand) {
-                return p[1] == (this.color == "White" ? 15 - c : 13 + c);
+                return p[1] == (this.color == "w" ? 15 - c : 13 + c);
             }
             else if (grand) {
                 if (c == 2 || c == 12)
-                    return p[1] == (this.color == "White" ? 5 : 23);
+                    return p[1] == (this.color == "w" ? 5 : 23);
                 else if (c == 3 || c == 11)
-                    return p[1] == (this.color == "White" ? 6 : 22);
+                    return p[1] == (this.color == "w" ? 6 : 22);
                 else
                     return false;
             }
@@ -3161,13 +3161,13 @@ class Pawn extends Piece {
             return false;
     }
     get ownOrthogonalStraightDirection() {
-        return this.color === 'White' ? "ColumnUp" : "ColumnDown";
+        return this.color === 'w' ? "ColumnUp" : "ColumnDown";
     }
     get ownOrthogonalAlternateDirections() {
-        return this.color === 'White' ? ["FileUp", "FileInvUp"] : ["FileDown", "FileInvDown"];
+        return this.color === 'w' ? ["FileUp", "FileInvUp"] : ["FileDown", "FileInvDown"];
     }
     get ownCaptureDirections() {
-        return this.color == 'White' ? ["LineUp", "LineInvUp"] : ["LineDown", "LineInvDown"];
+        return this.color == 'w' ? ["LineUp", "LineInvUp"] : ["LineDown", "LineInvDown"];
     }
 }
 exports.Pawn = Pawn;
@@ -3252,26 +3252,26 @@ class PositionHelper {
     static get blackKingInitPosition() { return [8, 27]; }
     static initialQueenSideRookPosition(color, grand) {
         if (grand)
-            return color == "White" ? [3, 4] : [3, 24];
+            return color == "w" ? [3, 4] : [3, 24];
         else
-            return color == "White" ? [4, 3] : [4, 25];
+            return color == "w" ? [4, 3] : [4, 25];
     }
     static initialKingSideRookPosition(color, grand) {
         if (grand)
-            return color == "White" ? [11, 4] : [11, 24];
+            return color == "w" ? [11, 4] : [11, 24];
         else
-            return color == "White" ? [10, 3] : [10, 25];
+            return color == "w" ? [10, 3] : [10, 25];
     }
     static isPromotionPos(c, l, color) {
-        return l == (c <= 7 ? (color == "White" ? 21 + c : 7 - c) : (color == "White" ? 35 - c : c - 7));
+        return l == (c <= 7 ? (color == "w" ? 21 + c : 7 - c) : (color == "w" ? 35 - c : c - 7));
     }
     static isPromotionHex(pos, color) {
         const c = pos[0];
-        return pos[1] == (c <= 7 ? (color == "White" ? 21 + c : 7 - c) : (color == "White" ? 35 - c : c - 7));
+        return pos[1] == (c <= 7 ? (color == "w" ? 21 + c : 7 - c) : (color == "w" ? 35 - c : c - 7));
     }
     static promotionDistance(pos, color) {
         const c = pos[0];
-        if (color == 'White')
+        if (color == 'w')
             return (c <= 7 ? 21 + c : 35 - c) - pos[1];
         else
             return pos[1] - (c <= 7 ? 7 - c : c - 7);
@@ -3493,7 +3493,7 @@ var csConvert;
     csConvert.columnFromIndex = (i) => _column[i];
     csConvert.toColumnIndex = (column) => _column.indexOf(column);
     //TODO PieceColor == Turn
-    csConvert.turnFromPieceColor = (color) => color == 'White' ? 'w' : 'b';
+    //export const turnFromPieceColor = (color: PieceColor): Turn => color == 'White' ? 'w' : 'b';
     csConvert.toOrthogonalDirectionIndex = (direction) => _orthogonalDirection.indexOf(direction);
     csConvert.orthogonalDirectionFromIndex = (i) => _orthogonalDirection[i];
     csConvert.toDiagonalDirectionIndex = (direction) => _diagonalDirection.indexOf(direction);
@@ -3531,16 +3531,12 @@ var csConvert;
     }
     csConvert.getDiagonalOrientation = getDiagonalOrientation;
     function getPieceKeyColor(key) {
-        //TODO: PieceColor into Turn logic change
-        if (key[0] === 'w')
-            return 'White';
-        else if (key[0] === 'b')
-            return 'Black';
-        (0, ts_general_1.assertCondition)(false, `Incorrect key ${key}`);
+        (0, ts_general_1.assertCondition)(csTypes.isTurn(key[0]), `key 1st char must have piece color`);
+        return key[0];
     }
     csConvert.getPieceKeyColor = getPieceKeyColor;
     function getPieceKeyName(key) {
-        (0, ts_general_1.assertCondition)(csTypes.isPieceName(key[1]), `Incorrect key ${key}`);
+        (0, ts_general_1.assertCondition)(csTypes.isPieceName(key[1]), `key 2nd char must be piece symbol ${key}`);
         return key[1];
     }
     csConvert.getPieceKeyName = getPieceKeyName;

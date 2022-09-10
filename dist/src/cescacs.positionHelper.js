@@ -54,26 +54,26 @@ class PositionHelper {
     static get blackKingInitPosition() { return [8, 27]; }
     static initialQueenSideRookPosition(color, grand) {
         if (grand)
-            return color == "White" ? [3, 4] : [3, 24];
+            return color == "w" ? [3, 4] : [3, 24];
         else
-            return color == "White" ? [4, 3] : [4, 25];
+            return color == "w" ? [4, 3] : [4, 25];
     }
     static initialKingSideRookPosition(color, grand) {
         if (grand)
-            return color == "White" ? [11, 4] : [11, 24];
+            return color == "w" ? [11, 4] : [11, 24];
         else
-            return color == "White" ? [10, 3] : [10, 25];
+            return color == "w" ? [10, 3] : [10, 25];
     }
     static isPromotionPos(c, l, color) {
-        return l == (c <= 7 ? (color == "White" ? 21 + c : 7 - c) : (color == "White" ? 35 - c : c - 7));
+        return l == (c <= 7 ? (color == "w" ? 21 + c : 7 - c) : (color == "w" ? 35 - c : c - 7));
     }
     static isPromotionHex(pos, color) {
         const c = pos[0];
-        return pos[1] == (c <= 7 ? (color == "White" ? 21 + c : 7 - c) : (color == "White" ? 35 - c : c - 7));
+        return pos[1] == (c <= 7 ? (color == "w" ? 21 + c : 7 - c) : (color == "w" ? 35 - c : c - 7));
     }
     static promotionDistance(pos, color) {
         const c = pos[0];
-        if (color == 'White')
+        if (color == 'w')
             return (c <= 7 ? 21 + c : 35 - c) - pos[1];
         else
             return pos[1] - (c <= 7 ? 7 - c : c - 7);

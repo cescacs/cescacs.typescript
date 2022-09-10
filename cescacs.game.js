@@ -113,14 +113,10 @@ function clickHex(hexElement) {
             selecting = false;
         } else {
             if (lastChild.nodeName == "use") {
-                const isTurn = function (color) {
-                    if (game.turn === 'w') return color === 'White';
-                    else return color === 'Black';
-                }
                 const strCoord = hexElement.getAttribute("id").slice(3);
                 const piece = game.getHexPiece(strCoord);
                 if (piece == null) return;
-                else if (isTurn(piece.color)) {
+                else if (piece.color == game.turn) {
                     if (!game.checked && game.isAwaitingPromotion && game.hasAwaitingRegainablePieces()) {
                         gameStatus.innerHTML = "Promotion rq";
                         if (cescacs.cspty.isPawn(piece) && piece.awaitingPromotion != null) {
@@ -590,7 +586,7 @@ function ShowThreats() {
 
 function Castling() {
     if (!game.checked) {
-        const currentColor = game.turn == 'w' ? 'White' : 'Black';
+        const currentColor = game.turn;
         const buttonCastling = document.getElementById("buttonCastling");
         const castlingContainer = document.getElementById("castlingContainer");
         const castlingStatusLbl = document.getElementById("castlingStatusLbl");
@@ -642,7 +638,7 @@ function Castling() {
 }
 
 function previewCastling(value) {
-    const currentColor = game.turn == 'w' ? 'White' : 'Black';
+    const currentColor = game.turn;
     const kingSymbol = game.turn == 'w' ? 'K' : 'k';
     const rookSymbol = game.turn == 'w' ? 'R' : 'r';
     const confirmCastlingButton = document.getElementById("confirmCastling");

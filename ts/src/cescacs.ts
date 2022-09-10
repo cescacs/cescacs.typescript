@@ -154,7 +154,7 @@ export class EnPassantCapturable extends PawnSpecialCaptureStatus implements IEn
         else if (isEnPassantCapturePos && capturerPawn.position != null) {
             const capturerPos = capturerPawn.position;
             if (Math.abs(pos[0] - capturerPos[0]) == 1) {
-                if (capturerPawn.color == 'White') return pos[1] - capturerPos[1] == 3;
+                if (capturerPawn.color == 'w') return pos[1] - capturerPos[1] == 3;
                 else return capturerPos[1] - pos[1] == 3;
             } else return false;
         } else return false;
@@ -214,8 +214,8 @@ export abstract class Board implements IBoard {
     private readonly wPieces = new Map<string, Piece>();
     private readonly bPieces = new Map<string, Piece>();
     private readonly _regainablePieces: Piece[] = [];
-    public readonly wKing: King = new King('White');
-    public readonly bKing: King = new King('Black');
+    public readonly wKing: King = new King('w');
+    public readonly bKing: King = new King('b');
     private _specialPawnCapture: Nullable<PawnSpecialCaptureStatus> = null;
     private _currentHeuristic: Heuristic = Board.newHeuristic();
     private _wAwaitingPromotion: boolean = false;
@@ -243,13 +243,13 @@ export abstract class Board implements IBoard {
 
     public get isAwaitingPromotion() { return this._turn == 'w' ? this._wAwaitingPromotion : this._bAwaitingPromotion; }
     protected setAwaitingPromotion(color: PieceColor) {
-        if (color == 'White') this._wAwaitingPromotion = true; else this._bAwaitingPromotion = true;
+        if (color == 'w') this._wAwaitingPromotion = true; else this._bAwaitingPromotion = true;
     }
     protected computeAwaitingPromotion(color: PieceColor) {
         let value = false;
-        for (const piece of (color == 'White' ? this.wPieces : this.bPieces).values())
+        for (const piece of (color == 'w' ? this.wPieces : this.bPieces).values())
         { if (cspty.isPawn(piece) && piece.awaitingPromotion) { value = true; break; } }
-        if (color == 'White') this._wAwaitingPromotion = value; else this._bAwaitingPromotion = value;
+        if (color == 'w') this._wAwaitingPromotion = value; else this._bAwaitingPromotion = value;
     }
 
     public get currentHeuristic() { return this._currentHeuristic; }
@@ -289,11 +289,11 @@ export abstract class Board implements IBoard {
     protected addPiece(piece: Piece) {
         assertNonNullish(piece.position, `${piece.symbol} position`);
         const toPos = piece.position;
-        const pieces = (piece.color == "White" ? this.wPieces : this.bPieces);
+        const pieces = (piece.color == "w" ? this.wPieces : this.bPieces);
         pieces.set(PositionHelper.positionKey(toPos), piece);
         const posCol = (toPos[0] + 1) >>> 1;
         const posLineMask = Board.lineMask(toPos[1]);
-        const positions = (piece.color == "White" ? this.wPositions : this.bPositions);
+        const positions = (piece.color == "w" ? this.wPositions : this.bPositions);
         positions[posCol] |= posLineMask;
     }
 
@@ -301,17 +301,17 @@ export abstract class Board implements IBoard {
         const posCol = (pos[0] + 1) >>> 1;
         const posLineMask = Board.lineMask(pos[1]);
         if ((this.wPositions[posCol] & posLineMask) != 0) {
-            return 'White';
+            return 'w';
         }
         else if ((this.bPositions[posCol] & posLineMask) != 0) {
-            return 'Black';
+            return 'b';
         } else return null;
     }
 
     public getPiece(pos: Position): Nullable<Piece> {
         const color = this.hasPiece(pos);
         if (color == null) return null;
-        else if (color == 'White') {
+        else if (color == 'w') {
             return this.wPieces.get(PositionHelper.positionKey(pos));
         } else {
             return this.bPieces.get(PositionHelper.positionKey(pos));
@@ -320,17 +320,17 @@ export abstract class Board implements IBoard {
 
     public hasThreat(pos: Position, color: PieceColor): boolean {
         const posCol = (pos[0] + 1) >>> 1;
-        return ((color == "White" ? this.wThreats : this.bThreats)[posCol] & Board.lineMask(pos[1])) != 0;
+        return ((color == "w" ? this.wThreats : this.bThreats)[posCol] & Board.lineMask(pos[1])) != 0;
     }
 
     public isThreated(pos: Position, color: PieceColor): boolean {
         const posCol = (pos[0] + 1) >>> 1;
-        return ((color == "White" ? this.bThreats : this.wThreats)[posCol] & Board.lineMask(pos[1])) != 0;
+        return ((color == "w" ? this.bThreats : this.wThreats)[posCol] & Board.lineMask(pos[1])) != 0;
     }
 
     public setThreat(pos: Position, color: PieceColor): void {
         const posCol = (pos[0] + 1) >>> 1;
-        (color == "White" ? this.wThreats : this.bThreats)[posCol] |= Board.lineMask(pos[1]);
+        (color == "w" ? this.wThreats : this.bThreats)[posCol] |= Board.lineMask(pos[1]);
     }
 
     //#region Regainable pieces
@@ -343,13 +343,13 @@ export abstract class Board implements IBoard {
     }
 
     public hasRegainablePieces(hexColor: HexColor): boolean {
-        const currentColor = this._turn == 'w' ? 'White' : 'Black';
+        const currentColor = this._turn;
         return this._regainablePieces.reduce(
             (found, p) => found || p.color == currentColor && (!cspty.isBishop(p) || p.hexesColor == hexColor), false);
     }
 
     public hasAwaitingRegainablePieces() {
-        const currentColor = this._turn == 'w' ? 'White' : 'Black';
+        const currentColor = this._turn;
         if (this._regainablePieces.reduce((found, p) => found || p.color == currentColor && p.symbol != 'J', false))
             return true;
         else {
@@ -375,14 +375,14 @@ export abstract class Board implements IBoard {
     }
 
     public currentRegainablePieceNames(hexColor: HexColor): Set<PieceName> {
-        const currentColor = this._turn == 'w' ? 'White' : 'Black';
+        const currentColor = this._turn;
         return this._regainablePieces.reduce((s: Set<PieceName>, x: Piece) =>
             x.color == currentColor && (!cspty.isBishop(x) || x.hexesColor == hexColor) ? s.add(x.symbol) : s,
             new Set<PieceName>());
     }
 
     public maxRegainablePiecesValue(hexColor: HexColor): number {
-        const currentColor = this._turn == 'w' ? 'White' : 'Black';
+        const currentColor = this._turn;
         return this._regainablePieces.reduce((acc, x) =>
             x.value > acc && x.color == currentColor && (!cspty.isBishop(x) || x.hexesColor == hexColor) ? x.value : acc, 0);
     }
@@ -418,7 +418,7 @@ export abstract class Board implements IBoard {
         const piecePos = piece.position;
         const fromPosCol = (piecePos[0] + 1) >>> 1;
         const fromPosLineMask = Board.lineMask(piecePos[1]);
-        const pieces = (piece.color == "White" ? this.wPieces : this.bPieces);
+        const pieces = (piece.color == "w" ? this.wPieces : this.bPieces);
         if (cspty.isPawn(piece)) {
             let scornedPawn: Nullable<Pawn> = null;
             let multipleStep: Nullable<Position[]> = null;
@@ -449,7 +449,7 @@ export abstract class Board implements IBoard {
                 this._specialPawnCapture = null;
             }
             if (PositionHelper.isPromotionPos(toColumnIndex, toLine, piece.color)) {
-                if (piece.color == 'White') this._wAwaitingPromotion = true;
+                if (piece.color == 'w') this._wAwaitingPromotion = true;
                 else this._bAwaitingPromotion = true;
             }
         } else {
@@ -460,13 +460,13 @@ export abstract class Board implements IBoard {
         pieces.set(PositionHelper.positionKey(piecePos), piece);
         const toPosCol = (piecePos[0] + 1) >>> 1;
         const toPosLineMask = Board.lineMask(piecePos[1]);
-        const positions = (piece.color == "White" ? this.wPositions : this.bPositions);
+        const positions = (piece.color == "w" ? this.wPositions : this.bPositions);
         positions[fromPosCol] &= ~fromPosLineMask;
         positions[toPosCol] |= toPosLineMask;
     }
 
     protected undoPieceMove(piece: Piece, fromColumnIndex: ColumnIndex, fromLine: Line) {
-        const pieces = (piece.color == "White" ? this.wPieces : this.bPieces);
+        const pieces = (piece.color == "w" ? this.wPieces : this.bPieces);
         const piecePos = piece.position!;
         const actualPosCol = (piecePos[0] + 1) >>> 1;
         const actualPosLineMask = Board.lineMask(piecePos[1]);
@@ -475,7 +475,7 @@ export abstract class Board implements IBoard {
         pieces.set(PositionHelper.positionKey(piecePos), piece);
         const fromPosCol = (piecePos[0] + 1) >>> 1;
         const fromPosLineMask = Board.lineMask(piecePos[1]);
-        const positions = (piece.color == "White" ? this.wPositions : this.bPositions);
+        const positions = (piece.color == "w" ? this.wPositions : this.bPositions);
         positions[actualPosCol] &= ~actualPosLineMask;
         positions[fromPosCol] |= fromPosLineMask;
     }
@@ -485,9 +485,9 @@ export abstract class Board implements IBoard {
         const fromPos = piece.position;
         const posCol = (fromPos[0] + 1) >>> 1;
         const posLineMask = Board.lineMask(fromPos[1]);
-        const positions = (piece.color == "White" ? this.wPositions : this.bPositions);
+        const positions = (piece.color == "w" ? this.wPositions : this.bPositions);
         positions[posCol] &= ~posLineMask;
-        const pieces = (piece.color == "White" ? this.wPieces : this.bPieces);
+        const pieces = (piece.color == "w" ? this.wPieces : this.bPieces);
         pieces.delete(PositionHelper.positionKey(fromPos));
         piece.captured();
         if (piece.isRegainable) this._regainablePieces.push(piece);
@@ -505,7 +505,7 @@ export abstract class Board implements IBoard {
 
     protected promotePawn(pawn: Pawn, piece: Piece) {
         if (this._regainablePieces.includes(piece)) {
-            const pieces = (piece.color == "White" ? this.wPieces : this.bPieces);
+            const pieces = (piece.color == "w" ? this.wPieces : this.bPieces);
             pieces.delete(PositionHelper.positionKey(pawn.position!));
             pawn.promoteTo(piece);
             pieces.set(PositionHelper.positionKey(piece.position!), piece);
@@ -518,13 +518,13 @@ export abstract class Board implements IBoard {
             }
             const pos = this._regainablePieces.indexOf(piece);
             this._regainablePieces.splice(pos, 1);
-            if (piece.color == 'White') this._wAwaitingPromotion = false;
+            if (piece.color == 'w') this._wAwaitingPromotion = false;
             else this._bAwaitingPromotion = false;
         }
     }
 
     protected undoPromotePawn(pawn: Pawn, piece: Piece) {
-        const pieces = (piece.color == "White" ? this.wPieces : this.bPieces);
+        const pieces = (piece.color == "w" ? this.wPieces : this.bPieces);
         pieces.delete(PositionHelper.positionKey(piece.position!));
         pawn.setPositionTo([piece.position![0], piece.position![1]]);
         piece.captured();
@@ -538,14 +538,14 @@ export abstract class Board implements IBoard {
 
     private prepareTurn(currentKing: King) {
         const color = currentKing.color;
-        const threats = (color == "White" ? this.bThreats : this.wThreats);
+        const threats = (color == "w" ? this.bThreats : this.wThreats);
         for (let i = 0; i <= 7; i++) threats[i] = 0;
         {
-            const threatingPieces = (color == 'White' ? this.bPieces.values() : this.wPieces.values());
+            const threatingPieces = (color == 'w' ? this.bPieces.values() : this.wPieces.values());
             for (const piece of threatingPieces) piece.markThreats(this);
         }
         {
-            const ownPieces = (color == "White" ? this.wPieces.values() : this.bPieces.values());
+            const ownPieces = (color == "w" ? this.wPieces.values() : this.bPieces.values());
             for (const piece of ownPieces) piece.pin = null;
         }
         currentKing.computeCheckAndPins(this);
@@ -722,9 +722,9 @@ export abstract class Board implements IBoard {
             let pieceDeveloped = 0;
             let advancedPawn = 0;
 
-            const isTroupDeveloped = (pos: Position, color: PieceColor) => color == 'White' ? pos[1] > 8 : pos[1] < 20;
+            const isTroupDeveloped = (pos: Position, color: PieceColor) => color == 'w' ? pos[1] > 8 : pos[1] < 20;
             const isPieceDeveloped = (pos: Position, color: PieceColor) =>
-                color == 'White' ? pos[1] > (pos[0] == 7 ? 6 : 3) : pos[1] < (pos[0] == 7 ? 22 : 25);
+                color == 'w' ? pos[1] > (pos[0] == 7 ? 6 : 3) : pos[1] < (pos[0] == 7 ? 22 : 25);
 
             for (const piece of pieces.values()) {
                 if (piece.position != null) {
@@ -852,8 +852,8 @@ export abstract class Board implements IBoard {
 export class Game extends Board {
 
     public static kingCastlingPosition(color: PieceColor, column: CastlingColumn): Position {
-        const kingPosition = (color == 'White' ? PositionHelper.whiteKingInitPosition : PositionHelper.blackKingInitPosition);
-        const kingCastleMove = (color == 'White' ? Game.whiteKingCastlingMove : Game.blackKingCastlingMove)[column];
+        const kingPosition = (color == 'w' ? PositionHelper.whiteKingInitPosition : PositionHelper.blackKingInitPosition);
+        const kingCastleMove = (color == 'w' ? Game.whiteKingCastlingMove : Game.blackKingCastlingMove)[column];
         return PositionHelper.knightJump(kingPosition, kingCastleMove)!;
     }
 
@@ -894,13 +894,13 @@ export class Game extends Board {
     private static rookCastleMove(kingDestinationColumn: Column, rookDestinationColumn: Column, color: PieceColor, side: 'K' | 'D', grand: boolean): OrthogonalDirection {
         if (side == 'K') {
             if (rookDestinationColumn == 'K')
-                return grand ? (color == 'White' ? "ColumnUp" : "ColumnDown") : color == 'White' ? "FileUp" : "FileDown";
+                return grand ? (color == 'w' ? "ColumnUp" : "ColumnDown") : color == 'w' ? "FileUp" : "FileDown";
             else if (rookDestinationColumn == 'I')
-                return grand ? (color == 'White' ? "FileInvDown" : "FileInvUp") : color == 'White' ? "ColumnUp" : "ColumnDown";
-            else return color == 'White' ? "FileInvUp" : "FileInvDown";
+                return grand ? (color == 'w' ? "FileInvDown" : "FileInvUp") : color == 'w' ? "ColumnUp" : "ColumnDown";
+            else return color == 'w' ? "FileInvUp" : "FileInvDown";
         } else {
-            if (rookDestinationColumn == 'E' && kingDestinationColumn == 'D') return color == 'White' ? "FileDown" : "FileUp"
-            else return color == 'White' ? "FileUp" : "FileDown";
+            if (rookDestinationColumn == 'E' && kingDestinationColumn == 'D') return color == 'w' ? "FileDown" : "FileUp"
+            else return color == 'w' ? "FileUp" : "FileDown";
         }
     }
     //#endregion
@@ -960,8 +960,7 @@ export class Game extends Board {
     }
 
     public get lastMove() { 
-        if (this._top >= 0)
-            return csmv.moveNotation(this._moves[this._top].move);
+        if (this._top >= 0) return csmv.fullMoveNotation(this._moves[this._top], false);
         else return null;
     }
 
@@ -1099,7 +1098,7 @@ export class Game extends Board {
             if (this.isGrand) assertCondition(csty.isGrandCastlingString(strMove), "castling move string");
             else assertCondition(csty.isCastlingString(strMove), "castling move string");
             const currentKing = super.turnKing;
-            const currentColor = this.turn == 'w' ? 'White' : 'Black';
+            const currentColor = this.turn;
             const cmove = strMove.split("-");
             const side = cmove[0][2] == 'R' ? 'K' : cmove[0][2];
             const kCol = cmove[1][0] as CastlingColumn;
@@ -1161,7 +1160,7 @@ export class Game extends Board {
             if (this.isAwaitingPromotion) {
                 if (csmv.isMoveInfo(turnInfo.move) && cspty.isPawn(turnInfo.move.piece)
                     || csmv.isPromotionInfo(turnInfo.move))
-                    this.computeAwaitingPromotion(turnInfo.turn == 'b' ? 'White' : 'Black');
+                    this.computeAwaitingPromotion(turnInfo.turn == 'b' ? 'w' : 'b');
             }
             if (this.turn === 'b') this.moveNumber--;
             if (turnInfo.initHalfMoveClock === undefined) this.halfmoveClock--;
@@ -1262,7 +1261,7 @@ export class Game extends Board {
     }
 
     public castlingRookPosition(kingColumn: CastlingColumn, rookColumn: Column, side: 'K' | 'D', singleStep?: boolean) {
-        const currentColor = this.turn == 'w' ? 'White' : 'Black';
+        const currentColor = this.turn;
         const rookPos: Position = side == 'K' ? PositionHelper.initialKingSideRookPosition(currentColor, this.isGrand)
             : PositionHelper.initialQueenSideRookPosition(currentColor, this.isGrand);
         assertCondition(csty.isCastlingColumn(kingColumn), `King column: ${kingColumn} has to be a king castling column`);
@@ -1461,9 +1460,9 @@ export class Game extends Board {
                                 const value = Number(pieceName);
                                 if (isNaN(value)) {
                                     const pieceSymbol = csty.isPieceName(pieceName) ? pieceName : Game.convertPieceAliases(pieceName.toUpperCase());
-                                    const color: PieceColor = pieceName.toUpperCase() == pieceName ? "White" : "Black";
+                                    const color: PieceColor = pieceName.toUpperCase() == pieceName ? "w" : "b";
                                     if (pieceSymbol == 'K') {
-                                        if (color == 'White') {
+                                        if (color == 'w') {
                                             if (this.wKing.position != null) throw new Error("Can't place two White Kings");
                                             else this.wKing.setPositionTo([actualColumnIndex as ColumnIndex, actualLine as Line]);
                                             if (this.hasPiece(this.wKing.position!) == null) this.addPiece(this.wKing);
@@ -1481,7 +1480,7 @@ export class Game extends Board {
                                         if (cspty.isRook(newPiece)) rooks.push(newPiece);
                                         else if (cspty.isPawn(newPiece) && newPiece.awaitingPromotion != null)
                                             super.setAwaitingPromotion(newPiece.color);
-                                        (color == 'White' ? wPiece : bPiece).push(newPiece);
+                                        (color == 'w' ? wPiece : bPiece).push(newPiece);
                                     }
                                     actualColumnIndex += 2;
                                 }
@@ -1496,8 +1495,8 @@ export class Game extends Board {
         if (this.bKing.position == null) throw new Error("There must be a Black King");
         {
             const countOccurrences = (arr: Piece[], val: PieceName) => arr.reduce((n, v) => (v.symbol === val ? n + 1 : n), 0);
-            for (let color of ['White', 'Black'] as PieceColor[]) {
-                const pieceSet = (color == 'White' ? wPiece : bPiece);
+            for (let color of ['w', 'b'] as PieceColor[]) {
+                const pieceSet = (color == 'w' ? wPiece : bPiece);
                 let n = countOccurrences(pieceSet, 'D');
                 if (n > 1) throw new Error(`Too many ${color} Queens`);
                 else if (n == 0) this.addRegainablePiece(new Queen(color));
@@ -1547,7 +1546,7 @@ export class Game extends Board {
         }
         this.wKing.castlingStatus = wCastlingStatus;
         this.bKing.castlingStatus = bCastlingStatus;
-        for (const r of rooks) { r.setCastlingStatus(r.color == "White" ? wCastlingStatus : bCastlingStatus, this.isGrand); }
+        for (const r of rooks) { r.setCastlingStatus(r.color == "w" ? wCastlingStatus : bCastlingStatus, this.isGrand); }
     }
 
     //#endregion
@@ -1659,7 +1658,7 @@ export class Game extends Board {
 
     public * threatedPieceStringPositions() {
         const piecePositionsGenerator = this.turn == 'w' ? this.whitePiecePositions() : this.blackPiecePositions();
-        const color = this.turn == 'w' ? 'White' : 'Black';
+        const color = this.turn;
         for (const pos of piecePositionsGenerator) {
             if (this.isThreated(pos, color)) yield PositionHelper.toString(pos);
         }
@@ -1667,7 +1666,7 @@ export class Game extends Board {
 
     public * ownThreatedPieceStringPositions() {
         const piecePositionsGenerator = this.turn == 'w' ? this.blackPiecePositions() : this.whitePiecePositions();
-        const color = this.turn == 'w' ? 'Black' : 'White';
+        const color = this.turn;
         for (const pos of piecePositionsGenerator) {
             if (this.isThreated(pos, color)) yield PositionHelper.toString(pos);
         }
@@ -1710,7 +1709,7 @@ export class Game extends Board {
     }
 
     private applyMove(move: MoveInfo, turn: Turn) {
-        if (csmv.isCastlingInfo(move)) this.applyCastling(move, turn == 'w' ? 'White' : 'Black');
+        if (csmv.isCastlingInfo(move)) this.applyCastling(move, turn);
         else {
             const piece = move.piece;
             if (csmv.isMoveInfo(move)) {
@@ -1729,7 +1728,7 @@ export class Game extends Board {
     }
 
     private applyCastling(mov: csmv.Castling, color: PieceColor) {
-        const currentKing = color == 'White' ? this.wKing : this.bKing;
+        const currentKing = color == 'w' ? this.wKing : this.bKing;
         const kpos = Game.kingCastlingPosition(currentKing.color, mov.col);
         switch (mov.side) {
             case 'K':
@@ -1747,7 +1746,7 @@ export class Game extends Board {
 
     private undoMove(move: MoveInfo, turn: Turn) {
         if (csmv.isCastlingInfo(move))
-            this.undoCastling(move, turn == 'w' ? 'White' : 'Black');
+            this.undoCastling(move, turn);
         else if (csmv.isMoveInfo(move)) {
             if (csmv.isPromotionInfo(move)) super.undoPromotePawn(move.piece as Pawn, move.promoted);
             super.undoPieceMove(move.piece, move.pos[0], move.pos[1]);
@@ -1760,8 +1759,8 @@ export class Game extends Board {
 
     private undoCastling(castling: csmv.Castling, color: PieceColor) {
         const isGrand = this.isGrand;
-        const currentKing = color == 'White' ? this.wKing : this.bKing;
-        const kingInitialPos = color == 'White' ? PositionHelper.whiteKingInitPosition : PositionHelper.blackKingInitPosition;
+        const currentKing = color == 'w' ? this.wKing : this.bKing;
+        const kingInitialPos = color == 'w' ? PositionHelper.whiteKingInitPosition : PositionHelper.blackKingInitPosition;
         const rookInitialPos = castling.side == 'D' ?
             PositionHelper.initialQueenSideRookPosition(color, isGrand)
             : PositionHelper.initialKingSideRookPosition(color, isGrand);
@@ -1782,45 +1781,45 @@ export class Game extends Board {
 
     private fillDefaultPositions(): void {
         //whites
-        super.createPiece('D', 'White', 'E', 1); super.createPiece('V', "White", 'F', 0);
-        super.createPiece('G', "White", 'D', 2); super.createPiece('J', "White", 'F', 2); super.createPiece('G', "White", 'H', 2);
+        super.createPiece('D', 'w', 'E', 1); super.createPiece('V', "w", 'F', 0);
+        super.createPiece('G', "w", 'D', 2); super.createPiece('J', "w", 'F', 2); super.createPiece('G', "w", 'H', 2);
         if (this.isGrand) {
-            super.createPiece('P', "White", 'B', 6); super.createPiece('R', "White", 'B', 4); super.createPiece('N', "White", 'C', 3);
-            super.createPiece('N', "White", 'I', 3); super.createPiece('R', "White", 'K', 4); super.createPiece('P', "White", 'K', 6);
-            super.createPiece('P', "White", 'P', 7); super.createPiece('P', "White", 'T', 8); 
-            super.createPiece('P', "White", 'X', 8); super.createPiece('P', "White", 'Z', 7);
-            super.createPiece('M', "White", 'C', 7); super.createPiece('M', "White", 'A', 7);
-            super.createPiece('M', "White", 'L', 7); super.createPiece('M', "White", 'I', 7);
+            super.createPiece('P', "w", 'B', 6); super.createPiece('R', "w", 'B', 4); super.createPiece('N', "w", 'C', 3);
+            super.createPiece('N', "w", 'I', 3); super.createPiece('R', "w", 'K', 4); super.createPiece('P', "w", 'K', 6);
+            super.createPiece('P', "w", 'P', 7); super.createPiece('P', "w", 'T', 8); 
+            super.createPiece('P', "w", 'X', 8); super.createPiece('P', "w", 'Z', 7);
+            super.createPiece('M', "w", 'C', 7); super.createPiece('M', "w", 'A', 7);
+            super.createPiece('M', "w", 'L', 7); super.createPiece('M', "w", 'I', 7);
         } else {
-            super.createPiece('P', "White", 'B', 4); super.createPiece('R', "White", 'C', 3),
-            super.createPiece('R', "White", 'I', 3); super.createPiece('P', "White", 'K', 4);
+            super.createPiece('P', "w", 'B', 4); super.createPiece('R', "w", 'C', 3),
+            super.createPiece('R', "w", 'I', 3); super.createPiece('P', "w", 'K', 4);
         }
-        super.createPiece('N', "White", 'E', 3); super.createPiece('N', "White", 'G', 3);
-        super.createPiece('E', "White", 'D', 4); super.createPiece('J', "White", 'F', 4); super.createPiece('E', "White", 'H', 4);
-        super.createPiece('P', "White", 'A', 5); super.createPiece('P', "White", 'C', 5); super.createPiece('E', "White", 'E', 5);
-        super.createPiece('E', "White", 'G', 5); super.createPiece('P', "White", 'I', 5); super.createPiece('P', "White", 'L', 5);
-        super.createPiece('P', "White", 'D', 6); super.createPiece('J', "White", 'F', 6); super.createPiece('P', "White", 'H', 6);
-        super.createPiece('P', "White", 'E', 7); super.createPiece('P', "White", 'F', 8); super.createPiece('P', "White", 'G', 7);
+        super.createPiece('N', "w", 'E', 3); super.createPiece('N', "w", 'G', 3);
+        super.createPiece('E', "w", 'D', 4); super.createPiece('J', "w", 'F', 4); super.createPiece('E', "w", 'H', 4);
+        super.createPiece('P', "w", 'A', 5); super.createPiece('P', "w", 'C', 5); super.createPiece('E', "w", 'E', 5);
+        super.createPiece('E', "w", 'G', 5); super.createPiece('P', "w", 'I', 5); super.createPiece('P', "w", 'L', 5);
+        super.createPiece('P', "w", 'D', 6); super.createPiece('J', "w", 'F', 6); super.createPiece('P', "w", 'H', 6);
+        super.createPiece('P', "w", 'E', 7); super.createPiece('P', "w", 'F', 8); super.createPiece('P', "w", 'G', 7);
         //blacks
-        super.createPiece('D', "Black", 'E', 27); super.createPiece('V', "Black", 'F', 28);
-        super.createPiece('G', "Black", 'D', 26); super.createPiece('J', "Black", 'F', 26); super.createPiece('G', "Black", 'H', 26);
+        super.createPiece('D', "b", 'E', 27); super.createPiece('V', "b", 'F', 28);
+        super.createPiece('G', "b", 'D', 26); super.createPiece('J', "b", 'F', 26); super.createPiece('G', "b", 'H', 26);
         if (this.isGrand) {
-            super.createPiece('P', "Black", 'B', 22); super.createPiece('R', "Black", 'B', 24); super.createPiece('N', "Black", 'C', 25);
-            super.createPiece('N', "Black", 'I', 25); super.createPiece('R', "Black", 'K', 24); super.createPiece('P', "Black", 'K', 22);
-            super.createPiece('P', "Black", 'P', 21); super.createPiece('P', "Black", 'T', 20);
-            super.createPiece('P', "Black", 'X', 20); super.createPiece('P', "Black", 'Z', 21);
-            super.createPiece('M', "Black", 'C', 21); super.createPiece('M', "Black", 'A', 21);
-            super.createPiece('M', "Black", 'I', 21); super.createPiece('M', "Black", 'L', 21);
+            super.createPiece('P', "b", 'B', 22); super.createPiece('R', "b", 'B', 24); super.createPiece('N', "b", 'C', 25);
+            super.createPiece('N', "b", 'I', 25); super.createPiece('R', "b", 'K', 24); super.createPiece('P', "b", 'K', 22);
+            super.createPiece('P', "b", 'P', 21); super.createPiece('P', "b", 'T', 20);
+            super.createPiece('P', "b", 'X', 20); super.createPiece('P', "b", 'Z', 21);
+            super.createPiece('M', "b", 'C', 21); super.createPiece('M', "b", 'A', 21);
+            super.createPiece('M', "b", 'I', 21); super.createPiece('M', "b", 'L', 21);
         } else {
-            super.createPiece('P', "Black", 'B', 24); super.createPiece('R', "Black", 'C', 25);
-            super.createPiece('R', "Black", 'I', 25); super.createPiece('P', "Black", 'K', 24);
+            super.createPiece('P', "b", 'B', 24); super.createPiece('R', "b", 'C', 25);
+            super.createPiece('R', "b", 'I', 25); super.createPiece('P', "b", 'K', 24);
         }
-        super.createPiece('N', "Black", 'E', 25); super.createPiece('N', "Black", 'G', 25);
-        super.createPiece('E', "Black", 'D', 24); super.createPiece('J', "Black", 'F', 24); super.createPiece('E', "Black", 'H', 24);
-        super.createPiece('P', "Black", 'A', 23); super.createPiece('P', "Black", 'C', 23); super.createPiece('E', "Black", 'E', 23);
-        super.createPiece('E', "Black", 'G', 23); super.createPiece('P', "Black", 'I', 23); super.createPiece('P', "Black", 'L', 23);
-        super.createPiece('P', "Black", 'D', 22); super.createPiece('J', "Black", 'F', 22); super.createPiece('P', "Black", 'H', 22);
-        super.createPiece('P', "Black", 'E', 21); super.createPiece('P', "Black", 'F', 20); super.createPiece('P', "Black", 'G', 21);
+        super.createPiece('N', "b", 'E', 25); super.createPiece('N', "b", 'G', 25);
+        super.createPiece('E', "b", 'D', 24); super.createPiece('J', "b", 'F', 24); super.createPiece('E', "b", 'H', 24);
+        super.createPiece('P', "b", 'A', 23); super.createPiece('P', "b", 'C', 23); super.createPiece('E', "b", 'E', 23);
+        super.createPiece('E', "b", 'G', 23); super.createPiece('P', "b", 'I', 23); super.createPiece('P', "b", 'L', 23);
+        super.createPiece('P', "b", 'D', 22); super.createPiece('J', "b", 'F', 22); super.createPiece('P', "b", 'H', 22);
+        super.createPiece('P', "b", 'E', 21); super.createPiece('P', "b", 'F', 20); super.createPiece('P', "b", 'G', 21);
     };
 
     private initGame() {

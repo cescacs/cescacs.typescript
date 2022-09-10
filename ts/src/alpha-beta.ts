@@ -36,7 +36,7 @@ abstract class Minimax {
 
     public static findBest(grand: boolean, board: string) {
         const actualGame: Game = new Game(grand, board);
-        const player: PieceColor = actualGame.turn == 'w' ? 'White' : 'Black';
+        const player: PieceColor = actualGame.turn;
         return Minimax.minimax(actualGame, 0, -Infinity, Infinity, player, player);
 
     }
@@ -44,7 +44,7 @@ abstract class Minimax {
     private static readonly maxDepth: number = 4;
 
     private static minimax(node: Board, depth: number, alpha: number, beta: number, maxPlayer: PieceColor, levelPlayer: PieceColor) {
-        const currentKing = levelPlayer == 'White' ? node.wKing : node.bKing;
+        const currentKing = levelPlayer == 'w' ? node.wKing : node.bKing;
         const moves = Minimax.generateMoves(node, currentKing);
             if (depth < Minimax.maxDepth) {
                 moves.sort((a, b) => {
@@ -70,7 +70,7 @@ abstract class Minimax {
                     }
         
                 } else {
-                    Minimax.minimax(node, depth+1, alpha, beta, maxPlayer, levelPlayer == 'White' ? 'Black' : 'White');
+                    Minimax.minimax(node, depth+1, alpha, beta, maxPlayer, levelPlayer == 'w' ? 'b' : 'w');
                 }
 
                 // undoMove
@@ -90,7 +90,7 @@ abstract class Minimax {
         //this is a quick sort heuristic:
         //- computed closeChecks doesn't ensures check, only close position
         //- discovered doesn't ensures piece move destination allows discovered check not to be hiden
-        for (const piece of color == 'White' ? node.whitePieces() : node.blackPieces()) {
+        for (const piece of color == 'w' ? node.whitePieces() : node.blackPieces()) {
             for (const pos of node.pieceMoves(piece)) {
                 const isEnPassantCapture = cspty.isPawn(piece) && node.specialPawnCapture != null &&
                     node.specialPawnCapture.isEnPassantCapturable() && node.specialPawnCapture.isEnPassantCapture(pos, piece);

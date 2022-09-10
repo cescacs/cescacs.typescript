@@ -57,7 +57,7 @@ class Piece {
         return this.uncapitalizedSymbol + this.position?.toString();
     }
     get uncapitalizedSymbol() {
-        return (this.color == "White" ? this.symbol : this.symbol.toLowerCase());
+        return (this.color == "w" ? this.symbol : this.symbol.toLowerCase());
     }
     get symbolPositionString() {
         return this.symbol + (this.position == null ? "" : cescacs_positionHelper_1.PositionHelper.toString(this.position));
@@ -230,7 +230,7 @@ class King extends Piece {
         this.value = 0;
         this._moved = false;
         this.checkPosition = null;
-        this.key = cescacs_types_1.csConvert.turnFromPieceColor(color) + this.symbol;
+        this.key = color + this.symbol;
     }
     setPositionTo(pos) {
         super.setPositionTo(pos);
@@ -603,14 +603,14 @@ class King extends Piece {
         }
     }
     get initialPosiition() {
-        return this.color == "White" ? cescacs_positionHelper_1.PositionHelper.whiteKingInitPosition : cescacs_positionHelper_1.PositionHelper.blackKingInitPosition;
+        return this.color == "w" ? cescacs_positionHelper_1.PositionHelper.whiteKingInitPosition : cescacs_positionHelper_1.PositionHelper.blackKingInitPosition;
     }
     get isInitialPosition() {
         if (this.position == null)
             return false;
         else
             return this.position[0] == 8
-                && (this.color == "White" && this.position[1] == 1 || this.color == "Black" && this.position[1] == 27);
+                && (this.color == "w" && this.position[1] == 1 || this.color == "b" && this.position[1] == 27);
     }
 }
 exports.King = King;
@@ -619,7 +619,7 @@ class Queen extends Piece {
         super(color);
         this.symbol = "D";
         this.value = 15;
-        this.key = cescacs_types_1.csConvert.turnFromPieceColor(color) + this.symbol;
+        this.key = color + this.symbol;
         if (column !== undefined) {
             (0, ts_general_1.assertCondition)(cescacs_types_1.csTypes.isColumn(column));
             (0, ts_general_1.assertNonNullish)(line, "line of the column");
@@ -648,7 +648,7 @@ class Wyvern extends Piece {
         super(color);
         this.symbol = "V";
         this.value = 14;
-        this.key = cescacs_types_1.csConvert.turnFromPieceColor(color) + this.symbol;
+        this.key = color + this.symbol;
         if (column !== undefined) {
             (0, ts_general_1.assertCondition)(cescacs_types_1.csTypes.isColumn(column));
             (0, ts_general_1.assertNonNullish)(line, "line of the column");
@@ -681,14 +681,14 @@ class Rook extends Piece {
         if (line !== undefined) {
             (0, ts_general_1.assertCondition)(cescacs_types_1.csTypes.isColumn(columnOrNumber));
             super.setPositionTo(cescacs_positionHelper_1.PositionHelper.fromBoardPosition(columnOrNumber, line, true));
-            this.key = cescacs_types_1.csConvert.turnFromPieceColor(color) + this.symbol +
+            this.key = color + this.symbol +
                 (this.isKingSide(grand) ? "k" : this.isQueenSide(grand) ? "q" : (columnOrNumber + line));
             // first moved heuristic aprox; but needs castlingStatus
             this._moved = !this.isKingSide(grand) && !this.isQueenSide(grand);
         }
         else {
             (0, ts_general_1.assertCondition)(typeof columnOrNumber == "number", `instance number of piece ${this.symbol}`);
-            this.key = cescacs_types_1.csConvert.turnFromPieceColor(color) + this.symbol + columnOrNumber;
+            this.key = color + this.symbol + columnOrNumber;
             this._moved = false;
         }
     }
@@ -702,17 +702,17 @@ class Rook extends Piece {
         if (this.position == null)
             return false;
         else if (grand)
-            return this.position[0] == 3 && (this.color == "White" ? this.position[1] == 4 : this.position[1] == 24);
+            return this.position[0] == 3 && (this.color == "w" ? this.position[1] == 4 : this.position[1] == 24);
         else
-            return this.position[0] == 4 && (this.color == "White" ? this.position[1] == 3 : this.position[1] == 25);
+            return this.position[0] == 4 && (this.color == "w" ? this.position[1] == 3 : this.position[1] == 25);
     }
     isKingSide(grand) {
         if (this.position == null)
             return false;
         else if (grand)
-            return this.position[0] == 11 && (this.color == "White" ? this.position[1] == 4 : this.position[1] == 24);
+            return this.position[0] == 11 && (this.color == "w" ? this.position[1] == 4 : this.position[1] == 24);
         else
-            return this.position[0] == 10 && (this.color == "White" ? this.position[1] == 3 : this.position[1] == 25);
+            return this.position[0] == 10 && (this.color == "w" ? this.position[1] == 3 : this.position[1] == 25);
     }
     *moves(board) {
         yield* this.orthogonalMoves(board);
@@ -747,11 +747,11 @@ class Pegasus extends Piece {
         if (line !== undefined) {
             (0, ts_general_1.assertCondition)(cescacs_types_1.csTypes.isColumn(columnOrNumber));
             super.setPositionTo(cescacs_positionHelper_1.PositionHelper.fromBoardPosition(columnOrNumber, line, true));
-            this.key = cescacs_types_1.csConvert.turnFromPieceColor(color) + this.symbol + columnOrNumber + line;
+            this.key = color + this.symbol + columnOrNumber + line;
         }
         else {
             (0, ts_general_1.assertCondition)(typeof columnOrNumber == "number", `instance number of piece ${this.symbol}`);
-            this.key = cescacs_types_1.csConvert.turnFromPieceColor(color) + this.symbol + columnOrNumber;
+            this.key = color + this.symbol + columnOrNumber;
         }
     }
     *moves(board) {
@@ -780,11 +780,11 @@ class Knight extends Piece {
         if (line !== undefined) {
             (0, ts_general_1.assertCondition)(cescacs_types_1.csTypes.isColumn(columnOrNumber));
             super.setPositionTo(cescacs_positionHelper_1.PositionHelper.fromBoardPosition(columnOrNumber, line, true));
-            this.key = cescacs_types_1.csConvert.turnFromPieceColor(color) + this.symbol + columnOrNumber + line;
+            this.key = color + this.symbol + columnOrNumber + line;
         }
         else {
             (0, ts_general_1.assertCondition)(typeof columnOrNumber == "number", `instance number of piece ${this.symbol}`);
-            this.key = cescacs_types_1.csConvert.turnFromPieceColor(color) + this.symbol + columnOrNumber;
+            this.key = color + this.symbol + columnOrNumber;
         }
     }
     *moves(board) {
@@ -825,7 +825,7 @@ class Bishop extends Piece {
         }
         else
             throw new TypeError("Bishop constructor error");
-        this.key = cescacs_types_1.csConvert.turnFromPieceColor(color) + this.symbol + this.hexesColor;
+        this.key = color + this.symbol + this.hexesColor;
     }
     *moves(board) {
         yield* super.diagonalMoves(board);
@@ -847,7 +847,7 @@ class Elephant extends Piece {
         this.value = 2;
         (0, ts_general_1.assertCondition)(cescacs_types_1.csTypes.isColumn(column));
         super.setPositionTo(cescacs_positionHelper_1.PositionHelper.fromBoardPosition(column, line, true));
-        this.key = cescacs_types_1.csConvert.turnFromPieceColor(color) + this.symbol + column + line;
+        this.key = color + this.symbol + column + line;
     }
     *moves(board, defend = false) {
         const piecePos = this.position;
@@ -888,7 +888,7 @@ class Elephant extends Piece {
         }
     }
     get ownOrthogonalDirection() {
-        return this.color === 'White' ? "ColumnUp" : "ColumnDown";
+        return this.color === 'w' ? "ColumnUp" : "ColumnDown";
     }
 }
 exports.Elephant = Elephant;
@@ -899,7 +899,7 @@ class Almogaver extends Piece {
         this.value = 2;
         (0, ts_general_1.assertCondition)(cescacs_types_1.csTypes.isColumn(column));
         super.setPositionTo(cescacs_positionHelper_1.PositionHelper.fromBoardPosition(column, line, true));
-        this.key = cescacs_types_1.csConvert.turnFromPieceColor(color) + this.symbol + column + line;
+        this.key = color + this.symbol + column + line;
     }
     *moves(board, onlyCaptures = false, defends = false) {
         const piecePos = this.position;
@@ -948,7 +948,7 @@ class Pawn extends Piece {
         this.value = 1;
         (0, ts_general_1.assertCondition)(cescacs_types_1.csTypes.isColumn(column));
         super.setPositionTo(cescacs_positionHelper_1.PositionHelper.fromBoardPosition(column, line, true));
-        this.key = cescacs_types_1.csConvert.turnFromPieceColor(color) + this.symbol + column + line;
+        this.key = color + this.symbol + column + line;
     }
     *moves(board, onlyCaptures = false, defend = false) {
         const pawnPos = this.position;
@@ -1030,16 +1030,16 @@ class Pawn extends Piece {
         if (p != null) {
             const c = p[0];
             if (c > 3 && c < 7 || c == 3 && !grand) {
-                return p[1] == (this.color == "White" ? c + 1 : 27 - c);
+                return p[1] == (this.color == "w" ? c + 1 : 27 - c);
             }
             else if (c > 7 && c < 11 || c == 11 && !grand) {
-                return p[1] == (this.color == "White" ? 15 - c : 13 + c);
+                return p[1] == (this.color == "w" ? 15 - c : 13 + c);
             }
             else if (grand) {
                 if (c == 2 || c == 12)
-                    return p[1] == (this.color == "White" ? 5 : 23);
+                    return p[1] == (this.color == "w" ? 5 : 23);
                 else if (c == 3 || c == 11)
-                    return p[1] == (this.color == "White" ? 6 : 22);
+                    return p[1] == (this.color == "w" ? 6 : 22);
                 else
                     return false;
             }
@@ -1050,13 +1050,13 @@ class Pawn extends Piece {
             return false;
     }
     get ownOrthogonalStraightDirection() {
-        return this.color === 'White' ? "ColumnUp" : "ColumnDown";
+        return this.color === 'w' ? "ColumnUp" : "ColumnDown";
     }
     get ownOrthogonalAlternateDirections() {
-        return this.color === 'White' ? ["FileUp", "FileInvUp"] : ["FileDown", "FileInvDown"];
+        return this.color === 'w' ? ["FileUp", "FileInvUp"] : ["FileDown", "FileInvDown"];
     }
     get ownCaptureDirections() {
-        return this.color == 'White' ? ["LineUp", "LineInvUp"] : ["LineDown", "LineInvDown"];
+        return this.color == 'w' ? ["LineUp", "LineInvUp"] : ["LineDown", "LineInvDown"];
     }
 }
 exports.Pawn = Pawn;

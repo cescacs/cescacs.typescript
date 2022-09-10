@@ -59,7 +59,7 @@ var csConvert;
     csConvert.columnFromIndex = (i) => _column[i];
     csConvert.toColumnIndex = (column) => _column.indexOf(column);
     //TODO PieceColor == Turn
-    csConvert.turnFromPieceColor = (color) => color == 'White' ? 'w' : 'b';
+    //export const turnFromPieceColor = (color: PieceColor): Turn => color == 'White' ? 'w' : 'b';
     csConvert.toOrthogonalDirectionIndex = (direction) => _orthogonalDirection.indexOf(direction);
     csConvert.orthogonalDirectionFromIndex = (i) => _orthogonalDirection[i];
     csConvert.toDiagonalDirectionIndex = (direction) => _diagonalDirection.indexOf(direction);
@@ -97,16 +97,12 @@ var csConvert;
     }
     csConvert.getDiagonalOrientation = getDiagonalOrientation;
     function getPieceKeyColor(key) {
-        //TODO: PieceColor into Turn logic change
-        if (key[0] === 'w')
-            return 'White';
-        else if (key[0] === 'b')
-            return 'Black';
-        (0, ts_general_1.assertCondition)(false, `Incorrect key ${key}`);
+        (0, ts_general_1.assertCondition)(csTypes.isTurn(key[0]), `key 1st char must have piece color`);
+        return key[0];
     }
     csConvert.getPieceKeyColor = getPieceKeyColor;
     function getPieceKeyName(key) {
-        (0, ts_general_1.assertCondition)(csTypes.isPieceName(key[1]), `Incorrect key ${key}`);
+        (0, ts_general_1.assertCondition)(csTypes.isPieceName(key[1]), `key 2nd char must be piece symbol ${key}`);
         return key[1];
     }
     csConvert.getPieceKeyName = getPieceKeyName;

@@ -40,7 +40,7 @@ export type CastlingColumn = (typeof _castlingColumn)[number];
 export type HexColor = (typeof _hexColor)[number];
 export type Turn = (typeof _turn)[number];
 export type PieceName = (typeof _pieceName)[number];
-export type PieceColor = "White" | "Black"; //TODO: PieceColor = Turn
+export type PieceColor = Turn; // "White" | "Black"; //TODO: PieceColor = Turn
 export type Side = "K" | "D";
 export type PieceKey = string;
 export type CastlingStatus = (typeof _castlingStatus)[number];
@@ -92,7 +92,7 @@ export namespace csConvert {
     export const columnFromIndex = (i: ColumnIndex): Column => _column[i];
     export const toColumnIndex = (column: Column): ColumnIndex => _column.indexOf(column) as ColumnIndex;
     //TODO PieceColor == Turn
-    export const turnFromPieceColor = (color: PieceColor): Turn => color == 'White' ? 'w' : 'b';
+    //export const turnFromPieceColor = (color: PieceColor): Turn => color == 'White' ? 'w' : 'b';
     export const toOrthogonalDirectionIndex = (direction: OrthogonalDirection): DirectionMoveRange => _orthogonalDirection.indexOf(direction) as DirectionMoveRange;
     export const orthogonalDirectionFromIndex = (i: DirectionMoveRange): OrthogonalDirection => _orthogonalDirection[i];
     export const toDiagonalDirectionIndex = (direction: DiagonalDirection): DirectionMoveRange => _diagonalDirection.indexOf(direction) as DirectionMoveRange;
@@ -128,13 +128,11 @@ export namespace csConvert {
         }
     }
     export function getPieceKeyColor(key: PieceKey): PieceColor {
-        //TODO: PieceColor into Turn logic change
-        if (key[0] === 'w') return 'White';
-        else if (key[0] === 'b') return 'Black';
-        assertCondition(false, `Incorrect key ${key}`);
+        assertCondition(csTypes.isTurn(key[0]), `key 1st char must have piece color`)
+        return key[0];
     }
     export function getPieceKeyName(key: PieceKey): PieceName {
-        assertCondition(csTypes.isPieceName(key[1]), `Incorrect key ${key}`);
+        assertCondition(csTypes.isPieceName(key[1]), `key 2nd char must be piece symbol ${key}`);
         return key[1];
     }
     export function getBishopKeyHexColor(key: PieceKey): Nullable<HexColor> {

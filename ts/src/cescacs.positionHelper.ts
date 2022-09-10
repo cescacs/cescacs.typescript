@@ -55,27 +55,27 @@ export abstract class PositionHelper {
     public static get blackKingInitPosition(): Position { return [8, 27]; }
 
     public static initialQueenSideRookPosition(color: PieceColor, grand: boolean): Position {
-        if (grand) return color == "White" ? [3, 4] : [3, 24];
-        else return color == "White" ? [4, 3] : [4, 25];
+        if (grand) return color == "w" ? [3, 4] : [3, 24];
+        else return color == "w" ? [4, 3] : [4, 25];
     }
 
     public static initialKingSideRookPosition(color: PieceColor, grand: boolean): Position {
-        if (grand) return color == "White" ? [11, 4] : [11, 24];
-        else return color == "White" ? [10, 3] : [10, 25];
+        if (grand) return color == "w" ? [11, 4] : [11, 24];
+        else return color == "w" ? [10, 3] : [10, 25];
     }
 
     public static isPromotionPos(c: ColumnIndex, l: Line, color: PieceColor): boolean {
-        return l == (c <= 7 ? (color == "White" ? 21 + c : 7 - c) : (color == "White" ? 35 - c : c - 7));
+        return l == (c <= 7 ? (color == "w" ? 21 + c : 7 - c) : (color == "w" ? 35 - c : c - 7));
     }
 
     public static isPromotionHex(pos: Position, color: PieceColor): boolean {
         const c = pos[0];
-        return pos[1] == (c <= 7 ? (color == "White" ? 21 + c : 7 - c) : (color == "White" ? 35 - c : c - 7));
+        return pos[1] == (c <= 7 ? (color == "w" ? 21 + c : 7 - c) : (color == "w" ? 35 - c : c - 7));
     }
 
     public static promotionDistance(pos: Position, color: PieceColor): number {
         const c = pos[0];
-        if (color == 'White') return (c <= 7 ? 21 + c : 35 - c) - pos[1];
+        if (color == 'w') return (c <= 7 ? 21 + c : 35 - c) - pos[1];
         else return pos[1] - (c <= 7 ? 7 - c : c - 7);
     }
 

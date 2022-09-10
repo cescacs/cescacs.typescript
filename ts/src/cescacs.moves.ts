@@ -91,9 +91,9 @@ export namespace csMoves {
             && (mov.special === undefined || csty.isPosition(mov.special));
     }
 
-    export function fullMoveNotation(info: UndoStatus): string {
+    export function fullMoveNotation(info: UndoStatus, mvNum: boolean = true): string {
         const postStr = info.check ?? ((info.end == "mate") ? "#" : "");
-        const preStr = info.turn == 'w' ? info.n + '. ' : "";
+        const preStr = mvNum && info.turn == 'w' ? info.n + '. ' : "";
         return preStr + csMoves.moveNotation(info.move) + postStr;
     }
 
