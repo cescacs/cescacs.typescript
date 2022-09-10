@@ -25,13 +25,13 @@ export interface IEnPassantCapturable {
     isEnPassantCapture: (pos: Position) => boolean;
 }
 export interface IBoard {
-    isGrand: boolean;
+    readonly isGrand: boolean;
     hasPiece: (pos: Position) => Nullable<PieceColor>;
     getPiece: (pos: Position) => Nullable<Piece>;
     setThreat: (pos: Position, color: PieceColor) => void;
     hasThreat: (pos: Position, color: PieceColor) => boolean;
     isThreated: (pos: Position, color: PieceColor) => boolean;
-    specialPawnCapture: Nullable<IPawnSpecialCaptureStatus>;
+    readonly specialPawnCapture: Nullable<IPawnSpecialCaptureStatus>;
 }
 
 

@@ -33,6 +33,8 @@ export namespace csMoves {
         Moves will have no objects, but key references (allow independent storage)
     */
 
+    // TODO Use readonly fields on interfaces
+
     export interface Castling {
         side: CastlingSide;
         col: CastlingColumn;
