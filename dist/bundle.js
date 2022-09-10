@@ -203,11 +203,10 @@ class Board {
             return ["RKR", "RKR"];
     }
     static lineMask(l) { return 1 << l; }
-    createPiece(pieceName, color, columnIndex, line) {
-        const column = cescacs_types_1.csConvert.columnFromIndex(columnIndex);
+    createPiece(pieceName, color, column, line) {
         let piece;
         switch (pieceName) {
-            //TODO: King creation
+            //TODO: King creation exception
             case "K": throw new Error("King must be created before setting it on the board");
             case "D":
                 piece = new cescacs_piece_2.Queen(color, column, line);
@@ -241,7 +240,13 @@ class Board {
                 throw new Error(exhaustiveCheck);
             }
         }
-        this.pieces.set(piece.key, piece);
+        if (this.hasPiece(piece.position) == null) {
+            this.pieces.set(piece.key, piece);
+            this.addPiece(piece);
+        }
+        else
+            throw new Error(`You cannot put a ${color} ${piece.symbol} there` +
+                ", because the hex is already in use; There may be a repeated line in the TLPD");
         return piece;
     }
     get isGrand() { return this._grand; }
@@ -252,6 +257,19 @@ class Board {
             this._wAwaitingPromotion = true;
         else
             this._bAwaitingPromotion = true;
+    }
+    computeAwaitingPromotion(color) {
+        let value = false;
+        for (const piece of (color == 'White' ? this.wPieces : this.bPieces).values()) {
+            if (cescacs_piece_1.csPieceTypes.isPawn(piece) && piece.awaitingPromotion) {
+                value = true;
+                break;
+            }
+        }
+        if (color == 'White')
+            this._wAwaitingPromotion = value;
+        else
+            this._bAwaitingPromotion = value;
     }
     get specialPawnCapture() { return this._specialPawnCapture; }
     set specialPawnCapture(value) { this._specialPawnCapture = value; }
@@ -522,6 +540,7 @@ class Board {
             this.wThreats[i] = 0;
             this.bThreats[i] = 0;
         }
+        this.pieces.clear();
         this.wPieces.clear();
         this.bPieces.clear();
         this._regainablePieces.length = 0;
@@ -885,8 +904,6 @@ class Game extends Board {
         this._moves = [];
         this._top = -1;
         this.fixedNumbering = true;
-        this.pawnMoved = false;
-        this.pieceCaptured = false;
         this._mate = false;
         this._stalemate = false;
         this._draw = false;
@@ -898,10 +915,7 @@ class Game extends Board {
             this.addPiece(this.wKing);
             this.bKing.setToInitialPosition();
             this.addPiece(this.bKing);
-            const pieces = Game.fillDefaultPositions(grand);
-            for (const piece of pieces) {
-                this.addPiece(piece);
-            }
+            this.fillDefaultPositions();
             this.halfmoveClock = 0;
             this.moveNumber = 1;
             this.fixedNumbering = true;
@@ -953,41 +967,97 @@ class Game extends Board {
             }
         }
     }
-    static fillDefaultPositions(grand = false) {
-        const pieces = [];
-        pieces.push(new cescacs_piece_2.Queen("White", 'E', 1), new cescacs_piece_2.Wyvern("White", 'F', 0));
-        pieces.push(new cescacs_piece_2.Pegasus("White", 'D', 2), new cescacs_piece_2.Bishop("White", 'F', 2), new cescacs_piece_2.Pegasus("White", 'H', 2));
-        if (grand) {
-            pieces.push(new cescacs_piece_2.Pawn("White", 'B', 6), new cescacs_piece_2.Rook("White", true, 'B', 4), new cescacs_piece_2.Knight("White", 'C', 3));
-            pieces.push(new cescacs_piece_2.Knight("White", 'I', 3), new cescacs_piece_2.Rook("White", true, 'K', 4), new cescacs_piece_2.Pawn("White", 'K', 6));
-            pieces.push(new cescacs_piece_2.Pawn("White", 'P', 7), new cescacs_piece_2.Pawn("White", 'T', 8), new cescacs_piece_2.Pawn("White", 'X', 8), new cescacs_piece_2.Pawn("White", 'Z', 7));
-            pieces.push(new cescacs_piece_2.Almogaver("White", 'C', 7), new cescacs_piece_2.Almogaver("White", 'A', 7), new cescacs_piece_2.Almogaver("White", 'L', 7), new cescacs_piece_2.Almogaver("White", 'I', 7));
+    fillDefaultPositions() {
+        //whites
+        super.createPiece('D', 'White', 'E', 1);
+        super.createPiece('V', "White", 'F', 0);
+        super.createPiece('G', "White", 'D', 2);
+        super.createPiece('J', "White", 'F', 2);
+        super.createPiece('G', "White", 'H', 2);
+        if (this.isGrand) {
+            super.createPiece('P', "White", 'B', 6);
+            super.createPiece('R', "White", 'B', 4);
+            super.createPiece('N', "White", 'C', 3);
+            super.createPiece('N', "White", 'I', 3);
+            super.createPiece('R', "White", 'K', 4);
+            super.createPiece('P', "White", 'K', 6);
+            super.createPiece('P', "White", 'P', 7);
+            super.createPiece('P', "White", 'T', 8);
+            super.createPiece('P', "White", 'X', 8);
+            super.createPiece('P', "White", 'Z', 7);
+            super.createPiece('M', "White", 'C', 7);
+            super.createPiece('M', "White", 'A', 7);
+            super.createPiece('M', "White", 'L', 7);
+            super.createPiece('M', "White", 'I', 7);
         }
         else {
-            pieces.push(new cescacs_piece_2.Pawn("White", 'B', 4), new cescacs_piece_2.Rook("White", false, 'C', 3), new cescacs_piece_2.Rook("White", false, 'I', 3), new cescacs_piece_2.Pawn("White", 'K', 4));
+            super.createPiece('P', "White", 'B', 4);
+            super.createPiece('R', "White", 'C', 3),
+                super.createPiece('R', "White", 'I', 3);
+            super.createPiece('P', "White", 'K', 4);
         }
-        pieces.push(new cescacs_piece_2.Knight("White", 'E', 3), new cescacs_piece_2.Knight("White", 'G', 3));
-        pieces.push(new cescacs_piece_2.Elephant("White", 'D', 4), new cescacs_piece_2.Bishop("White", 'F', 4), new cescacs_piece_2.Elephant("White", 'H', 4));
-        pieces.push(new cescacs_piece_2.Pawn("White", 'A', 5), new cescacs_piece_2.Pawn("White", 'C', 5), new cescacs_piece_2.Elephant("White", 'E', 5), new cescacs_piece_2.Elephant("White", 'G', 5), new cescacs_piece_2.Pawn("White", 'I', 5), new cescacs_piece_2.Pawn("White", 'L', 5));
-        pieces.push(new cescacs_piece_2.Pawn("White", 'D', 6), new cescacs_piece_2.Bishop("White", 'F', 6), new cescacs_piece_2.Pawn("White", 'H', 6));
-        pieces.push(new cescacs_piece_2.Pawn("White", 'E', 7), new cescacs_piece_2.Pawn("White", 'F', 8), new cescacs_piece_2.Pawn("White", 'G', 7));
-        pieces.push(new cescacs_piece_2.Queen("Black", 'E', 27), new cescacs_piece_2.Wyvern("Black", 'F', 28));
-        pieces.push(new cescacs_piece_2.Pegasus("Black", 'D', 26), new cescacs_piece_2.Bishop("Black", 'F', 26), new cescacs_piece_2.Pegasus("Black", 'H', 26));
-        if (grand) {
-            pieces.push(new cescacs_piece_2.Pawn("Black", 'B', 22), new cescacs_piece_2.Rook("Black", true, 'B', 24), new cescacs_piece_2.Knight("Black", 'C', 25));
-            pieces.push(new cescacs_piece_2.Knight("Black", 'I', 25), new cescacs_piece_2.Rook("Black", true, 'K', 24), new cescacs_piece_2.Pawn("Black", 'K', 22));
-            pieces.push(new cescacs_piece_2.Pawn("Black", 'P', 21), new cescacs_piece_2.Pawn("Black", 'T', 20), new cescacs_piece_2.Pawn("Black", 'X', 20), new cescacs_piece_2.Pawn("Black", 'Z', 21));
-            pieces.push(new cescacs_piece_2.Almogaver("Black", 'C', 21), new cescacs_piece_2.Almogaver("Black", 'A', 21), new cescacs_piece_2.Almogaver("Black", 'I', 21), new cescacs_piece_2.Almogaver("Black", 'L', 21));
+        super.createPiece('N', "White", 'E', 3);
+        super.createPiece('N', "White", 'G', 3);
+        super.createPiece('E', "White", 'D', 4);
+        super.createPiece('J', "White", 'F', 4);
+        super.createPiece('E', "White", 'H', 4);
+        super.createPiece('P', "White", 'A', 5);
+        super.createPiece('P', "White", 'C', 5);
+        super.createPiece('E', "White", 'E', 5);
+        super.createPiece('E', "White", 'G', 5);
+        super.createPiece('P', "White", 'I', 5);
+        super.createPiece('P', "White", 'L', 5);
+        super.createPiece('P', "White", 'D', 6);
+        super.createPiece('J', "White", 'F', 6);
+        super.createPiece('P', "White", 'H', 6);
+        super.createPiece('P', "White", 'E', 7);
+        super.createPiece('P', "White", 'F', 8);
+        super.createPiece('P', "White", 'G', 7);
+        //blacks
+        super.createPiece('D', "Black", 'E', 27);
+        super.createPiece('V', "Black", 'F', 28);
+        super.createPiece('G', "Black", 'D', 26);
+        super.createPiece('J', "Black", 'F', 26);
+        super.createPiece('G', "Black", 'H', 26);
+        if (this.isGrand) {
+            super.createPiece('P', "Black", 'B', 22);
+            super.createPiece('R', "Black", 'B', 24);
+            super.createPiece('N', "Black", 'C', 25);
+            super.createPiece('N', "Black", 'I', 25);
+            super.createPiece('R', "Black", 'K', 24);
+            super.createPiece('P', "Black", 'K', 22);
+            super.createPiece('P', "Black", 'P', 21);
+            super.createPiece('P', "Black", 'T', 20);
+            super.createPiece('P', "Black", 'X', 20);
+            super.createPiece('P', "Black", 'Z', 21);
+            super.createPiece('M', "Black", 'C', 21);
+            super.createPiece('M', "Black", 'A', 21);
+            super.createPiece('M', "Black", 'I', 21);
+            super.createPiece('M', "Black", 'L', 21);
         }
         else {
-            pieces.push(new cescacs_piece_2.Pawn("Black", 'B', 24), new cescacs_piece_2.Rook("Black", false, 'C', 25), new cescacs_piece_2.Rook("Black", false, 'I', 25), new cescacs_piece_2.Pawn("Black", 'K', 24));
+            super.createPiece('P', "Black", 'B', 24);
+            super.createPiece('R', "Black", 'C', 25);
+            super.createPiece('R', "Black", 'I', 25);
+            super.createPiece('P', "Black", 'K', 24);
         }
-        pieces.push(new cescacs_piece_2.Knight("Black", 'E', 25), new cescacs_piece_2.Knight("Black", 'G', 25));
-        pieces.push(new cescacs_piece_2.Elephant("Black", 'D', 24), new cescacs_piece_2.Bishop("Black", 'F', 24), new cescacs_piece_2.Elephant("Black", 'H', 24));
-        pieces.push(new cescacs_piece_2.Pawn("Black", 'A', 23), new cescacs_piece_2.Pawn("Black", 'C', 23), new cescacs_piece_2.Elephant("Black", 'E', 23), new cescacs_piece_2.Elephant("Black", 'G', 23), new cescacs_piece_2.Pawn("Black", 'I', 23), new cescacs_piece_2.Pawn("Black", 'L', 23));
-        pieces.push(new cescacs_piece_2.Pawn("Black", 'D', 22), new cescacs_piece_2.Bishop("Black", 'F', 22), new cescacs_piece_2.Pawn("Black", 'H', 22));
-        pieces.push(new cescacs_piece_2.Pawn("Black", 'E', 21), new cescacs_piece_2.Pawn("Black", 'F', 20), new cescacs_piece_2.Pawn("Black", 'G', 21));
-        return pieces;
+        super.createPiece('N', "Black", 'E', 25);
+        super.createPiece('N', "Black", 'G', 25);
+        super.createPiece('E', "Black", 'D', 24);
+        super.createPiece('J', "Black", 'F', 24);
+        super.createPiece('E', "Black", 'H', 24);
+        super.createPiece('P', "Black", 'A', 23);
+        super.createPiece('P', "Black", 'C', 23);
+        super.createPiece('E', "Black", 'E', 23);
+        super.createPiece('E', "Black", 'G', 23);
+        super.createPiece('P', "Black", 'I', 23);
+        super.createPiece('P', "Black", 'L', 23);
+        super.createPiece('P', "Black", 'D', 22);
+        super.createPiece('J', "Black", 'F', 22);
+        super.createPiece('P', "Black", 'H', 22);
+        super.createPiece('P', "Black", 'E', 21);
+        super.createPiece('P', "Black", 'F', 20);
+        super.createPiece('P', "Black", 'G', 21);
     }
     ;
     static rookCastleMove(kingDestinationColumn, rookDestinationColumn, color, side, grand) {
@@ -1164,7 +1234,6 @@ class Game extends Board {
                 move.captured = capturedPiece;
                 move.special = isScornfulCapture ? moveTo : undefined;
                 this._enpassantCaptureCoordString = null;
-                this.pieceCaptured = true;
             }
             else if (cescacs_piece_1.csPieceTypes.isPawn(piece) && this.specialPawnCapture != null
                 && this.specialPawnCapture.isEnPassantCapturable()
@@ -1173,13 +1242,10 @@ class Game extends Board {
                 move.captured = enPassantCapture;
                 move.special = [enPassantCapture.position[0], enPassantCapture.position[1]];
                 this._enpassantCaptureCoordString = cescacs_types_1.csConvert.columnFromIndex(enPassantCapture.position[0]) + enPassantCapture.position[1].toString();
-                this.pieceCaptured = true;
             }
             else {
                 this._enpassantCaptureCoordString = null;
-                this.pieceCaptured = false;
             }
-            this.pawnMoved = piece.symbol == 'P';
             this.pushMove(move);
         }
         catch (e) {
@@ -1204,7 +1270,6 @@ class Game extends Board {
                 promoted: piece
             };
             if (cescacs_positionHelper_1.PositionHelper.equals(moveFrom, moveTo)) {
-                this.pieceCaptured = false;
                 this._lastMove = cescacs_positionHelper_1.PositionHelper.toString(moveTo) + "=" + promoteTo;
             }
             else {
@@ -1218,7 +1283,6 @@ class Game extends Board {
                     promotion.captured = capturedPiece;
                     promotion.special = isScornfulCapture ? moveTo : undefined;
                     this._enpassantCaptureCoordString = null;
-                    this.pieceCaptured = true;
                 }
                 else if (this.specialPawnCapture != null && this.specialPawnCapture.isEnPassantCapturable()
                     && this.specialPawnCapture.isEnPassantCapture(moveTo, pawn)) {
@@ -1226,14 +1290,11 @@ class Game extends Board {
                     promotion.captured = enPassantCapture;
                     promotion.special = [enPassantCapture.position[0], enPassantCapture.position[1]];
                     this._enpassantCaptureCoordString = cescacs_types_1.csConvert.columnFromIndex(enPassantCapture.position[0]) + enPassantCapture.position[1].toString();
-                    this.pieceCaptured = true;
                 }
                 else {
                     this._enpassantCaptureCoordString = null;
-                    this.pieceCaptured = false;
                 }
             }
-            this.pawnMoved = true;
             this.pushMove(promotion);
         }
         catch (e) {
@@ -1287,8 +1348,6 @@ class Game extends Board {
             }
             this._lastMove = strMove;
             this._enpassantCaptureCoordString = null;
-            this.pawnMoved = false;
-            this.pieceCaptured = false;
             this.pushMove(castlingMove);
         }
         catch (e) {
@@ -1652,21 +1711,12 @@ class Game extends Board {
                                         }
                                     }
                                     else {
-                                        //TODO: change signature createPiece to use position. First check position is empty
-                                        //TODO: position will be used to make the key; other createPiece signature will allow a string as the key
-                                        const newPiece = super.createPiece(pieceSymbol, color, actualColumnIndex, actualLine);
+                                        const newPiece = super.createPiece(pieceSymbol, color, cescacs_types_1.csConvert.columnFromIndex(actualColumnIndex), actualLine);
                                         if (cescacs_piece_1.csPieceTypes.isRook(newPiece))
                                             rooks.push(newPiece);
                                         else if (cescacs_piece_1.csPieceTypes.isPawn(newPiece) && newPiece.awaitingPromotion != null)
                                             super.setAwaitingPromotion(newPiece.color);
-                                        if (this.hasPiece(newPiece.position) == null) {
-                                            const pieceSet = (color == 'White' ? wPiece : bPiece);
-                                            this.addPiece(newPiece);
-                                            pieceSet.push(newPiece);
-                                        }
-                                        else
-                                            throw new Error(`You cannot put a ${color} ${pieceSymbol} there` +
-                                                ", because the hex is already in use; There may be a repeated line in the TLPD");
+                                        (color == 'White' ? wPiece : bPiece).push(newPiece);
                                     }
                                     actualColumnIndex += 2;
                                 }
@@ -1759,38 +1809,27 @@ class Game extends Board {
     //     this._lastMove = (symbolPrefix ?? "") + fromHex + movement + toHex;
     //     if (promotionPostfix !== undefined) this._lastMove += "=" + promotionPostfix;
     // }
-    forwardingTurn() {
-        super.nextTurn();
-        if (this.turn === 'w')
-            this.moveNumber++;
-        if (this.pawnMoved || this.pieceCaptured)
-            this.halfmoveClock = 0;
-        else
-            this.halfmoveClock++;
-        super.prepareCurrentTurn();
-        const anyMove = super.isMoveableTurn();
-        if (!anyMove) {
-            if (this.checked)
-                this._mate = true;
-            else
-                this._stalemate = true;
-        }
-        else if (this.halfmoveClock >= 100)
-            this._draw = true;
-        if (this.checked) {
-            if (this._mate)
-                this._lastMove += "#";
-            else if (this.isKnightOrCloseCheck)
-                this._lastMove += "^+";
-            else if (this.isSingleCheck)
-                this._lastMove += "+";
-            else if (this.isDoubleCheck)
-                this._lastMove += "++";
-            else
-                throw new Error("never: exhaused check options");
-        }
-        super.computeHeuristic(this.turn, this.moveNumber, anyMove, this.currentHeuristic);
-    }
+    //GONE AWAY
+    // private forwardingTurn() {
+    //     super.nextTurn();
+    //     if (this.turn === 'w') this.moveNumber++;
+    //     if (this.pawnMoved || this.pieceCaptured) this.halfmoveClock = 0;
+    //     else this.halfmoveClock++;
+    //     super.prepareCurrentTurn();
+    //     const anyMove = super.isMoveableTurn();
+    //     if (!anyMove) {
+    //         if (this.checked) this._mate = true;
+    //         else this._stalemate = true;
+    //     } else if (this.halfmoveClock >= 100) this._draw = true;
+    //     if (this.checked) {
+    //         if (this._mate) this._lastMove += "#";
+    //         else if (this.isKnightOrCloseCheck) this._lastMove += "^+";
+    //         else if (this.isSingleCheck) this._lastMove += "+";
+    //         else if (this.isDoubleCheck) this._lastMove += "++"
+    //         else throw new Error("never: exhaused check options");
+    //     }
+    //     super.computeHeuristic(this.turn, this.moveNumber, anyMove, this.currentHeuristic);
+    // }
     //NEVER USED
     // private backwardingTurn(turnInfo: UndoStatus) {
     //     if (this.moveNumber > 0) {
@@ -1883,16 +1922,21 @@ class Game extends Board {
             this._mate = false;
             this._stalemate = false;
             this.undoMove(turnInfo.move, turnInfo.turn);
-            if (turnInfo.castlingStatus != undefined && cescacs_moves_1.csMoves.isMoveInfo(turnInfo.move)) {
-                if (turnInfo.move.piece.symbol == 'R')
+            if (turnInfo.castlingStatus !== undefined && cescacs_moves_1.csMoves.isMoveInfo(turnInfo.move)) {
+                if (turnInfo.move.piece.symbol === 'R')
                     turnInfo.move.piece.setCastlingStatus(turnInfo.castlingStatus, this.isGrand);
-                else if (turnInfo.move.piece.symbol == 'K')
+                else if (turnInfo.move.piece.symbol === 'K')
                     turnInfo.move.piece.castlingStatus = turnInfo.castlingStatus;
             }
             if (turnInfo.specialPawnCapture === undefined)
                 this.specialPawnCapture = null;
             else
                 this.specialPawnCapture = PawnSpecialCaptureStatus.parse(this, turnInfo.specialPawnCapture);
+            if (this.isAwaitingPromotion) {
+                if (cescacs_moves_1.csMoves.isMoveInfo(turnInfo.move) && cescacs_piece_1.csPieceTypes.isPawn(turnInfo.move.piece)
+                    || cescacs_moves_1.csMoves.isPromotionInfo(turnInfo.move))
+                    this.computeAwaitingPromotion(turnInfo.turn == 'b' ? 'White' : 'Black');
+            }
             //backwarding turn
             if (this.turn === 'b')
                 this.moveNumber--;

@@ -229,11 +229,10 @@ export abstract class Board implements IBoard {
         this.pieces.set(this.bKing.key, this.bKing);
     }
 
-    protected createPiece(pieceName: PieceName, color: PieceColor, columnIndex: ColumnIndex, line: Line) :Piece {
-        const column = cscnv.columnFromIndex(columnIndex);
+    protected createPiece(pieceName: PieceName, color: PieceColor, column: Column, line: Line): Piece {
         let piece: Piece;
         switch (pieceName) {
-            //TODO: King creation
+            //TODO: King creation exception
             case "K": throw new Error("King must be created before setting it on the board");
             case "D": piece = new Queen(color, column, line); break;
             case "V": piece = new Wyvern(color, column, line); break;
@@ -249,7 +248,12 @@ export abstract class Board implements IBoard {
                 throw new Error(exhaustiveCheck);
             }
         }
-        this.pieces.set(piece.key, piece);
+        if (this.hasPiece(piece.position!) == null) {
+            this.pieces.set(piece.key, piece);
+            this.addPiece(piece);
+        }
+        else throw new Error(`You cannot put a ${color} ${piece.symbol} there` +
+            ", because the hex is already in use; There may be a repeated line in the TLPD");
         return piece;
     }
 
@@ -259,6 +263,12 @@ export abstract class Board implements IBoard {
     public get isAwaitingPromotion() { return this._turn == 'w' ? this._wAwaitingPromotion : this._bAwaitingPromotion; }
     protected setAwaitingPromotion(color: PieceColor) {
         if (color == 'White') this._wAwaitingPromotion = true; else this._bAwaitingPromotion = true;
+    }
+    protected computeAwaitingPromotion(color: PieceColor) {
+        let value = false;
+        for (const piece of (color == 'White' ? this.wPieces : this.bPieces).values())
+        { if (cspty.isPawn(piece) && piece.awaitingPromotion) { value = true; break; } }
+        if (color == 'White') this._wAwaitingPromotion = value; else this._bAwaitingPromotion = value;
     }
     public get specialPawnCapture(): Nullable<PawnSpecialCaptureStatus> { return this._specialPawnCapture; }
     public set specialPawnCapture(value: Nullable<PawnSpecialCaptureStatus>) { this._specialPawnCapture = value; }
@@ -534,6 +544,7 @@ export abstract class Board implements IBoard {
             this.wThreats[i] = 0;
             this.bThreats[i] = 0;
         }
+        this.pieces.clear();
         this.wPieces.clear();
         this.bPieces.clear();
         this._regainablePieces.length = 0;
@@ -880,39 +891,47 @@ export class Game extends Board {
         }
     }
 
-    private static fillDefaultPositions(grand: boolean = false): Piece[] {
-        const pieces: Piece[] = [];
-        pieces.push(new Queen("White", 'E', 1), new Wyvern("White", 'F', 0));
-        pieces.push(new Pegasus("White", 'D', 2), new Bishop("White", 'F', 2), new Pegasus("White", 'H', 2));
-        if (grand) {
-            pieces.push(new Pawn("White", 'B', 6), new Rook("White", true, 'B', 4), new Knight("White", 'C', 3));
-            pieces.push(new Knight("White", 'I', 3), new Rook("White", true, 'K', 4), new Pawn("White", 'K', 6));
-            pieces.push(new Pawn("White", 'P', 7), new Pawn("White", 'T', 8), new Pawn("White", 'X', 8), new Pawn("White", 'Z', 7))
-            pieces.push(new Almogaver("White", 'C', 7), new Almogaver("White", 'A', 7), new Almogaver("White", 'L', 7), new Almogaver("White", 'I', 7));
+    private fillDefaultPositions(): void {
+        //whites
+        super.createPiece('D', 'White', 'E', 1); super.createPiece('V', "White", 'F', 0);
+        super.createPiece('G', "White", 'D', 2); super.createPiece('J', "White", 'F', 2); super.createPiece('G', "White", 'H', 2);
+        if (this.isGrand) {
+            super.createPiece('P', "White", 'B', 6); super.createPiece('R', "White", 'B', 4); super.createPiece('N', "White", 'C', 3);
+            super.createPiece('N', "White", 'I', 3); super.createPiece('R', "White", 'K', 4); super.createPiece('P', "White", 'K', 6);
+            super.createPiece('P', "White", 'P', 7); super.createPiece('P', "White", 'T', 8); 
+            super.createPiece('P', "White", 'X', 8); super.createPiece('P', "White", 'Z', 7);
+            super.createPiece('M', "White", 'C', 7); super.createPiece('M', "White", 'A', 7);
+            super.createPiece('M', "White", 'L', 7); super.createPiece('M', "White", 'I', 7);
         } else {
-            pieces.push(new Pawn("White", 'B', 4), new Rook("White", false, 'C', 3), new Rook("White", false, 'I', 3), new Pawn("White", 'K', 4));
+            super.createPiece('P', "White", 'B', 4); super.createPiece('R', "White", 'C', 3),
+            super.createPiece('R', "White", 'I', 3); super.createPiece('P', "White", 'K', 4);
         }
-        pieces.push(new Knight("White", 'E', 3), new Knight("White", 'G', 3));
-        pieces.push(new Elephant("White", 'D', 4), new Bishop("White", 'F', 4), new Elephant("White", 'H', 4));
-        pieces.push(new Pawn("White", 'A', 5), new Pawn("White", 'C', 5), new Elephant("White", 'E', 5), new Elephant("White", 'G', 5), new Pawn("White", 'I', 5), new Pawn("White", 'L', 5));
-        pieces.push(new Pawn("White", 'D', 6), new Bishop("White", 'F', 6), new Pawn("White", 'H', 6));
-        pieces.push(new Pawn("White", 'E', 7), new Pawn("White", 'F', 8), new Pawn("White", 'G', 7));
-        pieces.push(new Queen("Black", 'E', 27), new Wyvern("Black", 'F', 28));
-        pieces.push(new Pegasus("Black", 'D', 26), new Bishop("Black", 'F', 26), new Pegasus("Black", 'H', 26));
-        if (grand) {
-            pieces.push(new Pawn("Black", 'B', 22), new Rook("Black", true, 'B', 24), new Knight("Black", 'C', 25));
-            pieces.push(new Knight("Black", 'I', 25), new Rook("Black", true, 'K', 24), new Pawn("Black", 'K', 22));
-            pieces.push(new Pawn("Black", 'P', 21), new Pawn("Black", 'T', 20), new Pawn("Black", 'X', 20), new Pawn("Black", 'Z', 21))
-            pieces.push(new Almogaver("Black", 'C', 21), new Almogaver("Black", 'A', 21), new Almogaver("Black", 'I', 21), new Almogaver("Black", 'L', 21));
+        super.createPiece('N', "White", 'E', 3); super.createPiece('N', "White", 'G', 3);
+        super.createPiece('E', "White", 'D', 4); super.createPiece('J', "White", 'F', 4); super.createPiece('E', "White", 'H', 4);
+        super.createPiece('P', "White", 'A', 5); super.createPiece('P', "White", 'C', 5); super.createPiece('E', "White", 'E', 5);
+        super.createPiece('E', "White", 'G', 5); super.createPiece('P', "White", 'I', 5); super.createPiece('P', "White", 'L', 5);
+        super.createPiece('P', "White", 'D', 6); super.createPiece('J', "White", 'F', 6); super.createPiece('P', "White", 'H', 6);
+        super.createPiece('P', "White", 'E', 7); super.createPiece('P', "White", 'F', 8); super.createPiece('P', "White", 'G', 7);
+        //blacks
+        super.createPiece('D', "Black", 'E', 27); super.createPiece('V', "Black", 'F', 28);
+        super.createPiece('G', "Black", 'D', 26); super.createPiece('J', "Black", 'F', 26); super.createPiece('G', "Black", 'H', 26);
+        if (this.isGrand) {
+            super.createPiece('P', "Black", 'B', 22); super.createPiece('R', "Black", 'B', 24); super.createPiece('N', "Black", 'C', 25);
+            super.createPiece('N', "Black", 'I', 25); super.createPiece('R', "Black", 'K', 24); super.createPiece('P', "Black", 'K', 22);
+            super.createPiece('P', "Black", 'P', 21); super.createPiece('P', "Black", 'T', 20);
+            super.createPiece('P', "Black", 'X', 20); super.createPiece('P', "Black", 'Z', 21);
+            super.createPiece('M', "Black", 'C', 21); super.createPiece('M', "Black", 'A', 21);
+            super.createPiece('M', "Black", 'I', 21); super.createPiece('M', "Black", 'L', 21);
         } else {
-            pieces.push(new Pawn("Black", 'B', 24), new Rook("Black", false, 'C', 25), new Rook("Black", false, 'I', 25), new Pawn("Black", 'K', 24));
+            super.createPiece('P', "Black", 'B', 24); super.createPiece('R', "Black", 'C', 25);
+            super.createPiece('R', "Black", 'I', 25); super.createPiece('P', "Black", 'K', 24);
         }
-        pieces.push(new Knight("Black", 'E', 25), new Knight("Black", 'G', 25));
-        pieces.push(new Elephant("Black", 'D', 24), new Bishop("Black", 'F', 24), new Elephant("Black", 'H', 24));
-        pieces.push(new Pawn("Black", 'A', 23), new Pawn("Black", 'C', 23), new Elephant("Black", 'E', 23), new Elephant("Black", 'G', 23), new Pawn("Black", 'I', 23), new Pawn("Black", 'L', 23));
-        pieces.push(new Pawn("Black", 'D', 22), new Bishop("Black", 'F', 22), new Pawn("Black", 'H', 22));
-        pieces.push(new Pawn("Black", 'E', 21), new Pawn("Black", 'F', 20), new Pawn("Black", 'G', 21));
-        return pieces;
+        super.createPiece('N', "Black", 'E', 25); super.createPiece('N', "Black", 'G', 25);
+        super.createPiece('E', "Black", 'D', 24); super.createPiece('J', "Black", 'F', 24); super.createPiece('E', "Black", 'H', 24);
+        super.createPiece('P', "Black", 'A', 23); super.createPiece('P', "Black", 'C', 23); super.createPiece('E', "Black", 'E', 23);
+        super.createPiece('E', "Black", 'G', 23); super.createPiece('P', "Black", 'I', 23); super.createPiece('P', "Black", 'L', 23);
+        super.createPiece('P', "Black", 'D', 22); super.createPiece('J', "Black", 'F', 22); super.createPiece('P', "Black", 'H', 22);
+        super.createPiece('P', "Black", 'E', 21); super.createPiece('P', "Black", 'F', 20); super.createPiece('P', "Black", 'G', 21);
     };
 
     private static whiteKingCastlingMove = {
@@ -948,8 +967,6 @@ export class Game extends Board {
     private moveNumber: number;
     private halfmoveClock: number;
     private fixedNumbering: boolean = true;
-    private pawnMoved = false;
-    private pieceCaptured = false;
     private _mate = false;
     private _stalemate = false;
     private _draw = false;
@@ -964,8 +981,7 @@ export class Game extends Board {
         if (restoreStatusTLPD === undefined) {
             this.wKing.setToInitialPosition(); this.addPiece(this.wKing);
             this.bKing.setToInitialPosition(); this.addPiece(this.bKing);
-            const pieces = Game.fillDefaultPositions(grand);
-            for (const piece of pieces) { this.addPiece(piece); }
+            this.fillDefaultPositions();
             this.halfmoveClock = 0;
             this.moveNumber = 1;
             this.fixedNumbering = true;
@@ -1142,7 +1158,6 @@ export class Game extends Board {
                 move.captured = capturedPiece;
                 move.special = isScornfulCapture ? moveTo : undefined;
                 this._enpassantCaptureCoordString = null;
-                this.pieceCaptured = true;
             } else if (cspty.isPawn(piece) && this.specialPawnCapture != null
                 && this.specialPawnCapture.isEnPassantCapturable()
                 && this.specialPawnCapture.isEnPassantCapture(moveTo, piece)) {
@@ -1150,12 +1165,9 @@ export class Game extends Board {
                 move.captured = enPassantCapture;
                 move.special = [enPassantCapture.position![0], enPassantCapture.position![1]];
                 this._enpassantCaptureCoordString = cscnv.columnFromIndex(enPassantCapture.position![0]) + enPassantCapture.position![1].toString();
-                this.pieceCaptured = true;
             } else {
                 this._enpassantCaptureCoordString = null;
-                this.pieceCaptured = false;
             }
-            this.pawnMoved = piece.symbol == 'P';
             this.pushMove(move as MoveInfo);
         }
         catch (e) {
@@ -1180,7 +1192,6 @@ export class Game extends Board {
                 promoted: piece
             };
             if (PositionHelper.equals(moveFrom, moveTo)) {
-                this.pieceCaptured = false;
                 this._lastMove = PositionHelper.toString(moveTo) + "=" + promoteTo;
             } else {
                 promotion.pos = moveFrom;
@@ -1194,20 +1205,16 @@ export class Game extends Board {
                     promotion.captured = capturedPiece;
                     promotion.special = isScornfulCapture ? moveTo : undefined;
                     this._enpassantCaptureCoordString = null;
-                    this.pieceCaptured = true;
                 } else if (this.specialPawnCapture != null && this.specialPawnCapture.isEnPassantCapturable()
                     && this.specialPawnCapture.isEnPassantCapture(moveTo, pawn)) {
                     const enPassantCapture = this.specialPawnCapture.capturablePiece;
                     promotion.captured = enPassantCapture;
                     promotion.special = [enPassantCapture.position![0], enPassantCapture.position![1]];
                     this._enpassantCaptureCoordString = cscnv.columnFromIndex(enPassantCapture.position![0]) + enPassantCapture.position![1].toString();
-                    this.pieceCaptured = true;
                 } else {
                     this._enpassantCaptureCoordString = null;
-                    this.pieceCaptured = false;
                 }
             }
-            this.pawnMoved = true;
             this.pushMove(promotion as MoveInfo);
         }
         catch (e) {
@@ -1259,8 +1266,6 @@ export class Game extends Board {
             }
             this._lastMove = strMove;
             this._enpassantCaptureCoordString = null;
-            this.pawnMoved = false;
-            this.pieceCaptured = false;
             this.pushMove(castlingMove as MoveInfo);
         }
         catch (e) {
@@ -1606,18 +1611,12 @@ export class Game extends Board {
                                             else throw new Error("Can't place Black King on the place used by another piece");
                                         }
                                     } else {
-                                        //TODO: change signature createPiece to use position. First check position is empty
-                                        //TODO: position will be used to make the key; other createPiece signature will allow a string as the key
-                                        const newPiece = super.createPiece(pieceSymbol, color, actualColumnIndex as ColumnIndex, actualLine as Line);
+                                        const newPiece = super.createPiece(pieceSymbol, color,
+                                                                           cscnv.columnFromIndex(actualColumnIndex as ColumnIndex),
+                                                                           actualLine as Line);
                                         if (cspty.isRook(newPiece)) rooks.push(newPiece);
                                         else if (cspty.isPawn(newPiece) && newPiece.awaitingPromotion != null) super.setAwaitingPromotion(newPiece.color);
-                                        if (this.hasPiece(newPiece.position!) == null) {
-                                            const pieceSet = (color == 'White' ? wPiece : bPiece);
-                                            this.addPiece(newPiece);
-                                            pieceSet.push(newPiece);
-                                        }
-                                        else throw new Error(`You cannot put a ${color} ${pieceSymbol} there` +
-                                            ", because the hex is already in use; There may be a repeated line in the TLPD");
+                                        (color == 'White' ? wPiece : bPiece).push(newPiece);
                                     }
                                     actualColumnIndex += 2;
                                 }
@@ -1692,26 +1691,27 @@ export class Game extends Board {
     //     if (promotionPostfix !== undefined) this._lastMove += "=" + promotionPostfix;
     // }
 
-    private forwardingTurn() {
-        super.nextTurn();
-        if (this.turn === 'w') this.moveNumber++;
-        if (this.pawnMoved || this.pieceCaptured) this.halfmoveClock = 0;
-        else this.halfmoveClock++;
-        super.prepareCurrentTurn();
-        const anyMove = super.isMoveableTurn();
-        if (!anyMove) {
-            if (this.checked) this._mate = true;
-            else this._stalemate = true;
-        } else if (this.halfmoveClock >= 100) this._draw = true;
-        if (this.checked) {
-            if (this._mate) this._lastMove += "#";
-            else if (this.isKnightOrCloseCheck) this._lastMove += "^+";
-            else if (this.isSingleCheck) this._lastMove += "+";
-            else if (this.isDoubleCheck) this._lastMove += "++"
-            else throw new Error("never: exhaused check options");
-        }
-        super.computeHeuristic(this.turn, this.moveNumber, anyMove, this.currentHeuristic);
-    }
+    //GONE AWAY
+    // private forwardingTurn() {
+    //     super.nextTurn();
+    //     if (this.turn === 'w') this.moveNumber++;
+    //     if (this.pawnMoved || this.pieceCaptured) this.halfmoveClock = 0;
+    //     else this.halfmoveClock++;
+    //     super.prepareCurrentTurn();
+    //     const anyMove = super.isMoveableTurn();
+    //     if (!anyMove) {
+    //         if (this.checked) this._mate = true;
+    //         else this._stalemate = true;
+    //     } else if (this.halfmoveClock >= 100) this._draw = true;
+    //     if (this.checked) {
+    //         if (this._mate) this._lastMove += "#";
+    //         else if (this.isKnightOrCloseCheck) this._lastMove += "^+";
+    //         else if (this.isSingleCheck) this._lastMove += "+";
+    //         else if (this.isDoubleCheck) this._lastMove += "++"
+    //         else throw new Error("never: exhaused check options");
+    //     }
+    //     super.computeHeuristic(this.turn, this.moveNumber, anyMove, this.currentHeuristic);
+    // }
 
     //NEVER USED
     // private backwardingTurn(turnInfo: UndoStatus) {
@@ -1786,12 +1786,17 @@ export class Game extends Board {
             this._draw = false; this._resigned = false;
             this._mate = false; this._stalemate = false;
             this.undoMove(turnInfo.move, turnInfo.turn);
-            if (turnInfo.castlingStatus != undefined && csmv.isMoveInfo(turnInfo.move)) {
-                if (turnInfo.move.piece.symbol == 'R') (turnInfo.move.piece as Rook).setCastlingStatus(turnInfo.castlingStatus, this.isGrand);
-                else if (turnInfo.move.piece.symbol == 'K') (turnInfo.move.piece as King).castlingStatus = turnInfo.castlingStatus;
+            if (turnInfo.castlingStatus !== undefined && csmv.isMoveInfo(turnInfo.move)) {
+                if (turnInfo.move.piece.symbol === 'R') (turnInfo.move.piece as Rook).setCastlingStatus(turnInfo.castlingStatus, this.isGrand);
+                else if (turnInfo.move.piece.symbol === 'K') (turnInfo.move.piece as King).castlingStatus = turnInfo.castlingStatus;
             }
             if (turnInfo.specialPawnCapture === undefined) this.specialPawnCapture = null;
             else this.specialPawnCapture = PawnSpecialCaptureStatus.parse(this, turnInfo.specialPawnCapture);
+            if (this.isAwaitingPromotion) {
+                if (csmv.isMoveInfo(turnInfo.move) && cspty.isPawn(turnInfo.move.piece)
+                    || csmv.isPromotionInfo(turnInfo.move))
+                    this.computeAwaitingPromotion(turnInfo.turn == 'b' ? 'White' : 'Black');
+            } 
             //backwarding turn
             if (this.turn === 'b') this.moveNumber--;
             if (turnInfo.initHalfMoveClock === undefined) this.halfmoveClock--;
