@@ -1062,6 +1062,7 @@ class Pawn extends Piece {
 exports.Pawn = Pawn;
 var csPieceTypes;
 (function (csPieceTypes) {
+    //* these functions apply to Piece instance, not valid to check any type
     function isKing(p) { return p.symbol == 'K'; }
     csPieceTypes.isKing = isKing;
     function isQueen(p) { return p.symbol == 'D'; }

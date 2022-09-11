@@ -58,8 +58,6 @@ var csConvert;
 (function (csConvert) {
     csConvert.columnFromIndex = (i) => _column[i];
     csConvert.toColumnIndex = (column) => _column.indexOf(column);
-    //TODO PieceColor == Turn
-    //export const turnFromPieceColor = (color: PieceColor): Turn => color == 'White' ? 'w' : 'b';
     csConvert.toOrthogonalDirectionIndex = (direction) => _orthogonalDirection.indexOf(direction);
     csConvert.orthogonalDirectionFromIndex = (i) => _orthogonalDirection[i];
     csConvert.toDiagonalDirectionIndex = (direction) => _diagonalDirection.indexOf(direction);

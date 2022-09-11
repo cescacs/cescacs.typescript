@@ -40,7 +40,7 @@ export type CastlingColumn = (typeof _castlingColumn)[number];
 export type HexColor = (typeof _hexColor)[number];
 export type Turn = (typeof _turn)[number];
 export type PieceName = (typeof _pieceName)[number];
-export type PieceColor = Turn; // "White" | "Black"; //TODO: PieceColor = Turn
+export type PieceColor = Turn;
 export type Side = "K" | "D";
 export type PieceKey = string;
 export type CastlingStatus = (typeof _castlingStatus)[number];
@@ -49,6 +49,8 @@ export type GrandCastlingString = (typeof _grandCastlingString)[number];
 export type KnightOrCloseCheck = Position;
 export type DoubleCheck = [Position, Position, Nullable<Orientation>];
 export interface SingleCheck { d: Direction, p: Position };
+export type EndGame = "mate" | "stalemate" | "resigned" | "draw";
+export type CheckNotation = "+" | "^+" | "++";
 
 // Type predicates
 export namespace csTypes {
@@ -91,8 +93,6 @@ export namespace csTypes {
 export namespace csConvert {
     export const columnFromIndex = (i: ColumnIndex): Column => _column[i];
     export const toColumnIndex = (column: Column): ColumnIndex => _column.indexOf(column) as ColumnIndex;
-    //TODO PieceColor == Turn
-    //export const turnFromPieceColor = (color: PieceColor): Turn => color == 'White' ? 'w' : 'b';
     export const toOrthogonalDirectionIndex = (direction: OrthogonalDirection): DirectionMoveRange => _orthogonalDirection.indexOf(direction) as DirectionMoveRange;
     export const orthogonalDirectionFromIndex = (i: DirectionMoveRange): OrthogonalDirection => _orthogonalDirection[i];
     export const toDiagonalDirectionIndex = (direction: DiagonalDirection): DirectionMoveRange => _diagonalDirection.indexOf(direction) as DirectionMoveRange;

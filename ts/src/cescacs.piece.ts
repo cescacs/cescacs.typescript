@@ -26,6 +26,7 @@ export interface IEnPassantCapturable {
 }
 export interface IBoard {
     readonly isGrand: boolean;
+    pieceByKey: (key: PieceKey) => Piece;
     hasPiece: (pos: Position) => Nullable<PieceColor>;
     getPiece: (pos: Position) => Nullable<Piece>;
     setThreat: (pos: Position, color: PieceColor) => void;
@@ -1128,6 +1129,7 @@ export class Pawn extends Piece {
 }
 
 export namespace csPieceTypes {
+    //* these functions apply to Piece instance, not valid to check any type
     export function isKing(p: Piece): p is King { return p.symbol == 'K'; }
     export function isQueen(p: Piece): p is Queen { return p.symbol == 'D'; }
     export function isWyvern(p: Piece): p is Wyvern { return p.symbol == 'V'; }

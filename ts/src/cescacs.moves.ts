@@ -1,103 +1,105 @@
-
-import {
-    Position, Turn, Side, CastlingColumn, CastlingStatus
+import type {
+    Position, Turn, Side, CastlingColumn, CastlingStatus, PieceKey, EndGame, CheckNotation
 } from "./cescacs.types";
+import type { Nullable } from "./ts.general";
 
 import { csTypes as csty, csConvert as cscnv } from "./cescacs.types";
 import { PositionHelper } from "./cescacs.positionHelper";
-import {
-    Piece, King, Rook, Pawn
-} from "./cescacs.piece";
-import { cspty } from "./cescacs";
 
 
 export type MoveInfo = csMoves.Castling | csMoves.Promotion | csMoves.Move | csMoves.Capture;
 export type CastlingSide = Side | "R";
 
 export interface UndoStatus {
-    n: number;
-    turn: Turn;
-    move: MoveInfo;
-    initHalfMoveClock: 1 | undefined;
-    castlingStatus: CastlingStatus | undefined;
-    specialPawnCapture: string | undefined;
-    end: "mate" | "stalemate" | "resigned" | "draw" | undefined;
-    check: "+" | "^+" | "++" | undefined;
+    readonly n: number;
+    readonly turn: Turn;
+    readonly move: MoveInfo | '\u2026';
+    readonly initHalfMoveClock?: 1;
+    readonly castlingStatus?: CastlingStatus;
+    readonly specialPawnCapture?: string;
 }
+
+export interface UndoStatusWhithCheckInfo extends UndoStatus {
+    readonly end?: EndGame;
+    readonly check?: CheckNotation;
+}
+
 
 export namespace csMoves {
 
-    /* TODO change Piece by PieceKey, a reference to a piece repository
-        PieceKey can be the Hex (string) where it'd been created
-        Problem: Nowadays Kings are part of Board object; change that would be the first stage
-        Moves will have no objects, but key references (allow independent storage)
-    */
-
-    // TODO Use readonly fields on interfaces
+    export function promoteUndoStatus(value: UndoStatus, end?: EndGame, check?: CheckNotation): UndoStatusWhithCheckInfo {
+        const untypedValue = value as Record<string, any>;
+        if (end !== undefined) untypedValue["end"] = end;
+        if (check !== undefined) untypedValue["check"] = check;
+        return untypedValue as UndoStatusWhithCheckInfo;
+    }
 
     export interface Castling {
-        side: CastlingSide;
-        col: CastlingColumn;
-        rPos: Position;
-        kRook: Rook | undefined;
-        qRook: Rook | undefined;
-        r2Pos: Position | undefined;
+        readonly side: CastlingSide;
+        readonly col: CastlingColumn;
+        readonly rPos: Position;
+        readonly kRook: PieceKey | undefined;
+        readonly qRook: PieceKey | undefined;
+        readonly r2Pos: Position | undefined;
     }
 
     export function isCastlingSide(side: any): side is CastlingSide {
-        return (typeof side ==='string') && (side === 'K' || side === 'D' || side === 'R');
+        return (typeof side === 'string') && (side === 'K' || side === 'D' || side === 'R');
     }
 
     export function isCastlingInfo(mov: any): mov is Castling {
         return mov.side !== undefined && isCastlingSide(mov.side)
             && mov.col !== undefined && csty.isCastlingColumn(mov.col)
             && mov.rPos !== undefined && csty.isPosition(mov.rPos)
-            && (mov.side === 'D' || mov.kRook !== undefined) // && mov.kRook instanceof Rook)
-            && (mov.side === 'K' || mov.qRook !== undefined) // && mov.qRook instanceof Rook)
+            && (mov.side === 'D' || mov.kRook !== undefined && cscnv.getPieceKeyName(mov.kRook) == 'R')
+            && (mov.side === 'K' || mov.qRook !== undefined && cscnv.getPieceKeyName(mov.qRook) == 'R')
             && (mov.side != 'R' || mov.r2Pos !== undefined && csty.isPosition(mov.r2Pos));
     }
 
     export interface Promotion {
-        piece: Piece;
-        prPos: Position;
-        promoted: Piece;
+        readonly piece: PieceKey;
+        readonly prPos: Position;
+        readonly promoted: PieceKey;
     }
 
     export function isPromotionInfo(mov: any): mov is Promotion {
-        return mov.piece !== undefined // && (mov.piece instanceof Piece)
+        return mov.piece !== undefined
             && mov.prPos !== undefined && csty.isPosition(mov.prPos)
-            && mov.promoted !== undefined; // && (mov.promoted instanceof Piece);
+            && mov.promoted !== undefined;
     }
 
     export interface Move {
-        piece: Piece;
-        pos: Position;
-        moveTo: Position;
+        readonly piece: PieceKey;
+        readonly pos: Position;
+        readonly moveTo: Position;
     }
 
     export function isMoveInfo(mov: any): mov is Move {
-        return mov.piece !== undefined // && (mov.piece instanceof Piece)
+        return mov.piece !== undefined
             && mov.pos !== undefined && csty.isPosition(mov.pos)
             && mov.moveTo !== undefined && csty.isPosition(mov.moveTo);
     }
 
     export interface Capture extends Move {
-        captured: Piece;
-        special: Position | undefined;
+        readonly captured: PieceKey;
+        readonly special: Position | undefined;
     }
 
     export function isCaptureInfo(mov: any): mov is Capture {
-        return mov.captured !== undefined // && (mov.captured instanceof Piece)
+        return mov.captured !== undefined
             && (mov.special === undefined || csty.isPosition(mov.special));
     }
 
-    export function fullMoveNotation(info: UndoStatus, mvNum: boolean = true): string {
-        const postStr = info.check ?? ((info.end == "mate") ? "#" : "");
+    export function fullMoveNotation(info: UndoStatusWhithCheckInfo, mvNum: boolean = true): string {
         const preStr = mvNum && info.turn == 'w' ? info.n + '. ' : "";
-        return preStr + csMoves.moveNotation(info.move) + postStr;
+        if (info.move == '\u2026') return preStr + '\u2026';
+        else {
+            const postStr = info.check ?? ((info.end == "mate") ? "#" : "");
+            return preStr + csMoves.moveNotation(info.move) + postStr;
+        }
     }
 
-    export function endText(info: UndoStatus, turn: Turn) {
+    export function endText(info: UndoStatusWhithCheckInfo, turn: Turn) {
         if (info.end === undefined) return "";
         else {
             switch (info.end) {
@@ -114,7 +116,7 @@ export namespace csMoves {
     }
 
     export function undoStatusId(info: UndoStatus): string {
-        return info.turn + info.n;
+        return info.move == '\u2026' ? "" : info.turn + info.n;
     }
 
     export function moveNotation(info: MoveInfo): string {
@@ -125,20 +127,22 @@ export namespace csMoves {
                     : "";
             return "KR" + info.side + "-" + info.col + cscnv.columnFromIndex(info.rPos[0]) + tail;
         } else if (csMoves.isMoveInfo(info)) {
-            const pre = (info.piece.symbol == 'P' ? "" : info.piece.symbol) + PositionHelper.toString(info.pos);
-            const post = isPromotionInfo(info) ? "=" + info.promoted.symbol : "";
+            const symbol = cscnv.getPieceKeyName(info.piece);
+            const pre = (symbol == 'P' ? "" : symbol) + PositionHelper.toString(info.pos);
+            const post = isPromotionInfo(info) ? "=" + cscnv.getPieceKeyName(info.promoted) : "";
             let sep: string;
             if (isCaptureInfo(info)) {
                 if (info.special !== undefined) {
                     sep = PositionHelper.equals(info.moveTo, info.special)
                         || Math.abs(info.special[1] - info.moveTo[1]) == 2 ? "@" : "@@";
                 } else {
-                    sep = info.captured.symbol == 'P' ? "\u00D7" : "\u00D7" + info.captured.symbol;
+                    const capSymbol = cscnv.getPieceKeyName(info.captured);
+                    sep = capSymbol == 'P' ? "\u00D7" : "\u00D7" + capSymbol;
                 }
             } else sep = "-";
             return pre + sep + PositionHelper.toString(info.moveTo) + post;
         } else if (csMoves.isPromotionInfo(info)) {
-            return PositionHelper.toString(info.prPos) + "=" + info.promoted.symbol;
+            return PositionHelper.toString(info.prPos) + "=" + cscnv.getPieceKeyName(info.promoted);
         } else {
             debugger;
             throw new TypeError("must be a move notation");

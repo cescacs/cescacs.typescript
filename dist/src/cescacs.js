@@ -210,6 +210,11 @@ class Board {
     get isKnightOrCloseCheck() { return this.turnKing.isKnightOrCloseCheck(); }
     get isSingleCheck() { return this.turnKing.isSingleCheck(); }
     get isDoubleCheck() { return this.turnKing.isDoubleCheck(); }
+    pieceByKey(key) {
+        const piece = this.pieces.get(key);
+        (0, ts_general_1.assertNonNullish)(piece, "piece from unique key");
+        return piece;
+    }
     get specialPawnCapture() { return this._specialPawnCapture; }
     set specialPawnCapture(value) { this._specialPawnCapture = value; }
     get isAwaitingPromotion() { return this._turn == 'w' ? this._wAwaitingPromotion : this._bAwaitingPromotion; }
@@ -1045,7 +1050,7 @@ class Game extends Board {
             (0, ts_general_1.assertCondition)(pieceName == undefined || piece.symbol == pieceName, `${pieceName} is the piece on ${moveFrom}`);
             (0, ts_general_1.assertCondition)(piece.canMoveTo(this, moveTo), `Piece ${piece.symbol} at ${piece.position?.toString()} move to ${moveTo.toString()}`);
             const move = {
-                piece: piece,
+                piece: piece.key,
                 pos: moveFrom,
                 moveTo: moveTo
             };
@@ -1054,7 +1059,7 @@ class Game extends Board {
                 (0, ts_general_1.assertCondition)(piece.color != capturedPiece.color && piece.canCaptureOn(this, moveTo), `Piece ${piece.symbol} at ${piece.position?.toString()} capture on ${moveTo.toString()}`);
                 const isScornfulCapture = cescacs_piece_1.csPieceTypes.isPawn(piece) && this.specialPawnCapture != null &&
                     this.specialPawnCapture.isScornfulCapturable() && this.specialPawnCapture.isScorned(piece, moveTo);
-                move.captured = capturedPiece;
+                move.captured = capturedPiece.key;
                 move.special = isScornfulCapture ? moveTo : undefined;
                 this._enpassantCaptureCoordString = null;
             }
@@ -1062,9 +1067,9 @@ class Game extends Board {
                 && this.specialPawnCapture.isEnPassantCapturable()
                 && this.specialPawnCapture.isEnPassantCapture(moveTo, piece)) {
                 const enPassantCapture = this.specialPawnCapture.capturablePiece;
-                move.captured = enPassantCapture;
+                move.captured = enPassantCapture.key;
                 move.special = [enPassantCapture.position[0], enPassantCapture.position[1]];
-                this._enpassantCaptureCoordString = cescacs_types_1.csConvert.columnFromIndex(enPassantCapture.position[0]) + enPassantCapture.position[1].toString();
+                this._enpassantCaptureCoordString = cescacs_positionHelper_1.PositionHelper.toString(move.special);
             }
             else {
                 this._enpassantCaptureCoordString = null;
@@ -1088,7 +1093,7 @@ class Game extends Board {
             const hexesColor = cescacs_positionHelper_1.PositionHelper.hexColor(moveTo);
             const piece = super.findRegeinablePiece(pawn.color, promoteTo, hexesColor);
             const promotion = {
-                piece: pawn,
+                piece: pawn.key,
                 prPos: moveTo,
                 promoted: piece
             };
@@ -1100,16 +1105,16 @@ class Game extends Board {
                     (0, ts_general_1.assertCondition)(pawn.color != capturedPiece.color && pawn.canCaptureOn(this, moveTo), `Pawn at ${piece.position?.toString()} capture on ${moveTo.toString()}`);
                     const isScornfulCapture = cescacs_piece_1.csPieceTypes.isPawn(piece) && this.specialPawnCapture != null &&
                         this.specialPawnCapture.isScornfulCapturable() && this.specialPawnCapture.isScorned(piece, moveTo);
-                    promotion.captured = capturedPiece;
+                    promotion.captured = capturedPiece.key;
                     promotion.special = isScornfulCapture ? moveTo : undefined;
                     this._enpassantCaptureCoordString = null;
                 }
                 else if (this.specialPawnCapture != null && this.specialPawnCapture.isEnPassantCapturable()
                     && this.specialPawnCapture.isEnPassantCapture(moveTo, pawn)) {
                     const enPassantCapture = this.specialPawnCapture.capturablePiece;
-                    promotion.captured = enPassantCapture;
+                    promotion.captured = enPassantCapture.key;
                     promotion.special = [enPassantCapture.position[0], enPassantCapture.position[1]];
-                    this._enpassantCaptureCoordString = cescacs_types_1.csConvert.columnFromIndex(enPassantCapture.position[0]) + enPassantCapture.position[1].toString();
+                    this._enpassantCaptureCoordString = cescacs_positionHelper_1.PositionHelper.toString(promotion.special);
                 }
                 else {
                     this._enpassantCaptureCoordString = null;
@@ -1154,8 +1159,8 @@ class Game extends Board {
                 side: cmove[0][2],
                 col: kCol,
                 rPos: rPos,
-                kRook: side == 'K' ? rook : undefined,
-                qRook: side == 'D' ? rook : undefined
+                kRook: side == 'K' ? rook.key : undefined,
+                qRook: side == 'D' ? rook.key : undefined
             };
             if (rCol2 !== undefined) {
                 const r2Pos = this.castlingRookPosition(kCol, rCol2, 'D', singleStep);
@@ -1165,20 +1170,23 @@ class Game extends Board {
                 (0, ts_general_1.assertCondition)(!rook2.moved, "castling queen rook's not been moved");
                 (0, ts_general_1.assertCondition)(rook2.canMoveTo(this, r2Pos, false), "castling queen rook movement");
                 castlingMove["r2Pos"] = r2Pos;
+                castlingMove["qRook"] = rook2.key;
             }
             this._enpassantCaptureCoordString = null;
             this.pushMove(castlingMove);
         }
         catch (e) {
             if (e instanceof Error && e.name == 'Error')
-                e.name = 'DoMove';
+                e.name = 'doCastling';
             throw e;
         }
     }
     popMove() {
-        if (this._moves.length > 0) {
+        if (this._moves.length > 1 || this._top == 0 && this._moves[0].move != '\u2026') {
+            (0, ts_general_1.assertCondition)(this._moves[this._top].move != '\u2026');
             this._top--;
             const turnInfo = this._moves.pop();
+            (0, ts_general_1.assertCondition)(turnInfo.move != '\u2026');
             super.nextTurn(); //works anyway
             this._draw = false;
             this._resigned = false;
@@ -1186,19 +1194,28 @@ class Game extends Board {
             this._stalemate = false;
             this.undoMove(turnInfo.move, turnInfo.turn);
             if (turnInfo.castlingStatus !== undefined && cescacs_moves_1.csMoves.isMoveInfo(turnInfo.move)) {
-                if (turnInfo.move.piece.symbol === 'R')
-                    turnInfo.move.piece.setCastlingStatus(turnInfo.castlingStatus, this.isGrand);
-                else if (turnInfo.move.piece.symbol === 'K')
-                    turnInfo.move.piece.castlingStatus = turnInfo.castlingStatus;
+                const symbol = cescacs_types_1.csConvert.getPieceKeyName(turnInfo.move.piece);
+                if (symbol === 'R' || symbol === 'K') {
+                    const piece = this.pieceByKey(turnInfo.move.piece);
+                    switch (symbol) {
+                        case 'R':
+                            piece.setCastlingStatus(turnInfo.castlingStatus, this.isGrand);
+                            break;
+                        case 'K':
+                            piece.castlingStatus = turnInfo.castlingStatus;
+                            break;
+                    }
+                }
             }
             if (turnInfo.specialPawnCapture === undefined)
                 this.specialPawnCapture = null;
             else
                 this.specialPawnCapture = PawnSpecialCaptureStatus.parse(this, turnInfo.specialPawnCapture);
             if (this.isAwaitingPromotion) {
-                if (cescacs_moves_1.csMoves.isMoveInfo(turnInfo.move) && cescacs_piece_1.csPieceTypes.isPawn(turnInfo.move.piece)
-                    || cescacs_moves_1.csMoves.isPromotionInfo(turnInfo.move))
+                if (cescacs_moves_1.csMoves.isMoveInfo(turnInfo.move) && cescacs_types_1.csConvert.getPieceKeyName(turnInfo.move.piece) == 'P'
+                    || cescacs_moves_1.csMoves.isPromotionInfo(turnInfo.move)) {
                     this.computeAwaitingPromotion(turnInfo.turn == 'b' ? 'w' : 'b');
+                }
             }
             if (this.turn === 'b')
                 this.moveNumber--;
@@ -1356,7 +1373,7 @@ class Game extends Board {
         if (this._moves.length > 0) {
             let ini;
             if (this._moves[0].turn == 'b') {
-                result.push(this._moves[0].n + ". \u00D7, " + cescacs_moves_1.csMoves.fullMoveNotation(this._moves[0]));
+                result.push(this._moves[0].n + ". \u2026, " + cescacs_moves_1.csMoves.fullMoveNotation(this._moves[0]));
                 ini = 1;
             }
             else
@@ -1372,34 +1389,35 @@ class Game extends Board {
         return result.join("\n");
     }
     moveBottom() {
-        while (this._top > 0) {
+        while (this._top > 1 || this._top == 1 && this._moves[0].move != '\u2026') {
             const moveInfo = this._moves[this._top--];
+            (0, ts_general_1.assertCondition)(moveInfo.move != '\u2026');
             this.undoMove(moveInfo.move, moveInfo.turn);
         }
     }
     moveBackward() {
-        if (this._top > 0) {
+        if (this._top > 1 || this._top == 1 && this._moves[0].move != '\u2026') {
             const moveInfo = this._moves[this._top--];
+            (0, ts_general_1.assertCondition)(moveInfo.move != '\u2026');
             this.undoMove(moveInfo.move, moveInfo.turn);
         }
     }
     moveForward() {
         if (this._top < this._moves.length - 1) {
             const moveInfo = this._moves[++this._top];
+            (0, ts_general_1.assertCondition)(moveInfo.move != '\u2026');
             this.applyMove(moveInfo.move, moveInfo.turn);
         }
     }
     moveTop() {
         while (this._top < this._moves.length - 1) {
             const moveInfo = this._moves[++this._top];
+            (0, ts_general_1.assertCondition)(moveInfo.move != '\u2026');
             this.applyMove(moveInfo.move, moveInfo.turn);
         }
     }
     get topMoveId() {
-        if (this._top >= 0)
-            return cescacs_moves_1.csMoves.undoStatusId(this._moves[this._top]);
-        else
-            return null;
+        return this._top >= 0 ? cescacs_moves_1.csMoves.undoStatusId(this._moves[this._top]) : "";
     }
     get movesJSON() {
         return JSON.stringify(this._moves);
@@ -1759,66 +1777,74 @@ class Game extends Board {
             move: move,
             initHalfMoveClock: this.halfmoveClock == 0 ? 1 : undefined,
             specialPawnCapture: this.specialPawnCapture == null ? undefined : this.specialPawnCapture.toString(),
-            castlingStatus: (cescacs_moves_1.csMoves.isMoveInfo(move) && ['K', 'R'].indexOf(move.piece.symbol) >= 0) ?
-                this.playerCastlingStatus() : undefined,
-            end: undefined,
-            check: undefined
+            castlingStatus: (cescacs_moves_1.csMoves.isMoveInfo(move) && ['K', 'R'].indexOf(cescacs_types_1.csConvert.getPieceKeyName(move.piece)) >= 0) ?
+                this.playerCastlingStatus() : undefined
         };
         this.applyMove(move, this.turn);
         super.nextTurn();
         if (this.turn === 'w')
             this.moveNumber++;
-        if (cescacs_moves_1.csMoves.isMoveInfo(move) && move.piece.symbol == 'P' || cescacs_moves_1.csMoves.isCaptureInfo(move) || cescacs_moves_1.csMoves.isPromotionInfo(move))
+        if (cescacs_moves_1.csMoves.isMoveInfo(move) && cescacs_types_1.csConvert.getPieceKeyName(move.piece) == 'P'
+            || cescacs_moves_1.csMoves.isCaptureInfo(move)
+            || cescacs_moves_1.csMoves.isPromotionInfo(move))
             this.halfmoveClock = 0;
         else
             this.halfmoveClock++;
         super.prepareCurrentTurn();
         const anyMove = super.isMoveableTurn();
+        let endGame = undefined;
+        let check = undefined;
         if (!anyMove) {
             if (this.checked) {
                 this._mate = true;
-                turnInfo.end = "mate";
+                endGame = "mate";
             }
             else {
                 this._stalemate = true;
-                turnInfo.end = "stalemate";
+                endGame = "stalemate";
             }
         }
         else if (this.halfmoveClock >= 200) {
             this._draw = true;
-            turnInfo.end = "draw";
+            endGame = "draw";
         }
         else if (this.checked) {
             if (this.isKnightOrCloseCheck)
-                turnInfo.check = "^+";
+                check = "^+";
             else if (this.isSingleCheck)
-                turnInfo.check = "+";
+                check = "+";
             else if (this.isDoubleCheck)
-                turnInfo.check += "++";
+                check = "++";
             else
                 throw new Error("never: exhaused check options");
         }
-        this._moves.push(turnInfo);
+        if (this._top < 0 && turnInfo.turn == 'b') {
+            this._moves.push({ n: turnInfo.n, turn: 'w', move: '\u2026' });
+            this._top++;
+        }
+        const turnInfoEnriched = cescacs_moves_1.csMoves.promoteUndoStatus(turnInfo, endGame, check);
+        this._moves.push(turnInfoEnriched);
         this._top++;
         super.computeHeuristic(this.turn, this.moveNumber, anyMove, this.currentHeuristic);
     }
     applyMove(move, turn) {
+        debugger;
         if (cescacs_moves_1.csMoves.isCastlingInfo(move))
             this.applyCastling(move, turn);
         else {
-            const piece = move.piece;
+            const piece = this.pieceByKey(move.piece);
             if (cescacs_moves_1.csMoves.isMoveInfo(move)) {
                 const dest = move.moveTo;
                 if (cescacs_moves_1.csMoves.isCaptureInfo(move)) {
-                    super.capturePiece(move.captured);
+                    super.capturePiece(this.pieceByKey(move.captured));
                 }
                 super.movePiece(piece, dest[0], dest[1]);
                 if (cescacs_moves_1.csMoves.isPromotionInfo(move)) {
-                    super.promotePawn(piece, move.promoted);
+                    super.promotePawn(piece, this.pieceByKey(move.promoted));
                 }
             }
             else {
-                super.promotePawn(piece, move.promoted);
+                super.promotePawn(piece, this.pieceByKey(move.promoted));
             }
         }
     }
@@ -1827,31 +1853,34 @@ class Game extends Board {
         const kpos = Game.kingCastlingPosition(currentKing.color, mov.col);
         switch (mov.side) {
             case 'K':
-                super.movePiece(mov.kRook, mov.rPos[0], mov.rPos[1]);
+                super.movePiece(this.pieceByKey(mov.kRook), mov.rPos[0], mov.rPos[1]);
                 break;
             case 'D':
-                super.movePiece(mov.qRook, mov.rPos[0], mov.rPos[1]);
+                super.movePiece(this.pieceByKey(mov.qRook), mov.rPos[0], mov.rPos[1]);
                 break;
             case 'R':
-                super.movePiece(mov.kRook, mov.rPos[0], mov.rPos[1]);
-                super.movePiece(mov.qRook, mov.r2Pos[0], mov.r2Pos[1]);
+                super.movePiece(this.pieceByKey(mov.kRook), mov.rPos[0], mov.rPos[1]);
+                super.movePiece(this.pieceByKey(mov.qRook), mov.r2Pos[0], mov.r2Pos[1]);
         }
         super.movePiece(currentKing, kpos[0], kpos[1]);
     }
     undoMove(move, turn) {
         if (cescacs_moves_1.csMoves.isCastlingInfo(move))
             this.undoCastling(move, turn);
-        else if (cescacs_moves_1.csMoves.isMoveInfo(move)) {
-            if (cescacs_moves_1.csMoves.isPromotionInfo(move))
-                super.undoPromotePawn(move.piece, move.promoted);
-            super.undoPieceMove(move.piece, move.pos[0], move.pos[1]);
-            if (cescacs_moves_1.csMoves.isCaptureInfo(move)) {
-                const capPos = move.special === undefined ? move.moveTo : move.special;
-                super.undoCapturePiece(move.captured, capPos[0], capPos[1]);
+        else {
+            const piece = this.pieceByKey(move.piece);
+            if (cescacs_moves_1.csMoves.isMoveInfo(move)) {
+                if (cescacs_moves_1.csMoves.isPromotionInfo(move))
+                    super.undoPromotePawn(piece, this.pieceByKey(move.promoted));
+                super.undoPieceMove(piece, move.pos[0], move.pos[1]);
+                if (cescacs_moves_1.csMoves.isCaptureInfo(move)) {
+                    const capPos = move.special === undefined ? move.moveTo : move.special;
+                    super.undoCapturePiece(this.pieceByKey(move.captured), capPos[0], capPos[1]);
+                }
             }
+            else
+                super.undoPromotePawn(piece, this.pieceByKey(move.promoted));
         }
-        else
-            super.undoPromotePawn(move.piece, move.promoted);
     }
     undoCastling(castling, color) {
         const isGrand = this.isGrand;
@@ -1860,8 +1889,7 @@ class Game extends Board {
         const rookInitialPos = castling.side == 'D' ?
             cescacs_positionHelper_1.PositionHelper.initialQueenSideRookPosition(color, isGrand)
             : cescacs_positionHelper_1.PositionHelper.initialKingSideRookPosition(color, isGrand);
-        const rook = castling.side == 'D' ? castling.qRook : castling.kRook;
-        debugger;
+        const rook = this.pieceByKey(castling.side == 'D' ? castling.qRook : castling.kRook);
         console.log(castling);
         (0, ts_general_1.assertNonNullish)(rook);
         super.undoPieceMove(currentKing, kingInitialPos[0], kingInitialPos[1]);
@@ -1869,9 +1897,10 @@ class Game extends Board {
         currentKing.castlingStatus = "RKR";
         rook.setCastlingStatus("RKR", isGrand);
         if (castling.side == 'R') {
+            const qRook = this.pieceByKey(castling.qRook);
             const r2InitialPos = cescacs_positionHelper_1.PositionHelper.initialQueenSideRookPosition(color, isGrand);
-            super.undoPieceMove(castling.qRook, r2InitialPos[0], r2InitialPos[1]);
-            castling.qRook.setCastlingStatus("RKR", isGrand);
+            super.undoPieceMove(qRook, r2InitialPos[0], r2InitialPos[1]);
+            qRook.setCastlingStatus("RKR", isGrand);
         }
     }
     fillDefaultPositions() {

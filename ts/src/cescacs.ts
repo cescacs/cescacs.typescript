@@ -6,7 +6,8 @@ import type {
     Turn, HexColor, PieceName, PieceColor, CastlingStatus,
     CastlingColumn,
     CastlingString,
-    GrandCastlingString
+    GrandCastlingString,
+    PieceKey, EndGame, CheckNotation
 } from "./cescacs.types";
 
 import { assertNonNullish, assertCondition, isNotNullNorEmpty, round2hundredths } from "./ts.general";
@@ -17,7 +18,7 @@ import {
     IBoard, Piece, IPawnSpecialCaptureStatus, IScornfulCapturable, IEnPassantCapturable,
     King, Queen, Wyvern, Rook, Pegasus, Knight, Bishop, Elephant, Almogaver, Pawn
 } from "./cescacs.piece";
-import { UndoStatus, MoveInfo, CastlingSide } from "./cescacs.moves";
+import { UndoStatus, MoveInfo, CastlingSide, UndoStatusWhithCheckInfo } from "./cescacs.moves";
 import { csMoves as csmv } from "./cescacs.moves"
 
 export { PositionHelper, cspty, csmv, round2hundredths };
@@ -238,6 +239,9 @@ export abstract class Board implements IBoard {
     protected get isSingleCheck(): boolean { return this.turnKing.isSingleCheck(); }
     protected get isDoubleCheck(): boolean { return this.turnKing.isDoubleCheck(); }
 
+    public pieceByKey(key: PieceKey): Piece {
+        const piece = this.pieces.get(key); assertNonNullish(piece, "piece from unique key"); return piece;
+    }
     public get specialPawnCapture(): Nullable<PawnSpecialCaptureStatus> { return this._specialPawnCapture; }
     protected set specialPawnCapture(value: Nullable<PawnSpecialCaptureStatus>) { this._specialPawnCapture = value; }
 
@@ -247,8 +251,7 @@ export abstract class Board implements IBoard {
     }
     protected computeAwaitingPromotion(color: PieceColor) {
         let value = false;
-        for (const piece of (color == 'w' ? this.wPieces : this.bPieces).values())
-        { if (cspty.isPawn(piece) && piece.awaitingPromotion) { value = true; break; } }
+        for (const piece of (color == 'w' ? this.wPieces : this.bPieces).values()) { if (cspty.isPawn(piece) && piece.awaitingPromotion) { value = true; break; } }
         if (color == 'w') this._wAwaitingPromotion = value; else this._bAwaitingPromotion = value;
     }
 
@@ -905,7 +908,7 @@ export class Game extends Board {
     }
     //#endregion
 
-    private _moves: UndoStatus[] = [];
+    private _moves: UndoStatusWhithCheckInfo[] = [];
     private _top: number = -1;
     private moveNumber: number;
     private halfmoveClock: number;
@@ -959,7 +962,7 @@ export class Game extends Board {
         else return this.getPiece(p);
     }
 
-    public get lastMove() { 
+    public get lastMove() {
         if (this._top >= 0) return csmv.fullMoveNotation(this._moves[this._top], false);
         else return null;
     }
@@ -1017,7 +1020,7 @@ export class Game extends Board {
             assertCondition(piece.canMoveTo(this, moveTo),
                 `Piece ${piece.symbol} at ${piece.position?.toString()} move to ${moveTo.toString()}`);
             const move: Record<string, any> = {
-                piece: piece,
+                piece: piece.key,
                 pos: moveFrom,
                 moveTo: moveTo
             };
@@ -1027,16 +1030,16 @@ export class Game extends Board {
                     `Piece ${piece.symbol} at ${piece.position?.toString()} capture on ${moveTo.toString()}`)
                 const isScornfulCapture = cspty.isPawn(piece) && this.specialPawnCapture != null &&
                     this.specialPawnCapture.isScornfulCapturable() && this.specialPawnCapture.isScorned(piece, moveTo);
-                move.captured = capturedPiece;
+                move.captured = capturedPiece.key;
                 move.special = isScornfulCapture ? moveTo : undefined;
                 this._enpassantCaptureCoordString = null;
             } else if (cspty.isPawn(piece) && this.specialPawnCapture != null
                 && this.specialPawnCapture.isEnPassantCapturable()
                 && this.specialPawnCapture.isEnPassantCapture(moveTo, piece)) {
                 const enPassantCapture = this.specialPawnCapture.capturablePiece;
-                move.captured = enPassantCapture;
+                move.captured = enPassantCapture.key;
                 move.special = [enPassantCapture.position![0], enPassantCapture.position![1]];
-                this._enpassantCaptureCoordString = cscnv.columnFromIndex(enPassantCapture.position![0]) + enPassantCapture.position![1].toString();
+                this._enpassantCaptureCoordString = PositionHelper.toString(move.special);
             } else {
                 this._enpassantCaptureCoordString = null;
             }
@@ -1059,7 +1062,7 @@ export class Game extends Board {
             const hexesColor = PositionHelper.hexColor(moveTo);
             const piece = super.findRegeinablePiece(pawn.color, promoteTo, hexesColor);
             const promotion: Record<string, any> = {
-                piece: pawn,
+                piece: pawn.key,
                 prPos: moveTo,
                 promoted: piece
             };
@@ -1072,15 +1075,15 @@ export class Game extends Board {
                         `Pawn at ${piece.position?.toString()} capture on ${moveTo.toString()}`)
                     const isScornfulCapture = cspty.isPawn(piece) && this.specialPawnCapture != null &&
                         this.specialPawnCapture.isScornfulCapturable() && this.specialPawnCapture.isScorned(piece, moveTo);
-                    promotion.captured = capturedPiece;
+                    promotion.captured = capturedPiece.key;
                     promotion.special = isScornfulCapture ? moveTo : undefined;
                     this._enpassantCaptureCoordString = null;
                 } else if (this.specialPawnCapture != null && this.specialPawnCapture.isEnPassantCapturable()
                     && this.specialPawnCapture.isEnPassantCapture(moveTo, pawn)) {
                     const enPassantCapture = this.specialPawnCapture.capturablePiece;
-                    promotion.captured = enPassantCapture;
+                    promotion.captured = enPassantCapture.key;
                     promotion.special = [enPassantCapture.position![0], enPassantCapture.position![1]];
-                    this._enpassantCaptureCoordString = cscnv.columnFromIndex(enPassantCapture.position![0]) + enPassantCapture.position![1].toString();
+                    this._enpassantCaptureCoordString = PositionHelper.toString(promotion.special);
                 } else {
                     this._enpassantCaptureCoordString = null;
                 }
@@ -1122,8 +1125,8 @@ export class Game extends Board {
                 side: cmove[0][2],
                 col: kCol,
                 rPos: rPos,
-                kRook: side == 'K' ? rook : undefined,
-                qRook: side == 'D' ? rook : undefined
+                kRook: side == 'K' ? rook.key : undefined,
+                qRook: side == 'D' ? rook.key : undefined
             };
             if (rCol2 !== undefined) {
                 const r2Pos = this.castlingRookPosition(kCol, rCol2, 'D', singleStep);
@@ -1133,34 +1136,46 @@ export class Game extends Board {
                 assertCondition(!rook2.moved, "castling queen rook's not been moved");
                 assertCondition(rook2.canMoveTo(this, r2Pos, false), "castling queen rook movement");
                 castlingMove["r2Pos"] = r2Pos;
+                castlingMove["qRook"] = rook2.key;
             }
             this._enpassantCaptureCoordString = null;
             this.pushMove(castlingMove as MoveInfo);
         }
         catch (e) {
-            if (e instanceof Error && e.name == 'Error') e.name = 'DoMove';
+            if (e instanceof Error && e.name == 'Error') e.name = 'doCastling';
             throw e;
         }
     }
 
     public popMove() {
-        if (this._moves.length > 0) {
+        if (this._moves.length > 1 || this._top == 0 && this._moves[0].move != '\u2026') {
+            assertCondition(this._moves[this._top].move != '\u2026')
             this._top--;
             const turnInfo: UndoStatus = this._moves.pop()!;
+            assertCondition(turnInfo.move != '\u2026')
             super.nextTurn(); //works anyway
             this._draw = false; this._resigned = false;
             this._mate = false; this._stalemate = false;
             this.undoMove(turnInfo.move, turnInfo.turn);
             if (turnInfo.castlingStatus !== undefined && csmv.isMoveInfo(turnInfo.move)) {
-                if (turnInfo.move.piece.symbol === 'R') (turnInfo.move.piece as Rook).setCastlingStatus(turnInfo.castlingStatus, this.isGrand);
-                else if (turnInfo.move.piece.symbol === 'K') (turnInfo.move.piece as King).castlingStatus = turnInfo.castlingStatus;
+                const symbol = cscnv.getPieceKeyName(turnInfo.move.piece);
+                if (symbol === 'R' || symbol === 'K') {
+                    const piece = this.pieceByKey(turnInfo.move.piece);
+                    switch (symbol) {
+                        case 'R': (piece as Rook).setCastlingStatus(turnInfo.castlingStatus, this.isGrand);
+                            break;
+                        case 'K': (piece as King).castlingStatus = turnInfo.castlingStatus;
+                            break;
+                    }
+                }
             }
             if (turnInfo.specialPawnCapture === undefined) this.specialPawnCapture = null;
             else this.specialPawnCapture = PawnSpecialCaptureStatus.parse(this, turnInfo.specialPawnCapture);
             if (this.isAwaitingPromotion) {
-                if (csmv.isMoveInfo(turnInfo.move) && cspty.isPawn(turnInfo.move.piece)
-                    || csmv.isPromotionInfo(turnInfo.move))
+                if (csmv.isMoveInfo(turnInfo.move) && cscnv.getPieceKeyName(turnInfo.move.piece) == 'P'
+                    || csmv.isPromotionInfo(turnInfo.move)) {
                     this.computeAwaitingPromotion(turnInfo.turn == 'b' ? 'w' : 'b');
+                }
             }
             if (this.turn === 'b') this.moveNumber--;
             if (turnInfo.initHalfMoveClock === undefined) this.halfmoveClock--;
@@ -1316,7 +1331,7 @@ export class Game extends Board {
         if (this._moves.length > 0) {
             let ini: number;
             if (this._moves[0].turn == 'b') {
-                result.push(this._moves[0].n + ". \u00D7, " + csmv.fullMoveNotation(this._moves[0]));
+                result.push(this._moves[0].n + ". \u2026, " + csmv.fullMoveNotation(this._moves[0]));
                 ini = 1;
             } else ini = 0;
             for (let i = ini; i <= this._top; i += 2) {
@@ -1330,33 +1345,35 @@ export class Game extends Board {
         return result.join("\n");
     }
     public moveBottom(): void {
-        while (this._top > 0) {
+        while (this._top > 1 || this._top == 1 && this._moves[0].move != '\u2026') {
             const moveInfo = this._moves[this._top--];
+            assertCondition(moveInfo.move != '\u2026')
             this.undoMove(moveInfo.move, moveInfo.turn);
         }
     }
     public moveBackward(): void {
-        if (this._top > 0) {
+        if (this._top > 1 || this._top == 1 && this._moves[0].move != '\u2026') {
             const moveInfo = this._moves[this._top--];
+            assertCondition(moveInfo.move != '\u2026')
             this.undoMove(moveInfo.move, moveInfo.turn);
         }
     }
     public moveForward(): void {
         if (this._top < this._moves.length - 1) {
             const moveInfo = this._moves[++this._top];
+            assertCondition(moveInfo.move != '\u2026')
             this.applyMove(moveInfo.move, moveInfo.turn);
         }
     }
     public moveTop(): void {
         while (this._top < this._moves.length - 1) {
             const moveInfo = this._moves[++this._top];
+            assertCondition(moveInfo.move != '\u2026')
             this.applyMove(moveInfo.move, moveInfo.turn);
         }
     }
-    public get topMoveId(): Nullable<string> {
-        if (this._top >= 0)
-            return csmv.undoStatusId(this._moves[this._top]);
-        else return null;
+    public get topMoveId(): string {
+        return this._top >= 0 ? csmv.undoStatusId(this._moves[this._top]) : "";
     }
 
     public get movesJSON() {
@@ -1475,8 +1492,8 @@ export class Game extends Board {
                                         }
                                     } else {
                                         const newPiece = super.createPiece(pieceSymbol, color,
-                                                                           cscnv.columnFromIndex(actualColumnIndex as ColumnIndex),
-                                                                           actualLine as Line);
+                                            cscnv.columnFromIndex(actualColumnIndex as ColumnIndex),
+                                            actualLine as Line);
                                         if (cspty.isRook(newPiece)) rooks.push(newPiece);
                                         else if (cspty.isPawn(newPiece) && newPiece.awaitingPromotion != null)
                                             super.setAwaitingPromotion(newPiece.color);
@@ -1679,50 +1696,58 @@ export class Game extends Board {
             move: move,
             initHalfMoveClock: this.halfmoveClock == 0 ? 1 : undefined,
             specialPawnCapture: this.specialPawnCapture == null ? undefined : this.specialPawnCapture.toString(),
-            castlingStatus: (csmv.isMoveInfo(move) && ['K', 'R'].indexOf(move.piece.symbol) >= 0) ?
-                this.playerCastlingStatus() : undefined,
-            end: undefined,
-            check: undefined
+            castlingStatus: (csmv.isMoveInfo(move) && ['K', 'R'].indexOf(cscnv.getPieceKeyName(move.piece)) >= 0) ?
+                this.playerCastlingStatus() : undefined
         };
         this.applyMove(move, this.turn);
         super.nextTurn();
         if (this.turn === 'w') this.moveNumber++;
-        if (csmv.isMoveInfo(move) && move.piece.symbol == 'P' || csmv.isCaptureInfo(move) || csmv.isPromotionInfo(move))
+        if (csmv.isMoveInfo(move) && cscnv.getPieceKeyName(move.piece) == 'P'
+            || csmv.isCaptureInfo(move)
+            || csmv.isPromotionInfo(move))
             this.halfmoveClock = 0;
         else this.halfmoveClock++;
         super.prepareCurrentTurn();
         const anyMove = super.isMoveableTurn();
+        let endGame: EndGame | undefined = undefined;
+        let check: CheckNotation | undefined = undefined;
         if (!anyMove) {
-            if (this.checked) { this._mate = true; turnInfo.end = "mate"; }
-            else { this._stalemate = true; turnInfo.end = "stalemate"; }
+            if (this.checked) { this._mate = true; endGame = "mate"; }
+            else { this._stalemate = true; endGame = "stalemate"; }
         } else if (this.halfmoveClock >= 200) {
-            this._draw = true; turnInfo.end = "draw";
+            this._draw = true; endGame = "draw";
         } else if (this.checked) {
-            if (this.isKnightOrCloseCheck) turnInfo.check = "^+";
-            else if (this.isSingleCheck) turnInfo.check = "+";
-            else if (this.isDoubleCheck) turnInfo.check += "++"
+            if (this.isKnightOrCloseCheck) check = "^+";
+            else if (this.isSingleCheck) check = "+";
+            else if (this.isDoubleCheck) check = "++"
             else throw new Error("never: exhaused check options");
         }
-        this._moves.push(turnInfo);
+        if (this._top < 0 && turnInfo.turn == 'b') {
+            this._moves.push({ n: turnInfo.n, turn: 'w', move: '\u2026' });
+            this._top++;
+        }
+        const turnInfoEnriched = csmv.promoteUndoStatus(turnInfo, endGame, check);
+        this._moves.push(turnInfoEnriched);
         this._top++;
         super.computeHeuristic(this.turn, this.moveNumber, anyMove, this.currentHeuristic);
     }
 
     private applyMove(move: MoveInfo, turn: Turn) {
+        debugger;
         if (csmv.isCastlingInfo(move)) this.applyCastling(move, turn);
         else {
-            const piece = move.piece;
+            const piece = this.pieceByKey(move.piece);
             if (csmv.isMoveInfo(move)) {
                 const dest = move.moveTo;
                 if (csmv.isCaptureInfo(move)) {
-                    super.capturePiece(move.captured);
+                    super.capturePiece(this.pieceByKey(move.captured));
                 }
                 super.movePiece(piece, dest[0], dest[1]);
                 if (csmv.isPromotionInfo(move)) {
-                    super.promotePawn(piece as Pawn, move.promoted);
+                    super.promotePawn(piece as Pawn, this.pieceByKey(move.promoted));
                 }
             } else {
-                super.promotePawn(piece as Pawn, move.promoted);
+                super.promotePawn(piece as Pawn, this.pieceByKey(move.promoted));
             }
         }
     }
@@ -1732,14 +1757,14 @@ export class Game extends Board {
         const kpos = Game.kingCastlingPosition(currentKing.color, mov.col);
         switch (mov.side) {
             case 'K':
-                super.movePiece(mov.kRook!, mov.rPos[0], mov.rPos[1]);
+                super.movePiece(this.pieceByKey(mov.kRook!), mov.rPos[0], mov.rPos[1]);
                 break;
             case 'D':
-                super.movePiece(mov.qRook!, mov.rPos[0], mov.rPos[1]);
+                super.movePiece(this.pieceByKey(mov.qRook!), mov.rPos[0], mov.rPos[1]);
                 break;
             case 'R':
-                super.movePiece(mov.kRook!, mov.rPos[0], mov.rPos[1]);
-                super.movePiece(mov.qRook!, mov.r2Pos![0], mov.r2Pos![1]);
+                super.movePiece(this.pieceByKey(mov.kRook!), mov.rPos[0], mov.rPos[1]);
+                super.movePiece(this.pieceByKey(mov.qRook!), mov.r2Pos![0], mov.r2Pos![1]);
         }
         super.movePiece(currentKing, kpos[0], kpos[1]);
     }
@@ -1747,14 +1772,17 @@ export class Game extends Board {
     private undoMove(move: MoveInfo, turn: Turn) {
         if (csmv.isCastlingInfo(move))
             this.undoCastling(move, turn);
-        else if (csmv.isMoveInfo(move)) {
-            if (csmv.isPromotionInfo(move)) super.undoPromotePawn(move.piece as Pawn, move.promoted);
-            super.undoPieceMove(move.piece, move.pos[0], move.pos[1]);
-            if (csmv.isCaptureInfo(move)) {
-                const capPos = move.special === undefined ? move.moveTo : move.special;
-                super.undoCapturePiece(move.captured, capPos[0], capPos[1]);
-            }
-        } else super.undoPromotePawn(move.piece as Pawn, move.promoted);
+        else {
+            const piece = this.pieceByKey(move.piece);
+            if (csmv.isMoveInfo(move)) {
+                if (csmv.isPromotionInfo(move)) super.undoPromotePawn(piece as Pawn, this.pieceByKey(move.promoted));
+                super.undoPieceMove(piece, move.pos[0], move.pos[1]);
+                if (csmv.isCaptureInfo(move)) {
+                    const capPos = move.special === undefined ? move.moveTo : move.special;
+                    super.undoCapturePiece(this.pieceByKey(move.captured), capPos[0], capPos[1]);
+                }
+            } else super.undoPromotePawn(piece as Pawn, this.pieceByKey(move.promoted));
+        }
     }
 
     private undoCastling(castling: csmv.Castling, color: PieceColor) {
@@ -1764,18 +1792,18 @@ export class Game extends Board {
         const rookInitialPos = castling.side == 'D' ?
             PositionHelper.initialQueenSideRookPosition(color, isGrand)
             : PositionHelper.initialKingSideRookPosition(color, isGrand);
-        const rook = castling.side == 'D' ? castling.qRook : castling.kRook;
-        debugger;
+        const rook = this.pieceByKey(castling.side == 'D' ? castling.qRook! : castling.kRook!) as Rook;
         console.log(castling);
         assertNonNullish(rook);
         super.undoPieceMove(currentKing, kingInitialPos[0], kingInitialPos[1]);
-        super.undoPieceMove(rook!, rookInitialPos[0], rookInitialPos[1]);
+        super.undoPieceMove(rook, rookInitialPos[0], rookInitialPos[1]);
         currentKing.castlingStatus = "RKR";
-        rook!.setCastlingStatus("RKR", isGrand);
+        rook.setCastlingStatus("RKR", isGrand);
         if (castling.side == 'R') {
+            const qRook = this.pieceByKey(castling.qRook!) as Rook;
             const r2InitialPos = PositionHelper.initialQueenSideRookPosition(color, isGrand);
-            super.undoPieceMove(castling.qRook!, r2InitialPos[0], r2InitialPos[1]);
-            castling.qRook!.setCastlingStatus("RKR", isGrand);
+            super.undoPieceMove(qRook, r2InitialPos[0], r2InitialPos[1]);
+            qRook.setCastlingStatus("RKR", isGrand);
         }
     }
 
@@ -1786,13 +1814,13 @@ export class Game extends Board {
         if (this.isGrand) {
             super.createPiece('P', "w", 'B', 6); super.createPiece('R', "w", 'B', 4); super.createPiece('N', "w", 'C', 3);
             super.createPiece('N', "w", 'I', 3); super.createPiece('R', "w", 'K', 4); super.createPiece('P', "w", 'K', 6);
-            super.createPiece('P', "w", 'P', 7); super.createPiece('P', "w", 'T', 8); 
+            super.createPiece('P', "w", 'P', 7); super.createPiece('P', "w", 'T', 8);
             super.createPiece('P', "w", 'X', 8); super.createPiece('P', "w", 'Z', 7);
             super.createPiece('M', "w", 'C', 7); super.createPiece('M', "w", 'A', 7);
             super.createPiece('M', "w", 'L', 7); super.createPiece('M', "w", 'I', 7);
         } else {
             super.createPiece('P', "w", 'B', 4); super.createPiece('R', "w", 'C', 3),
-            super.createPiece('R', "w", 'I', 3); super.createPiece('P', "w", 'K', 4);
+                super.createPiece('R', "w", 'I', 3); super.createPiece('P', "w", 'K', 4);
         }
         super.createPiece('N', "w", 'E', 3); super.createPiece('N', "w", 'G', 3);
         super.createPiece('E', "w", 'D', 4); super.createPiece('J', "w", 'F', 4); super.createPiece('E', "w", 'H', 4);
