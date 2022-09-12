@@ -793,6 +793,8 @@ function showId(element, id) {
         }
         element.classList.add("selected");
         buttonUndo.disabled = element.nextElementSibling != null;
+        document.getElementById("gameStatus").innerHTML = game.lastMove ?? '\xa0';
+        document.getElementById("resultString").innerHTML = game.resultString ?? '\xa0';
     }
 }
 
@@ -854,6 +856,7 @@ function showLast() {
         restoreBoard();
         document.getElementById("gameStatus").innerHTML = game.lastMove ?? '\xa0';
         document.getElementById("resultString").innerHTML = game.resultString ?? '\xa0';
+        posGridMoves(movesGrid);
         movesGrid.scrollTop = 10000;
     } catch (e) {
         console.log("showFirst: ", e);

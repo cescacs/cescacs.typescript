@@ -14,9 +14,10 @@ export interface UndoStatus {
     readonly n: number;
     readonly turn: Turn;
     readonly move: MoveInfo | '\u2026';
-    readonly initHalfMoveClock?: 1;
+    readonly initHalfMoveClock?: '1';
     readonly castlingStatus?: CastlingStatus;
     readonly specialPawnCapture?: string;
+    readonly fixedNumbering?: '?';
 }
 
 export interface UndoStatusWhithCheckInfo extends UndoStatus {
@@ -91,7 +92,7 @@ export namespace csMoves {
     }
 
     export function fullMoveNotation(info: UndoStatusWhithCheckInfo, mvNum: boolean = true): string {
-        const preStr = mvNum && info.turn == 'w' ? info.n + '. ' : "";
+        const preStr = mvNum && info.turn == 'w' ? info.n + (info.fixedNumbering === undefined ? '. ' : '? ') : "";
         if (info.move == '\u2026') return preStr + '\u2026';
         else {
             const postStr = info.check ?? ((info.end == "mate") ? "#" : "");

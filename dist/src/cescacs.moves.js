@@ -45,7 +45,7 @@ var csMoves;
     }
     csMoves.isCaptureInfo = isCaptureInfo;
     function fullMoveNotation(info, mvNum = true) {
-        const preStr = mvNum && info.turn == 'w' ? info.n + '. ' : "";
+        const preStr = mvNum && info.turn == 'w' ? info.n + (info.fixedNumbering === undefined ? '. ' : '? ') : "";
         if (info.move == '\u2026')
             return preStr + '\u2026';
         else {

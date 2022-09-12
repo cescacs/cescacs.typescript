@@ -1663,6 +1663,7 @@ class Game extends Board {
             (0, ts_general_1.assertCondition)(regExp.test(sq), "numbered lines");
             const lines = sq.split(/\r?\n/);
             const firstLine = this.moveNumber;
+            this.fixedNumbering = (this.fixedNumbering && firstLine != 1) || fixedNumbering;
             for (let i = 0; i < lines.length; i++) {
                 const parts = lines[i].split(/[.,]\s?/);
                 const nMove = parseInt(parts[0]);
@@ -1692,7 +1693,6 @@ class Game extends Board {
                     this.applyStringMove(parts[2]);
                 }
             }
-            this.fixedNumbering = (this.fixedNumbering && firstLine != 1) || fixedNumbering;
         }
         catch (e) {
             if (e instanceof Error && e.name == 'Error')
@@ -1795,7 +1795,8 @@ class Game extends Board {
             n: this.moveNumber,
             turn: this.turn,
             move: move,
-            initHalfMoveClock: this.halfmoveClock == 0 ? 1 : undefined,
+            fixedNumbering: this.moveNumber == 1 && !this.fixedNumbering ? '?' : undefined,
+            initHalfMoveClock: this.halfmoveClock == 0 ? '1' : undefined,
             specialPawnCapture: this.specialPawnCapture == null ? undefined : this.specialPawnCapture.toString(),
             castlingStatus: (cescacs_moves_1.csMoves.isMoveInfo(move) && ['K', 'R'].indexOf(cescacs_types_1.csConvert.getPieceKeyName(move.piece)) >= 0) ?
                 this.playerCastlingStatus() : undefined
@@ -2101,7 +2102,7 @@ var csMoves;
     }
     csMoves.isCaptureInfo = isCaptureInfo;
     function fullMoveNotation(info, mvNum = true) {
-        const preStr = mvNum && info.turn == 'w' ? info.n + '. ' : "";
+        const preStr = mvNum && info.turn == 'w' ? info.n + (info.fixedNumbering === undefined ? '. ' : '? ') : "";
         if (info.move == '\u2026')
             return preStr + '\u2026';
         else {
