@@ -299,10 +299,12 @@ function restoreGame() {
         movesGrid.innerHTML = "";
         try {
             game.loadTLPD(localStorage.getItem("cescacs"));
-            game.restoreMovesJSON(localStorage.getItem("cescacs-mv"))
+            if (localStorage.getItem("cescacs-mv") != null) {
+                game.restoreMovesJSON(localStorage.getItem("cescacs-mv"));
+                game.moveTop();
+            }
             restoreBoard();
-            const gend = localStorage.getItem("cescacs-end");
-            game.resultString = gend;
+            game.resultString = localStorage.getItem("cescacs-end");
             displayMoveStatus();
         } catch (e) {
             console.log("restoreGame: ", e);
