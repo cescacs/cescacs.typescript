@@ -328,7 +328,7 @@ class Board {
         const posCol = (pos[0] + 1) >>> 1;
         return ((color == "w" ? this.wThreats : this.bThreats)[posCol] & Board.lineMask(pos[1])) != 0;
     }
-    isThreated(pos, color) {
+    isThreatened(pos, color) {
         const posCol = (pos[0] + 1) >>> 1;
         return ((color == "w" ? this.bThreats : this.wThreats)[posCol] & Board.lineMask(pos[1])) != 0;
     }
@@ -539,9 +539,11 @@ class Board {
     }
     prepareTurn(currentKing) {
         const color = currentKing.color;
-        const threats = (color == "w" ? this.bThreats : this.wThreats);
-        for (let i = 0; i <= 7; i++)
-            threats[i] = 0;
+        {
+            const threats = (color == "w" ? this.bThreats : this.wThreats);
+            for (let i = 0; i <= 7; i++)
+                threats[i] = 0;
+        }
         {
             const threatingPieces = (color == 'w' ? this.bPieces.values() : this.wPieces.values());
             for (const piece of threatingPieces)
@@ -688,7 +690,7 @@ class Board {
             result.space[0] = 0;
         }
         else {
-            const color = (turn == 'w' ? 'White' : 'Black');
+            const color = turn;
             if (currentKing.checked) {
                 if (currentKing.isDoubleCheck())
                     result.king = -15;
@@ -704,7 +706,7 @@ class Board {
             for (const pos of currentKing.attemptMoves(this, true)) {
                 const pieceColor = this.hasPiece(pos);
                 if (currentKing.checked) {
-                    if (this.isThreated(pos, color))
+                    if (this.isThreatened(pos, color))
                         result.king -= 2;
                     else if (pieceColor == null)
                         result.king += 0.5;
@@ -712,7 +714,7 @@ class Board {
                         result.king -= 0.5;
                 }
                 else {
-                    if (this.isThreated(pos, color)) {
+                    if (this.isThreatened(pos, color)) {
                         result.king -= this.hasThreat(pos, color) ? 0.25 : 0.5;
                     }
                     else if (pieceColor == null)
@@ -739,6 +741,9 @@ class Board {
             let pin = 0;
             {
                 // reverse threats are already computed prepareCurrentTurn
+                const threats = (color == "w" ? this.wThreats : this.bThreats);
+                for (let i = 0; i <= 7; i++)
+                    threats[i] = 0;
                 for (const piece of pieces.values()) {
                     piece.markThreats(this);
                 }
@@ -756,7 +761,7 @@ class Board {
                     result.pieces[0] += piece.value;
                     if (piece.symbol === 'J')
                         nOwnBishops++;
-                    if (this.isThreated(piece.position, color)) {
+                    if (this.isThreatened(piece.position, color)) {
                         threats -= defended ? piece.value * 0.75 : piece.value;
                     }
                     else if (defended)
@@ -1156,7 +1161,7 @@ class Game extends Board {
             (0, ts_general_1.assertCondition)(!currentKing.moved, "King hasn't been moved");
             (0, ts_general_1.assertNonNullish)(kPos, "king destination hex");
             (0, ts_general_1.assertCondition)(this.hasPiece(kPos) == null, "empty king destination hex");
-            (0, ts_general_1.assertCondition)(!this.isThreated(kPos, currentKing.color), "Not threated king destination hex");
+            (0, ts_general_1.assertCondition)(!this.isThreatened(kPos, currentKing.color), "Not threated king destination hex");
             (0, ts_general_1.assertNonNullish)(rook, "castling rook piece");
             (0, ts_general_1.assertCondition)(cescacs_piece_1.csPieceTypes.isRook(rook), "castling rook");
             (0, ts_general_1.assertCondition)(!rook.moved, "castling rook's not been moved");
@@ -1317,7 +1322,7 @@ class Game extends Board {
             return null;
         else {
             const pos = Game.kingCastlingPosition(currentKing.color, column);
-            if (this.hasPiece(pos) == null && !this.isThreated(pos, currentKing.color))
+            if (this.hasPiece(pos) == null && !this.isThreatened(pos, currentKing.color))
                 return pos;
             else
                 return null;
@@ -1353,7 +1358,7 @@ class Game extends Board {
             const kingCastleMove = (this.turn == 'w' ? Game.whiteKingCastlingMove : Game.blackKingCastlingMove)[column];
             const pos = cescacs_positionHelper_1.PositionHelper.knightJump(currentKing.position, kingCastleMove);
             return [pos,
-                this.hasPiece(pos) != null ? 'occupied' : this.isThreated(pos, currentKing.color) ? 'threated' : ""];
+                this.hasPiece(pos) != null ? 'occupied' : this.isThreatened(pos, currentKing.color) ? 'threated' : ""];
         }
     }
     get castlingStatus() {
@@ -1758,20 +1763,31 @@ class Game extends Board {
         for (const p of this.blackPieces())
             yield p.uncapitalizedSymbolPositionString;
     }
-    *threatedPieceStringPositions() {
+    *threatenedPieceStringPositions() {
         const piecePositionsGenerator = this.turn == 'w' ? this.whitePiecePositions() : this.blackPiecePositions();
         const color = this.turn;
         for (const pos of piecePositionsGenerator) {
-            if (this.isThreated(pos, color))
+            if (this.isThreatened(pos, color))
                 yield cescacs_positionHelper_1.PositionHelper.toString(pos);
         }
     }
-    *ownThreatedPieceStringPositions() {
+    *ownThreatsPieceStringPositions() {
         const piecePositionsGenerator = this.turn == 'w' ? this.blackPiecePositions() : this.whitePiecePositions();
         const color = this.turn;
         for (const pos of piecePositionsGenerator) {
-            if (this.isThreated(pos, color))
+            if (this.hasThreat(pos, color))
                 yield cescacs_positionHelper_1.PositionHelper.toString(pos);
+        }
+        const specialPawnCapture = this.specialPawnCapture;
+        if (specialPawnCapture != null) {
+            if (specialPawnCapture.isScornfulCapturable())
+                yield cescacs_positionHelper_1.PositionHelper.toString(specialPawnCapture.capturablePiece.position);
+            else if (specialPawnCapture.isEnPassantCapturable()) {
+                debugger;
+                const enPassantPos = specialPawnCapture.capturablePiece.position;
+                if (this.isThreatened(enPassantPos, color))
+                    yield cescacs_positionHelper_1.PositionHelper.toString(enPassantPos);
+            }
         }
     }
     pushMove(move) {

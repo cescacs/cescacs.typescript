@@ -32,7 +32,7 @@ export interface IBoard {
     getPiece: (pos: Position) => Nullable<Piece>;
     setThreat: (pos: Position, color: PieceColor) => void;
     hasThreat: (pos: Position, color: PieceColor) => boolean;
-    isThreated: (pos: Position, color: PieceColor) => boolean;
+    isThreatened: (pos: Position, color: PieceColor) => boolean;
     readonly specialPawnCapture: Nullable<IPawnSpecialCaptureStatus>;
 }
 
@@ -318,7 +318,7 @@ export class King extends Piece {
                 if (pos != undefined) {
                     if (this.pin == null || !((this.pin as Direction[]).includes(direction)) || csty.isCheckAttackPos(this.checkPosition, pos)) {
                         const pieceColor: Nullable<PieceColor> = board.hasPiece(pos);
-                        if ((pieceColor == null || pieceColor != this.color) && !board.isThreated(pos, this.color)) yield pos;
+                        if ((pieceColor == null || pieceColor != this.color) && !board.isThreatened(pos, this.color)) yield pos;
                     }
                 }
             }
@@ -327,13 +327,13 @@ export class King extends Piece {
                 if (pos != undefined) {
                     if (this.pin == null || !((this.pin as Direction[]).includes(direction)) || csty.isCheckAttackPos(this.checkPosition, pos)) {
                         const pieceColor: Nullable<PieceColor> = board.hasPiece(pos);
-                        if ((pieceColor == null || pieceColor != this.color) && !board.isThreated(pos, this.color)) yield pos;
+                        if ((pieceColor == null || pieceColor != this.color) && !board.isThreatened(pos, this.color)) yield pos;
                     }
                 }
             }
         } else {
             for (const m of this.attemptMoves(board)) {
-                if (!board.isThreated(m, this.color)) yield m;
+                if (!board.isThreatened(m, this.color)) yield m;
             }
         }
     }

@@ -106,7 +106,6 @@ var csMoves;
             return cescacs_positionHelper_1.PositionHelper.toString(info.prPos) + "=" + cescacs_types_1.csConvert.getPieceKeyName(info.promoted);
         }
         else {
-            debugger;
             throw new TypeError("must be a move notation");
         }
     }

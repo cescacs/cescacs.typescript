@@ -328,7 +328,7 @@ export abstract class Board implements IBoard {
         return ((color == "w" ? this.wThreats : this.bThreats)[posCol] & Board.lineMask(pos[1])) != 0;
     }
 
-    public isThreated(pos: Position, color: PieceColor): boolean {
+    public isThreatened(pos: Position, color: PieceColor): boolean {
         const posCol = (pos[0] + 1) >>> 1;
         return ((color == "w" ? this.bThreats : this.wThreats)[posCol] & Board.lineMask(pos[1])) != 0;
     }
@@ -543,8 +543,10 @@ export abstract class Board implements IBoard {
 
     private prepareTurn(currentKing: King) {
         const color = currentKing.color;
-        const threats = (color == "w" ? this.bThreats : this.wThreats);
-        for (let i = 0; i <= 7; i++) threats[i] = 0;
+        {
+            const threats = (color == "w" ? this.bThreats : this.wThreats);
+            for (let i = 0; i <= 7; i++) threats[i] = 0;
+        }
         {
             const threatingPieces = (color == 'w' ? this.bPieces.values() : this.wPieces.values());
             for (const piece of threatingPieces) piece.markThreats(this);
@@ -682,7 +684,7 @@ export abstract class Board implements IBoard {
             result.space[0] = 0;
             result.space[0] = 0;
         } else {
-            const color = (turn == 'w' ? 'White' : 'Black') as PieceColor;
+            const color = turn;
             if (currentKing.checked) {
                 if (currentKing.isDoubleCheck()) result.king = -15;
                 else if (currentKing.isKnightOrCloseCheck()) result.king = -12;
@@ -693,11 +695,11 @@ export abstract class Board implements IBoard {
             for (const pos of currentKing.attemptMoves(this, true)) {
                 const pieceColor = this.hasPiece(pos);
                 if (currentKing.checked) {
-                    if (this.isThreated(pos, color)) result.king -= 2;
+                    if (this.isThreatened(pos, color)) result.king -= 2;
                     else if (pieceColor == null) result.king += 0.5;
                     else if (pieceColor == color) result.king -= 0.5;
                 } else {
-                    if (this.isThreated(pos, color)) {
+                    if (this.isThreatened(pos, color)) {
                         result.king -= this.hasThreat(pos, color) ? 0.25 : 0.5;
                     }
                     else if (pieceColor == null) result.king -= 0.01;
@@ -722,6 +724,8 @@ export abstract class Board implements IBoard {
             let pin = 0;
             {
                 // reverse threats are already computed prepareCurrentTurn
+                const threats = (color == "w" ? this.wThreats : this.bThreats);
+                for (let i = 0; i <= 7; i++) threats[i] = 0;
                 for (const piece of pieces.values()) { piece.markThreats(this); }
             }
 
@@ -740,7 +744,7 @@ export abstract class Board implements IBoard {
                     const defended = this.hasThreat(piece.position, color);
                     result.pieces[0] += piece.value;
                     if (piece.symbol === 'J') nOwnBishops++;
-                    if (this.isThreated(piece.position, color)) {
+                    if (this.isThreatened(piece.position, color)) {
                         threats -= defended ? piece.value * 0.75 : piece.value;
                     }
                     else if (defended) threats += 1 - piece.value * 0.0625; //=1/16
@@ -1120,7 +1124,7 @@ export class Game extends Board {
             assertCondition(!currentKing.moved, "King hasn't been moved");
             assertNonNullish(kPos, "king destination hex");
             assertCondition(this.hasPiece(kPos) == null, "empty king destination hex");
-            assertCondition(!this.isThreated(kPos, currentKing.color), "Not threated king destination hex");
+            assertCondition(!this.isThreatened(kPos, currentKing.color), "Not threated king destination hex");
             assertNonNullish(rook, "castling rook piece");
             assertCondition(cspty.isRook(rook), "castling rook");
             assertCondition(!rook.moved, "castling rook's not been moved");
@@ -1274,7 +1278,7 @@ export class Game extends Board {
         if (currentKing.moved) return null;
         else {
             const pos: Position = Game.kingCastlingPosition(currentKing.color, column);
-            if (this.hasPiece(pos) == null && !this.isThreated(pos, currentKing.color)) return pos;
+            if (this.hasPiece(pos) == null && !this.isThreatened(pos, currentKing.color)) return pos;
             else return null;
         }
     }
@@ -1308,7 +1312,7 @@ export class Game extends Board {
             const kingCastleMove: KnightDirection = (this.turn == 'w' ? Game.whiteKingCastlingMove : Game.blackKingCastlingMove)[column];
             const pos: Position = PositionHelper.knightJump(currentKing.position!, kingCastleMove)!;
             return [pos,
-                this.hasPiece(pos) != null ? 'occupied' : this.isThreated(pos, currentKing.color) ? 'threated' : ""];
+                this.hasPiece(pos) != null ? 'occupied' : this.isThreatened(pos, currentKing.color) ? 'threated' : ""];
         }
     }
 
@@ -1675,19 +1679,29 @@ export class Game extends Board {
         for (const p of this.blackPieces()) yield p.uncapitalizedSymbolPositionString;
     }
 
-    public * threatedPieceStringPositions() {
+    public * threatenedPieceStringPositions(): Generator<string, void, void> {
         const piecePositionsGenerator = this.turn == 'w' ? this.whitePiecePositions() : this.blackPiecePositions();
         const color = this.turn;
         for (const pos of piecePositionsGenerator) {
-            if (this.isThreated(pos, color)) yield PositionHelper.toString(pos);
+            if (this.isThreatened(pos, color)) yield PositionHelper.toString(pos);
         }
     }
 
-    public * ownThreatedPieceStringPositions() {
+    public * ownThreatsPieceStringPositions(): Generator<string, void, void> {
         const piecePositionsGenerator = this.turn == 'w' ? this.blackPiecePositions() : this.whitePiecePositions();
         const color = this.turn;
         for (const pos of piecePositionsGenerator) {
-            if (this.isThreated(pos, color)) yield PositionHelper.toString(pos);
+            if (this.hasThreat(pos, color)) yield PositionHelper.toString(pos);
+        }
+        const specialPawnCapture = this.specialPawnCapture;
+        if (specialPawnCapture != null) {
+            if (specialPawnCapture.isScornfulCapturable())
+                yield PositionHelper.toString(specialPawnCapture.capturablePiece.position!);
+            else if (specialPawnCapture.isEnPassantCapturable()) {
+                debugger;
+                const enPassantPos = specialPawnCapture.capturablePiece.position!;
+                if (this.isThreatened(enPassantPos, color)) yield PositionHelper.toString(enPassantPos);
+            }
         }
     }
 

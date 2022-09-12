@@ -284,7 +284,7 @@ class King extends Piece {
                 if (pos != undefined) {
                     if (this.pin == null || !(this.pin.includes(direction)) || cescacs_types_1.csTypes.isCheckAttackPos(this.checkPosition, pos)) {
                         const pieceColor = board.hasPiece(pos);
-                        if ((pieceColor == null || pieceColor != this.color) && !board.isThreated(pos, this.color))
+                        if ((pieceColor == null || pieceColor != this.color) && !board.isThreatened(pos, this.color))
                             yield pos;
                     }
                 }
@@ -294,7 +294,7 @@ class King extends Piece {
                 if (pos != undefined) {
                     if (this.pin == null || !(this.pin.includes(direction)) || cescacs_types_1.csTypes.isCheckAttackPos(this.checkPosition, pos)) {
                         const pieceColor = board.hasPiece(pos);
-                        if ((pieceColor == null || pieceColor != this.color) && !board.isThreated(pos, this.color))
+                        if ((pieceColor == null || pieceColor != this.color) && !board.isThreatened(pos, this.color))
                             yield pos;
                     }
                 }
@@ -302,7 +302,7 @@ class King extends Piece {
         }
         else {
             for (const m of this.attemptMoves(board)) {
-                if (!board.isThreated(m, this.color))
+                if (!board.isThreatened(m, this.color))
                     yield m;
             }
         }

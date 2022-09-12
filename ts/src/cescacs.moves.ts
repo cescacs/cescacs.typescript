@@ -144,7 +144,6 @@ export namespace csMoves {
         } else if (csMoves.isPromotionInfo(info)) {
             return PositionHelper.toString(info.prPos) + "=" + cscnv.getPieceKeyName(info.promoted);
         } else {
-            debugger;
             throw new TypeError("must be a move notation");
         }
     }

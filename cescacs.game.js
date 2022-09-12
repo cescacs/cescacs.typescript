@@ -63,7 +63,6 @@ function removeSymbol(hexElement) {
 
 var selecting = false;
 function clickHex(hexElement) {
-    debugger;
     if (!isExecutingAction() && !game.gameEnd) {
         if (clickHex.svg === undefined) {
             clickHex.svg = new Set(); clickHex.item = null;
@@ -98,6 +97,7 @@ function clickHex(hexElement) {
                                 removeSymbol(document.getElementById("HEX" + enPassantPos));
                             }
                             displayMoveStatus();
+                            //TODO: SaveGame()
                         } catch (e) {
                             console.log("doMove: ", e);
                             document.getElementById("gameStatus").innerHTML = (e instanceof Error ? e.message : "");
@@ -165,29 +165,8 @@ function clearClickHex() {
         displayMoveStatus();
     }
 }
-function displayMoveStatus() {
-    let moveText = game.lastMove;
-    if (game.gameEnd) {
-        const buttonResign = document.getElementById("buttonResign");
-        const buttonDraw = document.getElementById("buttonDraw");
-        const buttonCastling = document.getElementById("buttonCastling");
-        const buttonSugestMove = document.getElementById("buttonSugestMove");
-        buttonResign.disabled = true;
-        buttonDraw.disabled = true;
-        buttonCastling.disabled = true;
-        buttonSugestMove.disabled = true;
-        if (moveText == null) moveText = '\xa0';
-    } else {
-        if (moveText == null) moveText = "Ready " + (game.turn == "w" ? "whites" : "blacks");
-        buttonCastling.disabled = game.checked;
-    }
-    document.getElementById("gameStatus").innerHTML = moveText;
-    document.getElementById("resultString").innerHTML = game.resultString ?? '\xa0';
-    displayHeuristic();
-    saveGame(); //ensure to preserve status
-}
 function isExecutingAction() {
-    if (boardTLPDStatus || loadNewGame || endingGameResign || endingGameDraw || showingThreated || showingThreats) return true;
+    if (boardTLPDStatus || loadNewGame || endingGameResign || endingGameDraw || showingThreatened || showingThreats) return true;
     else return document.getElementById("TLPD").style.display != 'none'
         || document.getElementById("castlingContainer").style.display != 'none'
         || document.getElementById("movesPanel").style.display != 'none'
@@ -226,6 +205,7 @@ function confirmPromotion() {
         try {
             game.doPromotePawn(src, dest, pieceSymbol);
             displayMoveStatus();
+            //TODO:SaveGame()
         } catch (e) {
             console.log("doPromotePawn: ", e);
             document.getElementById("gameStatus").innerHTML = (e instanceof Error ? e.message : "");
@@ -254,8 +234,31 @@ function confirmCastling() {
     previewCastling.rq = undefined;
     RestoreButtons();
     displayMoveStatus();
+    //TODO:SaveGame()
 }
 
+function displayMoveStatus() {
+    let moveText = game.lastMove;
+    if (game.gameEnd) {
+        const buttonResign = document.getElementById("buttonResign");
+        const buttonDraw = document.getElementById("buttonDraw");
+        const buttonCastling = document.getElementById("buttonCastling");
+        const buttonSugestMove = document.getElementById("buttonSugestMove");
+        buttonResign.disabled = true;
+        buttonDraw.disabled = true;
+        buttonCastling.disabled = true;
+        buttonSugestMove.disabled = true;
+        if (moveText == null) moveText = '\xa0';
+    } else {
+        if (moveText == null) moveText = "Ready " + (game.turn == "w" ? "whites" : "blacks");
+        buttonCastling.disabled = game.checked;
+    }
+    document.getElementById("gameStatus").innerHTML = moveText;
+    document.getElementById("resultString").innerHTML = game.resultString ?? '\xa0';
+    displayHeuristic();
+    //TODO: Remove SaveGame
+    saveGame(); //ensure to preserve status
+}
 function displayHeuristic() {
     const turn = game.turn;
     const lblHeuristic = document.getElementById(turn == 'w' ? "HeuristicLabel1" : "HeuristicLabel2");
@@ -296,7 +299,6 @@ function restoreGame() {
         movesGrid.innerHTML = "";
         try {
             game.loadTLPD(localStorage.getItem("cescacs"));
-            debugger;
             game.restoreMovesJSON(localStorage.getItem("cescacs-mv"))
             restoreBoard();
             const gend = localStorage.getItem("cescacs-end");
@@ -452,10 +454,12 @@ function ConfirmAction() {
         endingGameResign = false;
         game.resign = true;
         displayMoveStatus();
+        //TODO: SaveGame()
     } else if (endingGameDraw) {
         endingGameDraw = false;
         game.draw = true;
         displayMoveStatus();
+        //TODO: SaveGame()
     }
 }
 function CancelAction() {
@@ -500,46 +504,43 @@ function ShowHeuristic() {
     dialog.showModal();
 }
 
-var showingThreated = false;
+var showingThreatened = false;
 var showingThreats = false;
-function ShowThreated() {
-    if (ShowThreated.svg === undefined) {
-        ShowThreated.svg = new Set();
+function ShowThreatened() {
+    if (ShowThreatened.svg === undefined) {
+        ShowThreatened.svg = new Set();
     }
-    const buttonShowThreated = document.getElementById("buttonShowThreated");
-    if (showingThreated) {
-        for (const e of ShowThreated.svg) {
+    const buttonShowThreatened = document.getElementById("buttonShowThreatened");
+    if (showingThreatened) {
+        for (const e of ShowThreatened.svg) {
             e.classList.remove('highlight');
         }
         RestoreButtons();
-        buttonShowThreated.classList.add('halfbutton');
-        buttonShowThreated.classList.add('w3-black');
-        buttonShowThreated.classList.remove('fullbutton');
-        buttonShowThreated.classList.remove('w3-red');
-        document.getElementById("gameStatus").innerHTML = game.lastMove + '\xa0';
-        showingThreated = false;
+        buttonShowThreatened.classList.add('halfbutton');
+        buttonShowThreatened.classList.add('w3-black');
+        buttonShowThreatened.classList.remove('fullbutton');
+        buttonShowThreatened.classList.remove('w3-red');
+        displayMoveStatus();
+        showingThreatened = false;
     } else {
         clearClickHex();
         let n = 0;
-        for (const s of game.threatedPieceStringPositions()) {
+        for (const s of game.threatenedPieceStringPositions()) {
             const e = document.getElementById("HEX" + s);
             e.classList.add('highlight');
-            ShowThreated.svg.add(e);
+            ShowThreatened.svg.add(e);
             n++;
         }
-        if (n > 0) {
-            HideButtons();
-            const sepInfo = document.getElementById("sepInfo");
-            sepInfo.style.display = 'block';
-            buttonShowThreated.classList.add('w3-red');
-            buttonShowThreated.classList.add("fullbutton");
-            buttonShowThreated.classList.remove('w3-black');
-            buttonShowThreated.classList.remove("halfbutton");
-            buttonShowThreated.style.display = 'block';
-        } else if (!game.gameEnd) {
-            document.getElementById("gameStatus").innerHTML = "No threats";
-        }
-        showingThreated = true;
+        HideButtons();
+        const sepInfo = document.getElementById("sepInfo");
+        sepInfo.style.display = 'block';
+        buttonShowThreatened.classList.add('w3-red');
+        buttonShowThreatened.classList.add("fullbutton");
+        buttonShowThreatened.classList.remove('w3-black');
+        buttonShowThreatened.classList.remove("halfbutton");
+        buttonShowThreatened.style.display = 'block';
+        if (n == 0 && !game.gameEnd) document.getElementById("gameStatus").innerHTML = "None's threatened";
+        showingThreatened = true;
     }
 }
 function ShowThreats() {
@@ -556,30 +557,27 @@ function ShowThreats() {
         buttonShowThreats.classList.add('w3-black');
         buttonShowThreats.classList.remove('fullbutton');
         buttonShowThreats.classList.remove('w3-red');
-        document.getElementById("gameStatus").innerHTML = game.lastMove + '\xa0';
+        displayMoveStatus();
         showingThreats = false;
     } else {
         clearClickHex();
         let n = 0;
         //TODO: add en passant and scornful captures to threats
-        for (const s of game.ownThreatedPieceStringPositions()) {
+        for (const s of game.ownThreatsPieceStringPositions()) {
             const e = document.getElementById("HEX" + s);
             e.classList.add('highlight');
             ShowThreats.svg.add(e);
             n++;
         }
-        if (n > 0) {
-            HideButtons();
-            const sepInfo = document.getElementById("sepInfo");
-            sepInfo.style.display = 'block';
-            buttonShowThreats.classList.add('w3-red');
-            buttonShowThreats.classList.add("fullbutton");
-            buttonShowThreats.classList.remove('w3-black');
-            buttonShowThreats.classList.remove("halfbutton");
-            buttonShowThreats.style.display = 'block';
-        } else if (!game.gameEnd) {
-            document.getElementById("gameStatus").innerHTML = "No threats";
-        }
+        HideButtons();
+        const sepInfo = document.getElementById("sepInfo");
+        sepInfo.style.display = 'block';
+        buttonShowThreats.classList.add('w3-red');
+        buttonShowThreats.classList.add("fullbutton");
+        buttonShowThreats.classList.remove('w3-black');
+        buttonShowThreats.classList.remove("halfbutton");
+        buttonShowThreats.style.display = 'block';
+        if (n == 0 && !game.gameEnd) document.getElementById("gameStatus").innerHTML = "No threats";
         showingThreats = true;
     }
 }
@@ -746,7 +744,7 @@ function ShowMoves() {
         for (const mv of game.moves(n)) {
             const newdiv = document.createElement('div');
             newdiv.innerHTML = cescacs.csmv.fullMoveNotation(mv);
-            if (cescacs.csmv.undoStatusId(mv) != "")  {
+            if (cescacs.csmv.undoStatusId(mv) != "") {
                 newdiv.setAttribute("id", cescacs.csmv.undoStatusId(mv));
                 newdiv.onclick = function () { showId(this, this.getAttribute("id")); }
             }
@@ -964,7 +962,7 @@ function HideButtons() {
     const buttonDraw = document.getElementById("buttonDraw");
     const buttonSugestMove = document.getElementById("buttonSugestMove");
     const buttonHeuristic = document.getElementById("buttonHeuristic");
-    const buttonShowThreated = document.getElementById("buttonShowThreated");
+    const buttonShowThreatened = document.getElementById("buttonShowThreatened");
     const buttonShowThreats = document.getElementById("buttonShowThreats");
     const buttonCastling = document.getElementById("buttonCastling");
     const sepGameStatus = document.getElementById("sepGameStatus");
@@ -982,7 +980,7 @@ function HideButtons() {
     buttonDraw.style.display = "none";
     buttonSugestMove.style.display = "none";
     buttonHeuristic.style.display = "none";
-    buttonShowThreated.style.display = "none";
+    buttonShowThreatened.style.display = "none";
     buttonShowThreats.style.display = "none";
     buttonCastling.style.display = "none";
     sepGameStatus.style.display = "none";
@@ -1003,7 +1001,7 @@ function RestoreButtons() {
     const buttonDraw = document.getElementById("buttonDraw");
     const buttonSugestMove = document.getElementById("buttonSugestMove");
     const buttonHeuristic = document.getElementById("buttonHeuristic");
-    const buttonShowThreated = document.getElementById("buttonShowThreated");
+    const buttonShowThreatened = document.getElementById("buttonShowThreatened");
     const buttonShowThreats = document.getElementById("buttonShowThreats");
     const buttonCastling = document.getElementById("buttonCastling");
     const sepGameStatus = document.getElementById("sepGameStatus");
@@ -1029,7 +1027,7 @@ function RestoreButtons() {
     buttonDraw.style.display = "block";
     buttonSugestMove.style.display = "block";
     buttonHeuristic.style.display = "block";
-    buttonShowThreated.style.display = "block";
+    buttonShowThreatened.style.display = "block";
     buttonShowThreats.style.display = "block";
     buttonCastling.style.display = "block";
     sepGameStatus.style.display = "block";

@@ -102,7 +102,7 @@ class Minimax {
                     piece: piece, pos: pos,
                     check: checkValue, capture: capturedValue + pawnValue,
                     defended: node.hasThreat(pos, color),
-                    threated: node.isThreated(pos, color)
+                    threated: node.isThreatened(pos, color)
                 });
             }
         }
