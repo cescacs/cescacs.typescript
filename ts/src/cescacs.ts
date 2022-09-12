@@ -266,7 +266,7 @@ export abstract class Board implements IBoard {
     protected createPiece(pieceName: PieceName, color: PieceColor, column: Column, line: Line): Piece {
         let piece: Piece;
         switch (pieceName) {
-            //TODO: King creation exception
+            //TODO: correct King creation exception?
             case "K": throw new Error("King must be created before setting it on the board");
             case "D": piece = new Queen(color, column, line); break;
             case "V": piece = new Wyvern(color, column, line); break;
@@ -1196,7 +1196,7 @@ export class Game extends Board {
     //#region CASTLING
 
     public * castlingMoves(color: PieceColor, kingFinalPos: Position) {
-        //TODO castlingMoves without string (useful to generate moves)
+        //TODO castlingMoves without string (useful to generate moves for minimax)
     }
 
     public * castlingStrMoves(color: PieceColor, kingFinalPos: Position): Generator<CastlingString | GrandCastlingString, void, void> {
@@ -1698,7 +1698,6 @@ export class Game extends Board {
             if (specialPawnCapture.isScornfulCapturable())
                 yield PositionHelper.toString(specialPawnCapture.capturablePiece.position!);
             else if (specialPawnCapture.isEnPassantCapturable()) {
-                debugger;
                 const enPassantPos = specialPawnCapture.capturablePiece.position!;
                 if (this.isThreatened(enPassantPos, color)) yield PositionHelper.toString(enPassantPos);
             }

@@ -205,7 +205,7 @@ function confirmPromotion() {
         try {
             game.doPromotePawn(src, dest, pieceSymbol);
             displayMoveStatus();
-            //TODO:SaveGame()
+            //TODO: SaveGame()
         } catch (e) {
             console.log("doPromotePawn: ", e);
             document.getElementById("gameStatus").innerHTML = (e instanceof Error ? e.message : "");
@@ -234,7 +234,7 @@ function confirmCastling() {
     previewCastling.rq = undefined;
     RestoreButtons();
     displayMoveStatus();
-    //TODO:SaveGame()
+    //TODO: SaveGame()
 }
 
 function displayMoveStatus() {
@@ -562,7 +562,6 @@ function ShowThreats() {
     } else {
         clearClickHex();
         let n = 0;
-        //TODO: add en passant and scornful captures to threats
         for (const s of game.ownThreatsPieceStringPositions()) {
             const e = document.getElementById("HEX" + s);
             e.classList.add('highlight');

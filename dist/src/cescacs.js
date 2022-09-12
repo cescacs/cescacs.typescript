@@ -248,7 +248,7 @@ class Board {
     createPiece(pieceName, color, column, line) {
         let piece;
         switch (pieceName) {
-            //TODO: King creation exception
+            //TODO: correct King creation exception?
             case "K": throw new Error("King must be created before setting it on the board");
             case "D":
                 piece = new cescacs_piece_2.Queen(color, column, line);
@@ -1240,7 +1240,7 @@ class Game extends Board {
     }
     //#region CASTLING
     *castlingMoves(color, kingFinalPos) {
-        //TODO castlingMoves without string (useful to generate moves)
+        //TODO castlingMoves without string (useful to generate moves for minimax)
     }
     *castlingStrMoves(color, kingFinalPos) {
         const qRookPos = cescacs_positionHelper_1.PositionHelper.initialQueenSideRookPosition(color, this.isGrand);
@@ -1783,7 +1783,6 @@ class Game extends Board {
             if (specialPawnCapture.isScornfulCapturable())
                 yield cescacs_positionHelper_1.PositionHelper.toString(specialPawnCapture.capturablePiece.position);
             else if (specialPawnCapture.isEnPassantCapturable()) {
-                debugger;
                 const enPassantPos = specialPawnCapture.capturablePiece.position;
                 if (this.isThreatened(enPassantPos, color))
                     yield cescacs_positionHelper_1.PositionHelper.toString(enPassantPos);
