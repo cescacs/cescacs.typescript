@@ -10,6 +10,7 @@ import type {
 import { csTypes as csty, csConvert as cscnv, SingleCheck } from "./cescacs.types";
 import { PositionHelper } from "./cescacs.positionHelper";
 import { assertCondition, assertNonNullish } from "./ts.general";
+import { cspty } from "./cescacs";
 
 export interface IPawnSpecialCaptureStatus {
     isScornfulCapturable(): this is IScornfulCapturable;
@@ -930,7 +931,16 @@ export class Elephant extends Piece {
                             const pieceColor2 = board.hasPiece(p2);
                             if (pieceColor2 == null || defend || pieceColor2 != this.color) yield p2;
                         }
-                    } else if (defend || pieceColor != this.color) yield p;
+                    } else if (pieceColor != this.color) {
+                        yield p;
+                        if (defend /*hack:It's the only case its needed*/) {
+                            const thp = board.getPiece(p)!;
+                            if (cspty.isKing(thp)) {
+                                const p2 = PositionHelper.orthogonalStep(p, this.ownOrthogonalDirection);
+                                if (p2 != null && board.hasPiece(p2) == null) yield p2;
+                            }
+                        }
+                    } else if (defend) yield p;
                 }
             }
             for (const d of ["LineUp", "LineInvUp", "LineDown", "LineInvDown"] as const) {
@@ -969,7 +979,7 @@ export class Almogaver extends Piece {
         this.key = color + this.symbol + column + line;
     }
 
-    public * moves(board: IBoard, onlyCaptures: boolean = false, defends: boolean = false) {
+    public * moves(board: IBoard, onlyCaptures: boolean = false) {
         const piecePos = this.position;
         if (piecePos != null) {
             const pin = this.pin;
@@ -977,7 +987,7 @@ export class Almogaver extends Piece {
                 for (const direction of cscnv.orthogonalDirections()) {
                     if (pin == null || (pin as Direction[]).includes(direction)) {
                         const pos = PositionHelper.orthogonalStep(piecePos, direction);
-                        if (pos != undefined && board.hasPiece(pos) == null) {
+                        if (pos != null && board.hasPiece(pos) == null) {
                             const pos2 = PositionHelper.orthogonalStep(pos, direction);
                             if (pos2 != undefined && board.hasPiece(pos2) == null) yield pos2;
                         }
@@ -986,11 +996,13 @@ export class Almogaver extends Piece {
             }
             for (const direction of cscnv.diagonalDirections()) {
                 if (pin == null || (pin as Direction[]).includes(direction)) {
-                    const pos = PositionHelper.diagonalStep(piecePos, direction);
-                    if (pos != undefined) {
-                        const pieceColor: Nullable<PieceColor> = board.hasPiece(pos);
-                        if (pieceColor != null) {
-                            if (pieceColor !== this.color || defends) yield pos;
+                    const p = PositionHelper.diagonalStep(piecePos, direction);
+                    if (p != null) {
+                        const pieceColor: Nullable<PieceColor> = board.hasPiece(p);
+                        if (pieceColor != null) { if (pieceColor !== this.color) yield p; }
+                        else {
+                            const specialCapture = board.specialPawnCapture;
+                            if (specialCapture != null && specialCapture.isEnPassantCapturable() && specialCapture.isEnPassantCapture(p)) yield p;
                         }
                     }
                 }
@@ -999,12 +1011,19 @@ export class Almogaver extends Piece {
     }
 
     public canCaptureOn(board: IBoard, p: Position): boolean {
-        return PositionHelper.positionIteratorIncludes(this.moves(board, true, false), p);
+        return PositionHelper.positionIteratorIncludes(this.moves(board, true), p);
     }
 
     public markThreats(board: IBoard): void {
-        for (const p of this.moves(board, true, true)) {
-            board.setThreat(p, this.color);
+        const pawnPos = this.position;
+        if (pawnPos != null) {
+            const pin = this.pin;
+            for (const direction of cscnv.diagonalDirections()) {
+                if (pin == null || (pin as Direction[]).includes(direction)) {
+                    const p = PositionHelper.diagonalStep(pawnPos, direction);
+                    if (p != null) board.setThreat(p, this.color);
+                }
+            }
         }
     }
 
@@ -1022,7 +1041,7 @@ export class Pawn extends Piece {
         this.key = color + this.symbol + column + line;
     }
 
-    public * moves(board: IBoard, onlyCaptures: boolean = false, defend: boolean = false) {
+    public * moves(board: IBoard, onlyCaptures: boolean = false) {
         const pawnPos = this.position;
         if (pawnPos != null) {
             const pin = this.pin;
@@ -1064,35 +1083,28 @@ export class Pawn extends Piece {
                     const p = PositionHelper.diagonalStep(pawnPos, d);
                     if (p != null) {
                         const pieceColor = board.hasPiece(p);
-                        if (pieceColor != null) {
-                            if (defend || pieceColor != this.color) yield p;
-                        } else if (specialCapture != null && specialCapture.isEnPassantCapturable() && specialCapture.isEnPassantCapture(p)) yield p;
+                        if (pieceColor != null) { if (pieceColor != this.color) yield p; }
+                        else if (specialCapture != null && specialCapture.isEnPassantCapturable() && specialCapture.isEnPassantCapture(p)) yield p;
                     }
                 }
             }
         }
     }
 
-    public promoteTo(piece: Piece) {
-        assertNonNullish(this.position, "Pawn to promote is not captured");
-        assertCondition(PositionHelper.isPromotionHex(this.position, this.color), `Promotion hex ${PositionHelper.toString(this.position)}`);
-        piece.setPositionTo(this.position!);
-        this.captured();
-    }
-
-    public get awaitingPromotion(): Nullable<HexColor> {
-        if (this.position != null)
-            return PositionHelper.isPromotionHex(this.position, this.color) ? PositionHelper.lineHexColor(this.position[1]) : null;
-        else return null;
-    }
-
     public canCaptureOn(board: IBoard, p: Position): boolean {
-        return PositionHelper.positionIteratorIncludes(this.moves(board, true, false), p);
+        return PositionHelper.positionIteratorIncludes(this.moves(board, true), p);
     }
 
     public markThreats(board: IBoard): void {
-        for (const p of this.moves(board, true, true)) {
-            board.setThreat(p, this.color);
+        const pawnPos = this.position;
+        if (pawnPos != null) {
+            const pin = this.pin;
+            for (const d of this.ownCaptureDirections) {
+                if (pin == null || (pin as Direction[]).includes(d)) {
+                    const p = PositionHelper.diagonalStep(pawnPos, d);
+                    if (p != null) board.setThreat(p, this.color);
+                }
+            }
         }
     }
 
@@ -1111,6 +1123,19 @@ export class Pawn extends Piece {
             }
             else return false;
         } else return false;
+    }
+
+    public promoteTo(piece: Piece) {
+        assertNonNullish(this.position, "Pawn to promote is not captured");
+        assertCondition(PositionHelper.isPromotionHex(this.position, this.color), `Promotion hex ${PositionHelper.toString(this.position)}`);
+        piece.setPositionTo(this.position!);
+        this.captured();
+    }
+
+    public get awaitingPromotion(): Nullable<HexColor> {
+        if (this.position != null)
+            return PositionHelper.isPromotionHex(this.position, this.color) ? PositionHelper.lineHexColor(this.position[1]) : null;
+        else return null;
     }
 
     private get ownOrthogonalStraightDirection(): OrthogonalDirection {

@@ -63,6 +63,7 @@ function removeSymbol(hexElement) {
 
 var selecting = false;
 function clickHex(hexElement) {
+    debugger;
     if (!isExecutingAction() && !game.gameEnd) {
         if (clickHex.svg === undefined) {
             clickHex.svg = new Set(); clickHex.item = null;
@@ -638,15 +639,15 @@ function Castling() {
 
 function previewCastling(value) {
     const currentColor = game.turn;
-    const kingSymbol = game.turn == 'w' ? 'K' : 'k';
-    const rookSymbol = game.turn == 'w' ? 'R' : 'r';
+    const kingSymbol = currentColor == 'w' ? 'K' : 'k';
+    const rookSymbol = currentColor == 'w' ? 'R' : 'r';
     const confirmCastlingButton = document.getElementById("confirmCastling");
     if (value === undefined) {
         previewCastling.move = undefined;
         confirmCastlingButton.disabled = true;
         if (previewCastling.k !== undefined) {
             removeSymbol(document.getElementById("HEX" + previewCastling.k));
-            const kPos = cescacs.PositionHelper.toString(game.turn == "w" ?
+            const kPos = cescacs.PositionHelper.toString(currentColor == "w" ?
                 cescacs.PositionHelper.whiteKingInitPosition
                 : cescacs.PositionHelper.blackKingInitPosition);
             placeSymbol(kPos, kingSymbol);
@@ -668,7 +669,7 @@ function previewCastling(value) {
         previewCastling.move = value;
         confirmCastlingButton.disabled = false;
         if (previewCastling.k === undefined) {
-            previewCastling.k = cescacs.PositionHelper.toString(game.turn == "w" ?
+            previewCastling.k = cescacs.PositionHelper.toString(currentColor == "w" ?
                 cescacs.PositionHelper.whiteKingInitPosition
                 : cescacs.PositionHelper.blackKingInitPosition);
             const krpos = cescacs.PositionHelper.initialKingSideRookPosition(currentColor, game.isGrand);

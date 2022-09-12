@@ -148,16 +148,18 @@ export class EnPassantCapturable extends PawnSpecialCaptureStatus implements IEn
     }
 
     public isEnPassantCapture(pos: Position): boolean
-    public isEnPassantCapture(pos: Position, capturerPawn: Pawn): boolean
-    public isEnPassantCapture(pos: Position, capturerPawn?: Pawn): boolean {
+    public isEnPassantCapture(pos: Position, capturerPawn: Pawn | Almogaver): boolean
+    public isEnPassantCapture(pos: Position, capturerPawn?: Pawn | Almogaver): boolean {
         const isEnPassantCapturePos = this._captureTo.some(x => PositionHelper.equals(x, pos));
         if (capturerPawn == null) return isEnPassantCapturePos;
         else if (isEnPassantCapturePos && capturerPawn.position != null) {
             const capturerPos = capturerPawn.position;
-            if (Math.abs(pos[0] - capturerPos[0]) == 1) {
-                if (capturerPawn.color == 'w') return pos[1] - capturerPos[1] == 3;
-                else return capturerPos[1] - pos[1] == 3;
-            } else return false;
+            if (cspty.isPawn(capturerPawn)) {
+                if (Math.abs(pos[0] - capturerPos[0]) == 1) {
+                    if (capturerPawn.color == 'w') return pos[1] - capturerPos[1] == 3;
+                    else return capturerPos[1] - pos[1] == 3;
+                } else return false;
+            } else return PositionHelper.isDiagonally(pos, capturerPos) != null;
         } else return false;
     }
 
@@ -583,9 +585,13 @@ export abstract class Board implements IBoard {
         this.pieces.clear();
         this.wPieces.clear();
         this.bPieces.clear();
+        if (this.wKing.position != null) this.wKing.captured();
+        if (this.bKing.position != null) this.bKing.captured();
         this._regainablePieces.length = 0;
         this._specialPawnCapture = null;
         this._turn = turn;
+        this.pieces.set(this.wKing.key, this.wKing);
+        this.pieces.set(this.bKing.key, this.bKing);
     }
 
     protected computeHeuristic(turn: Turn, moveCount: number, anyMove: boolean, result: Heuristic) {
@@ -924,8 +930,6 @@ export class Game extends Board {
         const turn: Turn = restoreStatus?.[1] != null && (restoreStatus[1] == 'w' || restoreStatus[1] == 'b') ? restoreStatus[1] as Turn : 'w';
         super(grand, turn);
         if (restoreStatusTLPD === undefined) {
-            this.wKing.setToInitialPosition(); this.addPiece(this.wKing);
-            this.bKing.setToInitialPosition(); this.addPiece(this.bKing);
             this.fillDefaultPositions();
             this.halfmoveClock = 0;
             this.moveNumber = 1;
@@ -1033,7 +1037,7 @@ export class Game extends Board {
                 move.captured = capturedPiece.key;
                 move.special = isScornfulCapture ? moveTo : undefined;
                 this._enpassantCaptureCoordString = null;
-            } else if (cspty.isPawn(piece) && this.specialPawnCapture != null
+            } else if (this.specialPawnCapture != null && (cspty.isPawn(piece) || cspty.isAlmogaver(piece))
                 && this.specialPawnCapture.isEnPassantCapturable()
                 && this.specialPawnCapture.isEnPassantCapture(moveTo, piece)) {
                 const enPassantCapture = this.specialPawnCapture.capturablePiece;
@@ -1457,8 +1461,6 @@ export class Game extends Board {
         const wPiece: Piece[] = [];
         const bPiece: Piece[] = [];
         const piecePos: string[] = positions.split("/");
-        this.wKing.captured();
-        this.bKing.captured();
         for (let lineContent of piecePos) {
             if (lineContent.length > 0) {
                 if (!lineContent.startsWith(':') && !lineContent.endsWith(':') && (lineContent.match(/:/g) || []).length == 1) {
@@ -1733,7 +1735,6 @@ export class Game extends Board {
     }
 
     private applyMove(move: MoveInfo, turn: Turn) {
-        debugger;
         if (csmv.isCastlingInfo(move)) this.applyCastling(move, turn);
         else {
             const piece = this.pieceByKey(move.piece);
@@ -1808,6 +1809,8 @@ export class Game extends Board {
     }
 
     private fillDefaultPositions(): void {
+        this.wKing.setToInitialPosition(); this.addPiece(this.wKing);
+        this.bKing.setToInitialPosition(); this.addPiece(this.bKing);
         //whites
         super.createPiece('D', 'w', 'E', 1); super.createPiece('V', "w", 'F', 0);
         super.createPiece('G', "w", 'D', 2); super.createPiece('J', "w", 'F', 2); super.createPiece('G', "w", 'H', 2);

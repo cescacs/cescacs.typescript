@@ -15,6 +15,11 @@
 //BLACK
 /27:1k/25:r2r/3:R2R/5:4P1/1:1K/ b RKRrkr - 0 1
 
+//TROUP
+/27:1k/23:ppeepp/5:PPEEPP/1:1K/ w RKRrkr - 0 1
+/27:1k/23:ppeemm/5:PPEEPP/1:1K/ w RKRrkr - 0 1
+
+
 //BLACK MOVES
 /28:v/27:dk/26:gjg/25:rnnr/24:pejep/23:pp1epp/22:2pjp2/21:4p3/20:3p3/19:3e4/15:3p4/13:3P4/10:2P4/9:3E4/8:3P3/7:4P3/6:3JP2/5:PP1EPP/4:PEJEP/3:RNNR/2:GJG/1:DK/0:V/ b RKRrkr D10@8 0 3
 

@@ -122,14 +122,18 @@ class EnPassantCapturable extends PawnSpecialCaptureStatus {
             return isEnPassantCapturePos;
         else if (isEnPassantCapturePos && capturerPawn.position != null) {
             const capturerPos = capturerPawn.position;
-            if (Math.abs(pos[0] - capturerPos[0]) == 1) {
-                if (capturerPawn.color == 'w')
-                    return pos[1] - capturerPos[1] == 3;
+            if (cescacs_piece_1.csPieceTypes.isPawn(capturerPawn)) {
+                if (Math.abs(pos[0] - capturerPos[0]) == 1) {
+                    if (capturerPawn.color == 'w')
+                        return pos[1] - capturerPos[1] == 3;
+                    else
+                        return capturerPos[1] - pos[1] == 3;
+                }
                 else
-                    return capturerPos[1] - pos[1] == 3;
+                    return false;
             }
             else
-                return false;
+                return cescacs_positionHelper_1.PositionHelper.isDiagonally(pos, capturerPos) != null;
         }
         else
             return false;
@@ -579,9 +583,15 @@ class Board {
         this.pieces.clear();
         this.wPieces.clear();
         this.bPieces.clear();
+        if (this.wKing.position != null)
+            this.wKing.captured();
+        if (this.bKing.position != null)
+            this.bKing.captured();
         this._regainablePieces.length = 0;
         this._specialPawnCapture = null;
         this._turn = turn;
+        this.pieces.set(this.wKing.key, this.wKing);
+        this.pieces.set(this.bKing.key, this.bKing);
     }
     computeHeuristic(turn, moveCount, anyMove, result) {
         const countBitset = function (value) {
@@ -897,10 +907,6 @@ class Game extends Board {
         this._resigned = false;
         this._enpassantCaptureCoordString = null;
         if (restoreStatusTLPD === undefined) {
-            this.wKing.setToInitialPosition();
-            this.addPiece(this.wKing);
-            this.bKing.setToInitialPosition();
-            this.addPiece(this.bKing);
             this.fillDefaultPositions();
             this.halfmoveClock = 0;
             this.moveNumber = 1;
@@ -1063,7 +1069,7 @@ class Game extends Board {
                 move.special = isScornfulCapture ? moveTo : undefined;
                 this._enpassantCaptureCoordString = null;
             }
-            else if (cescacs_piece_1.csPieceTypes.isPawn(piece) && this.specialPawnCapture != null
+            else if (this.specialPawnCapture != null && (cescacs_piece_1.csPieceTypes.isPawn(piece) || cescacs_piece_1.csPieceTypes.isAlmogaver(piece))
                 && this.specialPawnCapture.isEnPassantCapturable()
                 && this.specialPawnCapture.isEnPassantCapture(moveTo, piece)) {
                 const enPassantCapture = this.specialPawnCapture.capturablePiece;
@@ -1504,8 +1510,6 @@ class Game extends Board {
         const wPiece = [];
         const bPiece = [];
         const piecePos = positions.split("/");
-        this.wKing.captured();
-        this.bKing.captured();
         for (let lineContent of piecePos) {
             if (lineContent.length > 0) {
                 if (!lineContent.startsWith(':') && !lineContent.endsWith(':') && (lineContent.match(/:/g) || []).length == 1) {
@@ -1828,7 +1832,6 @@ class Game extends Board {
         super.computeHeuristic(this.turn, this.moveNumber, anyMove, this.currentHeuristic);
     }
     applyMove(move, turn) {
-        debugger;
         if (cescacs_moves_1.csMoves.isCastlingInfo(move))
             this.applyCastling(move, turn);
         else {
@@ -1904,6 +1907,10 @@ class Game extends Board {
         }
     }
     fillDefaultPositions() {
+        this.wKing.setToInitialPosition();
+        this.addPiece(this.wKing);
+        this.bKing.setToInitialPosition();
+        this.addPiece(this.bKing);
         //whites
         super.createPiece('D', 'w', 'E', 1);
         super.createPiece('V', "w", 'F', 0);

@@ -4,6 +4,7 @@ exports.csPieceTypes = exports.Pawn = exports.Almogaver = exports.Elephant = exp
 const cescacs_types_1 = require("./cescacs.types");
 const cescacs_positionHelper_1 = require("./cescacs.positionHelper");
 const ts_general_1 = require("./ts.general");
+const cescacs_1 = require("./cescacs");
 class Piece {
     constructor(color) {
         this.color = color;
@@ -866,7 +867,18 @@ class Elephant extends Piece {
                                 yield p2;
                         }
                     }
-                    else if (defend || pieceColor != this.color)
+                    else if (pieceColor != this.color) {
+                        yield p;
+                        if (defend /*hack:It's the only case its needed*/) {
+                            const thp = board.getPiece(p);
+                            if (cescacs_1.cspty.isKing(thp)) {
+                                const p2 = cescacs_positionHelper_1.PositionHelper.orthogonalStep(p, this.ownOrthogonalDirection);
+                                if (p2 != null && board.hasPiece(p2) == null)
+                                    yield p2;
+                            }
+                        }
+                    }
+                    else if (defend)
                         yield p;
                 }
             }
@@ -901,7 +913,7 @@ class Almogaver extends Piece {
         super.setPositionTo(cescacs_positionHelper_1.PositionHelper.fromBoardPosition(column, line, true));
         this.key = color + this.symbol + column + line;
     }
-    *moves(board, onlyCaptures = false, defends = false) {
+    *moves(board, onlyCaptures = false) {
         const piecePos = this.position;
         if (piecePos != null) {
             const pin = this.pin;
@@ -909,7 +921,7 @@ class Almogaver extends Piece {
                 for (const direction of cescacs_types_1.csConvert.orthogonalDirections()) {
                     if (pin == null || pin.includes(direction)) {
                         const pos = cescacs_positionHelper_1.PositionHelper.orthogonalStep(piecePos, direction);
-                        if (pos != undefined && board.hasPiece(pos) == null) {
+                        if (pos != null && board.hasPiece(pos) == null) {
                             const pos2 = cescacs_positionHelper_1.PositionHelper.orthogonalStep(pos, direction);
                             if (pos2 != undefined && board.hasPiece(pos2) == null)
                                 yield pos2;
@@ -919,12 +931,17 @@ class Almogaver extends Piece {
             }
             for (const direction of cescacs_types_1.csConvert.diagonalDirections()) {
                 if (pin == null || pin.includes(direction)) {
-                    const pos = cescacs_positionHelper_1.PositionHelper.diagonalStep(piecePos, direction);
-                    if (pos != undefined) {
-                        const pieceColor = board.hasPiece(pos);
+                    const p = cescacs_positionHelper_1.PositionHelper.diagonalStep(piecePos, direction);
+                    if (p != null) {
+                        const pieceColor = board.hasPiece(p);
                         if (pieceColor != null) {
-                            if (pieceColor !== this.color || defends)
-                                yield pos;
+                            if (pieceColor !== this.color)
+                                yield p;
+                        }
+                        else {
+                            const specialCapture = board.specialPawnCapture;
+                            if (specialCapture != null && specialCapture.isEnPassantCapturable() && specialCapture.isEnPassantCapture(p))
+                                yield p;
                         }
                     }
                 }
@@ -932,11 +949,19 @@ class Almogaver extends Piece {
         }
     }
     canCaptureOn(board, p) {
-        return cescacs_positionHelper_1.PositionHelper.positionIteratorIncludes(this.moves(board, true, false), p);
+        return cescacs_positionHelper_1.PositionHelper.positionIteratorIncludes(this.moves(board, true), p);
     }
     markThreats(board) {
-        for (const p of this.moves(board, true, true)) {
-            board.setThreat(p, this.color);
+        const pawnPos = this.position;
+        if (pawnPos != null) {
+            const pin = this.pin;
+            for (const direction of cescacs_types_1.csConvert.diagonalDirections()) {
+                if (pin == null || pin.includes(direction)) {
+                    const p = cescacs_positionHelper_1.PositionHelper.diagonalStep(pawnPos, direction);
+                    if (p != null)
+                        board.setThreat(p, this.color);
+                }
+            }
         }
     }
 }
@@ -950,7 +975,7 @@ class Pawn extends Piece {
         super.setPositionTo(cescacs_positionHelper_1.PositionHelper.fromBoardPosition(column, line, true));
         this.key = color + this.symbol + column + line;
     }
-    *moves(board, onlyCaptures = false, defend = false) {
+    *moves(board, onlyCaptures = false) {
         const pawnPos = this.position;
         if (pawnPos != null) {
             const pin = this.pin;
@@ -995,7 +1020,7 @@ class Pawn extends Piece {
                     if (p != null) {
                         const pieceColor = board.hasPiece(p);
                         if (pieceColor != null) {
-                            if (defend || pieceColor != this.color)
+                            if (pieceColor != this.color)
                                 yield p;
                         }
                         else if (specialCapture != null && specialCapture.isEnPassantCapturable() && specialCapture.isEnPassantCapture(p))
@@ -1005,24 +1030,20 @@ class Pawn extends Piece {
             }
         }
     }
-    promoteTo(piece) {
-        (0, ts_general_1.assertNonNullish)(this.position, "Pawn to promote is not captured");
-        (0, ts_general_1.assertCondition)(cescacs_positionHelper_1.PositionHelper.isPromotionHex(this.position, this.color), `Promotion hex ${cescacs_positionHelper_1.PositionHelper.toString(this.position)}`);
-        piece.setPositionTo(this.position);
-        this.captured();
-    }
-    get awaitingPromotion() {
-        if (this.position != null)
-            return cescacs_positionHelper_1.PositionHelper.isPromotionHex(this.position, this.color) ? cescacs_positionHelper_1.PositionHelper.lineHexColor(this.position[1]) : null;
-        else
-            return null;
-    }
     canCaptureOn(board, p) {
-        return cescacs_positionHelper_1.PositionHelper.positionIteratorIncludes(this.moves(board, true, false), p);
+        return cescacs_positionHelper_1.PositionHelper.positionIteratorIncludes(this.moves(board, true), p);
     }
     markThreats(board) {
-        for (const p of this.moves(board, true, true)) {
-            board.setThreat(p, this.color);
+        const pawnPos = this.position;
+        if (pawnPos != null) {
+            const pin = this.pin;
+            for (const d of this.ownCaptureDirections) {
+                if (pin == null || pin.includes(d)) {
+                    const p = cescacs_positionHelper_1.PositionHelper.diagonalStep(pawnPos, d);
+                    if (p != null)
+                        board.setThreat(p, this.color);
+                }
+            }
         }
     }
     hasTripleStep(grand) {
@@ -1048,6 +1069,18 @@ class Pawn extends Piece {
         }
         else
             return false;
+    }
+    promoteTo(piece) {
+        (0, ts_general_1.assertNonNullish)(this.position, "Pawn to promote is not captured");
+        (0, ts_general_1.assertCondition)(cescacs_positionHelper_1.PositionHelper.isPromotionHex(this.position, this.color), `Promotion hex ${cescacs_positionHelper_1.PositionHelper.toString(this.position)}`);
+        piece.setPositionTo(this.position);
+        this.captured();
+    }
+    get awaitingPromotion() {
+        if (this.position != null)
+            return cescacs_positionHelper_1.PositionHelper.isPromotionHex(this.position, this.color) ? cescacs_positionHelper_1.PositionHelper.lineHexColor(this.position[1]) : null;
+        else
+            return null;
     }
     get ownOrthogonalStraightDirection() {
         return this.color === 'w' ? "ColumnUp" : "ColumnDown";
