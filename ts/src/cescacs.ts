@@ -425,15 +425,15 @@ export abstract class Board implements IBoard {
         const fromPosLineMask = Board.lineMask(piecePos[1]);
         const pieces = (piece.color == "w" ? this.wPieces : this.bPieces);
         if (cspty.isPawn(piece)) {
-            let scornedPawn: Nullable<Pawn> = null;
-            let multipleStep: Nullable<Position[]> = null;
             if (piece.position[0] != toColumnIndex) {
                 const frontPiece = this.getPiece(
                     [piece.position[0],
                     (toLine > piece.position[1] ? piece.position[1] + 2 : piece.position[1] - 2) as Line]);
-                if (frontPiece != null && cspty.isPawn(frontPiece)) scornedPawn = frontPiece;
+                this._specialPawnCapture = (frontPiece != null && cspty.isPawn(frontPiece)) ?
+                    new ScornfulCapturable(piece as Pawn, frontPiece.position!)
+                    : null;
             } else if (Math.abs(toLine - piece.position[1]) > 2) {
-                multipleStep = [];
+                const multipleStep: Position[] = [];
                 if (toLine > piece.position[1]) {
                     multipleStep.push([toColumnIndex, (piece.position[1] + 2) as Line]);
                     if (toLine > piece.position[1] + 4) {
@@ -445,11 +445,7 @@ export abstract class Board implements IBoard {
                         multipleStep.push([toColumnIndex, (piece.position[1] - 4) as Line]);
                     }
                 }
-            }
-            if (scornedPawn != null) {
-                this._specialPawnCapture = new ScornfulCapturable(piece as Pawn, scornedPawn.position!);
-            } else if (multipleStep != null) {
-                this._specialPawnCapture = new EnPassantCapturable(piece as Pawn, multipleStep);
+                this._specialPawnCapture = new EnPassantCapturable(piece, multipleStep);
             } else {
                 this._specialPawnCapture = null;
             }
@@ -457,6 +453,37 @@ export abstract class Board implements IBoard {
                 if (piece.color == 'w') this._wAwaitingPromotion = true;
                 else this._bAwaitingPromotion = true;
             }
+        } else if (cspty.isAlmogaver(piece)) {
+                const dirMove = PositionHelper.isOrthogonally(piecePos, [toColumnIndex, toLine]);
+                if (dirMove != null) {
+                    debugger;
+                    const multipleStep: Position[] = [];
+                    switch (dirMove) {
+                        case "ColumnUp":
+                            multipleStep.push([piecePos[0], piecePos[1] + 2 as Line]);
+                            break;
+                        case "ColumnDown":
+                            multipleStep.push([piecePos[0], piecePos[1] - 2 as Line]);
+                            break;
+                        case "FileUp":
+                            multipleStep.push([piecePos[0] + 1 as ColumnIndex, piecePos[1] + 1 as Line]);
+                            break;
+                        case "FileDown":
+                            multipleStep.push([piecePos[0] + 1 as ColumnIndex, piecePos[1] - 1 as Line]);
+                            break;
+                        case "FileInvUp":
+                            multipleStep.push([piecePos[0] - 1 as ColumnIndex, piecePos[1] + 1 as Line]);
+                            break;
+                        case "FileInvDown":
+                            multipleStep.push([piecePos[0] - 1 as ColumnIndex, piecePos[1] - 1 as Line]);
+                            break;
+                        default: {
+                            const exhaustiveCheck: never = dirMove;
+                            throw new Error(exhaustiveCheck);
+                        }
+                    }
+                    this._specialPawnCapture = new EnPassantCapturable(piece, multipleStep);
+                }
         } else {
             this._specialPawnCapture = null;
         }
@@ -1709,7 +1736,7 @@ export class Game extends Board {
             n: this.moveNumber,
             turn: this.turn,
             move: move,
-            fixedNumbering: this.moveNumber == 1 && !this.fixedNumbering? '?' : undefined,
+            fixedNumbering: this.moveNumber == 1 && !this.fixedNumbering ? '?' : undefined,
             initHalfMoveClock: this.halfmoveClock == 0 ? '1' : undefined,
             specialPawnCapture: this.specialPawnCapture == null ? undefined : this.specialPawnCapture.toString(),
             castlingStatus: (csmv.isMoveInfo(move) && ['K', 'R'].indexOf(cscnv.getPieceKeyName(move.piece)) >= 0) ?

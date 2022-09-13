@@ -418,16 +418,15 @@ class Board {
         const fromPosLineMask = Board.lineMask(piecePos[1]);
         const pieces = (piece.color == "w" ? this.wPieces : this.bPieces);
         if (cescacs_piece_1.csPieceTypes.isPawn(piece)) {
-            let scornedPawn = null;
-            let multipleStep = null;
             if (piece.position[0] != toColumnIndex) {
                 const frontPiece = this.getPiece([piece.position[0],
                     (toLine > piece.position[1] ? piece.position[1] + 2 : piece.position[1] - 2)]);
-                if (frontPiece != null && cescacs_piece_1.csPieceTypes.isPawn(frontPiece))
-                    scornedPawn = frontPiece;
+                this._specialPawnCapture = (frontPiece != null && cescacs_piece_1.csPieceTypes.isPawn(frontPiece)) ?
+                    new ScornfulCapturable(piece, frontPiece.position)
+                    : null;
             }
             else if (Math.abs(toLine - piece.position[1]) > 2) {
-                multipleStep = [];
+                const multipleStep = [];
                 if (toLine > piece.position[1]) {
                     multipleStep.push([toColumnIndex, (piece.position[1] + 2)]);
                     if (toLine > piece.position[1] + 4) {
@@ -440,11 +439,6 @@ class Board {
                         multipleStep.push([toColumnIndex, (piece.position[1] - 4)]);
                     }
                 }
-            }
-            if (scornedPawn != null) {
-                this._specialPawnCapture = new ScornfulCapturable(piece, scornedPawn.position);
-            }
-            else if (multipleStep != null) {
                 this._specialPawnCapture = new EnPassantCapturable(piece, multipleStep);
             }
             else {
@@ -455,6 +449,38 @@ class Board {
                     this._wAwaitingPromotion = true;
                 else
                     this._bAwaitingPromotion = true;
+            }
+        }
+        else if (cescacs_piece_1.csPieceTypes.isAlmogaver(piece)) {
+            const dirMove = cescacs_positionHelper_1.PositionHelper.isOrthogonally(piecePos, [toColumnIndex, toLine]);
+            if (dirMove != null) {
+                debugger;
+                const multipleStep = [];
+                switch (dirMove) {
+                    case "ColumnUp":
+                        multipleStep.push([piecePos[0], piecePos[1] + 2]);
+                        break;
+                    case "ColumnDown":
+                        multipleStep.push([piecePos[0], piecePos[1] - 2]);
+                        break;
+                    case "FileUp":
+                        multipleStep.push([piecePos[0] + 1, piecePos[1] + 1]);
+                        break;
+                    case "FileDown":
+                        multipleStep.push([piecePos[0] + 1, piecePos[1] - 1]);
+                        break;
+                    case "FileInvUp":
+                        multipleStep.push([piecePos[0] - 1, piecePos[1] + 1]);
+                        break;
+                    case "FileInvDown":
+                        multipleStep.push([piecePos[0] - 1, piecePos[1] - 1]);
+                        break;
+                    default: {
+                        const exhaustiveCheck = dirMove;
+                        throw new Error(exhaustiveCheck);
+                    }
+                }
+                this._specialPawnCapture = new EnPassantCapturable(piece, multipleStep);
             }
         }
         else {
