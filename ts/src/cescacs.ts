@@ -456,7 +456,6 @@ export abstract class Board implements IBoard {
         } else if (cspty.isAlmogaver(piece)) {
                 const dirMove = PositionHelper.isOrthogonally(piecePos, [toColumnIndex, toLine]);
                 if (dirMove != null) {
-                    debugger;
                     const multipleStep: Position[] = [];
                     switch (dirMove) {
                         case "ColumnUp":

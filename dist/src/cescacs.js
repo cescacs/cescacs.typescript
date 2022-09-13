@@ -453,7 +453,6 @@ class Board {
         else if (cescacs_piece_1.csPieceTypes.isAlmogaver(piece)) {
             const dirMove = cescacs_positionHelper_1.PositionHelper.isOrthogonally(piecePos, [toColumnIndex, toLine]);
             if (dirMove != null) {
-                debugger;
                 const multipleStep = [];
                 switch (dirMove) {
                     case "ColumnUp":
