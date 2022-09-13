@@ -480,6 +480,9 @@ class Board {
                 }
                 this._specialPawnCapture = new EnPassantCapturable(piece, multipleStep);
             }
+            else {
+                this._specialPawnCapture = null;
+            }
         }
         else {
             this._specialPawnCapture = null;
@@ -1829,7 +1832,7 @@ class Game extends Board {
         super.nextTurn();
         if (this.turn === 'w')
             this.moveNumber++;
-        if (cescacs_moves_1.csMoves.isMoveInfo(move) && cescacs_types_1.csConvert.getPieceKeyName(move.piece) == 'P'
+        if (cescacs_moves_1.csMoves.isMoveInfo(move) && ['P', 'M'].includes(cescacs_types_1.csConvert.getPieceKeyName(move.piece))
             || cescacs_moves_1.csMoves.isCaptureInfo(move)
             || cescacs_moves_1.csMoves.isPromotionInfo(move))
             this.halfmoveClock = 0;

@@ -481,6 +481,9 @@ class Board {
                 }
                 this._specialPawnCapture = new EnPassantCapturable(piece, multipleStep);
             }
+            else {
+                this._specialPawnCapture = null;
+            }
         }
         else {
             this._specialPawnCapture = null;
@@ -1830,7 +1833,7 @@ class Game extends Board {
         super.nextTurn();
         if (this.turn === 'w')
             this.moveNumber++;
-        if (cescacs_moves_1.csMoves.isMoveInfo(move) && cescacs_types_1.csConvert.getPieceKeyName(move.piece) == 'P'
+        if (cescacs_moves_1.csMoves.isMoveInfo(move) && ['P', 'M'].includes(cescacs_types_1.csConvert.getPieceKeyName(move.piece))
             || cescacs_moves_1.csMoves.isCaptureInfo(move)
             || cescacs_moves_1.csMoves.isPromotionInfo(move))
             this.halfmoveClock = 0;
@@ -2173,7 +2176,7 @@ var csMoves;
             if (isCaptureInfo(info)) {
                 if (info.special !== undefined) {
                     sep = cescacs_positionHelper_1.PositionHelper.equals(info.moveTo, info.special)
-                        || Math.abs(info.special[1] - info.moveTo[1]) == 2 ? "@" : "@@";
+                        || Math.abs(info.special[1] - info.moveTo[1]) <= 2 ? "@" : "@@";
                 }
                 else {
                     const capSymbol = cescacs_types_1.csConvert.getPieceKeyName(info.captured);
@@ -3131,15 +3134,13 @@ class Almogaver extends Piece {
                     const p = cescacs_positionHelper_1.PositionHelper.diagonalStep(piecePos, direction);
                     if (p != null) {
                         const pieceColor = board.hasPiece(p);
-                        if (pieceColor != null) {
-                            if (pieceColor !== this.color)
-                                yield p;
-                        }
-                        else {
+                        if (pieceColor == null) {
                             const specialCapture = board.specialPawnCapture;
                             if (specialCapture != null && specialCapture.isEnPassantCapturable() && specialCapture.isEnPassantCapture(p))
                                 yield p;
                         }
+                        else if (pieceColor !== this.color)
+                            yield p;
                     }
                 }
             }

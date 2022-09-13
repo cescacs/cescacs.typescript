@@ -999,11 +999,10 @@ export class Almogaver extends Piece {
                     const p = PositionHelper.diagonalStep(piecePos, direction);
                     if (p != null) {
                         const pieceColor: Nullable<PieceColor> = board.hasPiece(p);
-                        if (pieceColor != null) { if (pieceColor !== this.color) yield p; }
-                        else {
+                        if (pieceColor == null) {
                             const specialCapture = board.specialPawnCapture;
                             if (specialCapture != null && specialCapture.isEnPassantCapturable() && specialCapture.isEnPassantCapture(p)) yield p;
-                        }
+                        } else if (pieceColor !== this.color) yield p;
                     }
                 }
             }

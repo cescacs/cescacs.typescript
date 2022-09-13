@@ -91,7 +91,7 @@ var csMoves;
             if (isCaptureInfo(info)) {
                 if (info.special !== undefined) {
                     sep = cescacs_positionHelper_1.PositionHelper.equals(info.moveTo, info.special)
-                        || Math.abs(info.special[1] - info.moveTo[1]) == 2 ? "@" : "@@";
+                        || Math.abs(info.special[1] - info.moveTo[1]) <= 2 ? "@" : "@@";
                 }
                 else {
                     const capSymbol = cescacs_types_1.csConvert.getPieceKeyName(info.captured);

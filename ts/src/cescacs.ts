@@ -454,35 +454,37 @@ export abstract class Board implements IBoard {
                 else this._bAwaitingPromotion = true;
             }
         } else if (cspty.isAlmogaver(piece)) {
-                const dirMove = PositionHelper.isOrthogonally(piecePos, [toColumnIndex, toLine]);
-                if (dirMove != null) {
-                    const multipleStep: Position[] = [];
-                    switch (dirMove) {
-                        case "ColumnUp":
-                            multipleStep.push([piecePos[0], piecePos[1] + 2 as Line]);
-                            break;
-                        case "ColumnDown":
-                            multipleStep.push([piecePos[0], piecePos[1] - 2 as Line]);
-                            break;
-                        case "FileUp":
-                            multipleStep.push([piecePos[0] + 1 as ColumnIndex, piecePos[1] + 1 as Line]);
-                            break;
-                        case "FileDown":
-                            multipleStep.push([piecePos[0] + 1 as ColumnIndex, piecePos[1] - 1 as Line]);
-                            break;
-                        case "FileInvUp":
-                            multipleStep.push([piecePos[0] - 1 as ColumnIndex, piecePos[1] + 1 as Line]);
-                            break;
-                        case "FileInvDown":
-                            multipleStep.push([piecePos[0] - 1 as ColumnIndex, piecePos[1] - 1 as Line]);
-                            break;
-                        default: {
-                            const exhaustiveCheck: never = dirMove;
-                            throw new Error(exhaustiveCheck);
-                        }
+            const dirMove = PositionHelper.isOrthogonally(piecePos, [toColumnIndex, toLine]);
+            if (dirMove != null) {
+                const multipleStep: Position[] = [];
+                switch (dirMove) {
+                    case "ColumnUp":
+                        multipleStep.push([piecePos[0], piecePos[1] + 2 as Line]);
+                        break;
+                    case "ColumnDown":
+                        multipleStep.push([piecePos[0], piecePos[1] - 2 as Line]);
+                        break;
+                    case "FileUp":
+                        multipleStep.push([piecePos[0] + 1 as ColumnIndex, piecePos[1] + 1 as Line]);
+                        break;
+                    case "FileDown":
+                        multipleStep.push([piecePos[0] + 1 as ColumnIndex, piecePos[1] - 1 as Line]);
+                        break;
+                    case "FileInvUp":
+                        multipleStep.push([piecePos[0] - 1 as ColumnIndex, piecePos[1] + 1 as Line]);
+                        break;
+                    case "FileInvDown":
+                        multipleStep.push([piecePos[0] - 1 as ColumnIndex, piecePos[1] - 1 as Line]);
+                        break;
+                    default: {
+                        const exhaustiveCheck: never = dirMove;
+                        throw new Error(exhaustiveCheck);
                     }
-                    this._specialPawnCapture = new EnPassantCapturable(piece, multipleStep);
                 }
+                this._specialPawnCapture = new EnPassantCapturable(piece, multipleStep);
+            } else {
+                this._specialPawnCapture = null;
+            }
         } else {
             this._specialPawnCapture = null;
         }
@@ -1744,7 +1746,7 @@ export class Game extends Board {
         this.applyMove(move, this.turn);
         super.nextTurn();
         if (this.turn === 'w') this.moveNumber++;
-        if (csmv.isMoveInfo(move) && cscnv.getPieceKeyName(move.piece) == 'P'
+        if (csmv.isMoveInfo(move) && ['P', 'M'].includes(cscnv.getPieceKeyName(move.piece))
             || csmv.isCaptureInfo(move)
             || csmv.isPromotionInfo(move))
             this.halfmoveClock = 0;

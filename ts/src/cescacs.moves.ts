@@ -135,7 +135,7 @@ export namespace csMoves {
             if (isCaptureInfo(info)) {
                 if (info.special !== undefined) {
                     sep = PositionHelper.equals(info.moveTo, info.special)
-                        || Math.abs(info.special[1] - info.moveTo[1]) == 2 ? "@" : "@@";
+                        || Math.abs(info.special[1] - info.moveTo[1]) <= 2 ? "@" : "@@";
                 } else {
                     const capSymbol = cscnv.getPieceKeyName(info.captured);
                     sep = capSymbol == 'P' ? "\u00D7" : "\u00D7" + capSymbol;
