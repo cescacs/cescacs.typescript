@@ -948,7 +948,7 @@ export class Game extends Board {
 
     private _moves: UndoStatusWhithCheckInfo[] = [];
     private _top: number = -1;
-    private moveNumber: number;
+    private _moveNumber: number;
     private halfmoveClock: number;
     private fixedNumbering: boolean = true;
     private _mate = false;
@@ -964,7 +964,7 @@ export class Game extends Board {
         if (restoreStatusTLPD === undefined) {
             this.fillDefaultPositions();
             this.halfmoveClock = 0;
-            this.moveNumber = 1;
+            this._moveNumber = 1;
             this.fixedNumbering = true;
         }
         else if (restoreStatus != null && restoreStatus.length >= 2 && csty.isTurn(restoreStatus[1])) {
@@ -974,7 +974,7 @@ export class Game extends Board {
             if (isNaN(Number(restoreStatus[4]))) {
                 if (restoreStatus[4] != null && restoreStatus[4] !== "-") throw new TypeError("Invalid halfmove clock value");
             }
-            this.moveNumber = csty.isNumber(Number(restoreStatus[5])) ? Number(restoreStatus[5]) : 1;
+            this._moveNumber = csty.isNumber(Number(restoreStatus[5])) ? Number(restoreStatus[5]) : 1;
             if (isNaN(Number(restoreStatus[5]))) {
                 if (restoreStatus[5] == null || restoreStatus[5] == "-") this.fixedNumbering = false;
                 else throw new TypeError("Invalid move number");
@@ -984,6 +984,7 @@ export class Game extends Board {
         this.initGame();
     }
 
+    public get moveNumber() { return this._moveNumber; }
     public get gameEnd() { return this._mate || this._stalemate || this._draw || this._resigned; }
     public get mate() { return this._mate; }
     public get stalemate() { return this._stalemate; }
@@ -1213,11 +1214,11 @@ export class Game extends Board {
                     this.computeAwaitingPromotion(turnInfo.turn == 'b' ? 'w' : 'b');
                 }
             }
-            if (this.turn === 'b') this.moveNumber--;
+            if (this.turn === 'b') this._moveNumber--;
             if (turnInfo.initHalfMoveClock === undefined) this.halfmoveClock--;
             else this.halfmoveClock = 0;
             super.prepareCurrentTurn();
-            super.computeHeuristic(this.turn, this.moveNumber, true, this.currentHeuristic);
+            super.computeHeuristic(this.turn, this._moveNumber, true, this.currentHeuristic);
         }
     }
 
@@ -1427,7 +1428,7 @@ export class Game extends Board {
     public get valueTLPD(): string {
         return this.piecePositionsTLPD + " " + this.turn + " " + this.castlingStatus
             + " " + (this.specialPawnCapture?.toString() ?? "-")
-            + " " + this.halfmoveClock.toString() + " " + (this.fixedNumbering ? this.moveNumber.toString() : "-");
+            + " " + this.halfmoveClock.toString() + " " + (this.fixedNumbering ? this._moveNumber.toString() : "-");
     }
 
     private get piecePositionsTLPD(): string {
@@ -1473,7 +1474,7 @@ export class Game extends Board {
             if (isNaN(Number(restoreStatus[4]))) {
                 if (restoreStatus[4] != null && restoreStatus[4] !== "-") throw new TypeError("Invalid halfmove clock value");
             }
-            this.moveNumber = csty.isNumber(Number(restoreStatus[5])) ? Number(restoreStatus[5]) : 1;
+            this._moveNumber = csty.isNumber(Number(restoreStatus[5])) ? Number(restoreStatus[5]) : 1;
             if (isNaN(Number(restoreStatus[5]))) {
                 if (restoreStatus[5] == null || restoreStatus[5] == "-") this.fixedNumbering = false;
                 else throw new TypeError("Invalid move number");
@@ -1613,13 +1614,13 @@ export class Game extends Board {
             const regExp = new RegExp(/^(\d+\..*\n)+\d+\..*$/);
             assertCondition(regExp.test(sq), "numbered lines");
             const lines = sq.split(/\r?\n/);
-            const firstLine = this.moveNumber;
+            const firstLine = this._moveNumber;
             this.fixedNumbering = (this.fixedNumbering && firstLine != 1) || fixedNumbering;
             for (let i = 0; i < lines.length; i++) {
                 const parts: string[] = lines[i].split(/[.,]\s?/);
                 const nMove = parseInt(parts[0]);
                 assertCondition(nMove.toString() == parts[0], `Line number of "${lines[i]}"`);
-                assertCondition(this.moveNumber == (fixedNumbering ? nMove : firstLine + nMove - 1), `Expected move number ${this.moveNumber} on move ${i}`);
+                assertCondition(this._moveNumber == (fixedNumbering ? nMove : firstLine + nMove - 1), `Expected move number ${this._moveNumber} on move ${i}`);
                 if (nMove == 1) {
                     assertCondition(parts.length == 3, `first move must be a numbered pair of moves; white move can be an ellipsis: ${lines[0]}`);
                     if (parts[1] == '\u2026') {
@@ -1732,12 +1733,12 @@ export class Game extends Board {
         }
     }
 
-    private pushMove(move: MoveInfo) {
+    public pushMove(move: MoveInfo) {
         const turnInfo: UndoStatus = {
-            n: this.moveNumber,
+            n: this._moveNumber,
             turn: this.turn,
             move: move,
-            fixedNumbering: this.moveNumber == 1 && !this.fixedNumbering ? '?' : undefined,
+            fixedNumbering: this._moveNumber == 1 && !this.fixedNumbering ? '?' : undefined,
             initHalfMoveClock: this.halfmoveClock == 0 ? '1' : undefined,
             specialPawnCapture: this.specialPawnCapture == null ? undefined : this.specialPawnCapture.toString(),
             castlingStatus: (csmv.isMoveInfo(move) && ['K', 'R'].indexOf(cscnv.getPieceKeyName(move.piece)) >= 0) ?
@@ -1745,7 +1746,7 @@ export class Game extends Board {
         };
         this.applyMove(move, this.turn);
         super.nextTurn();
-        if (this.turn === 'w') this.moveNumber++;
+        if (this.turn === 'w') this._moveNumber++;
         if (csmv.isMoveInfo(move) && ['P', 'M'].includes(cscnv.getPieceKeyName(move.piece))
             || csmv.isCaptureInfo(move)
             || csmv.isPromotionInfo(move))
@@ -1773,7 +1774,7 @@ export class Game extends Board {
         const turnInfoEnriched = csmv.promoteUndoStatus(turnInfo, endGame, check);
         this._moves.push(turnInfoEnriched);
         this._top++;
-        super.computeHeuristic(this.turn, this.moveNumber, anyMove, this.currentHeuristic);
+        super.computeHeuristic(this.turn, this._moveNumber, anyMove, this.currentHeuristic);
     }
 
     private applyMove(move: MoveInfo, turn: Turn) {
@@ -1904,7 +1905,7 @@ export class Game extends Board {
             if (this.checked) this._mate = true;
             else this._stalemate = true;
         } else if (this.halfmoveClock >= 100) this._draw = true;
-        super.computeHeuristic(this.turn, this.moveNumber, anyMove, this.currentHeuristic);
+        super.computeHeuristic(this.turn, this._moveNumber, anyMove, this.currentHeuristic);
     }
 
 }

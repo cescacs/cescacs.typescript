@@ -1,11 +1,11 @@
-import type { Nullable } from "./ts.general";
+import { assertCondition, Nullable } from "./ts.general";
 import type {
     Column, ColumnIndex, Line, Position,
     OrthogonalDirection, DiagonalDirection, KnightDirection,
     Orientation, OrthogonalOrientation, DiagonalOrientation,
     ScornfulCaptureDirection,
     Turn, HexColor, PieceName, PieceColor, CastlingStatus,
-    KnightOrCloseCheck, DoubleCheck
+    KnightOrCloseCheck, DoubleCheck, CheckNotation
 } from "./cescacs.types";
 
 
@@ -17,20 +17,19 @@ import {
     King, Queen, Wyvern, Rook, Pegasus, Knight, Bishop, Elephant, Almogaver, Pawn
 } from "./cescacs.piece";
 
-import { Board, Game, Heuristic } from "./cescacs";
+import { Board, csmv, Game, Heuristic } from "./cescacs";
+import { MoveInfo, UndoStatus } from "./cescacs.moves";
 
-type CheckType = 0 | 32 | 64 | 128 | 192 | 256; //none, CloseNotDefended, Close, Single, Knight, Double
+type Bitset = [number, number, number, number, number, number, number, number];
+
 
 type AttemptMove = {
-    piece: Piece;
-    pos: Position;
-    check: CheckType;
-    capture: number;
+    move: MoveInfo;
     defended: boolean;
     threated: boolean;
 }
 
-type Bitset = [number, number, number, number, number, number, number, number];
+type CheckType = 0 | 32 | 64 | 128 | 192 | 256; //none, CloseNotDefended, Close, Single, Knight, Double
 
 abstract class Minimax {
 
@@ -38,102 +37,146 @@ abstract class Minimax {
         const actualGame: Game = new Game(grand, board);
         const player: PieceColor = actualGame.turn;
         return Minimax.minimax(actualGame, 0, -Infinity, Infinity, player, player);
-
     }
+
 
     private static readonly maxDepth: number = 4;
 
-    private static minimax(node: Board, depth: number, alpha: number, beta: number, maxPlayer: PieceColor, levelPlayer: PieceColor) {
+    private static minimax(node: Game, depth: number, alpha: number, beta: number, maxPlayer: PieceColor, levelPlayer: PieceColor) {
         const currentKing = levelPlayer == 'w' ? node.wKing : node.bKing;
         const moves = Minimax.generateMoves(node, currentKing);
-            if (depth < Minimax.maxDepth) {
-                moves.sort((a, b) => {
-                    return a.check - b.check + ((a.capture - b.capture) << 2) +
-                        (a.defended != b.defended ? a.defended ? 2 : -2 : 0) +
-                        (a.threated != b.threated ? a.threated ? -1 : 1 : 0);
-                });
-            }
-            //TODO: Recursive call
-            for (const m of moves) {
-                // doMove: Attempt move can have information to undo:
-                // - captured Piece
-                // - enPassantPosition
-                // - promotion Piece
-                // - when the King or Rook moves, castling status
 
-                if (depth >= Minimax.maxDepth) {
-                    const hValue = node.getHeuristicValue(node.currentHeuristic);
-                    if (levelPlayer == maxPlayer) {
-                        if (alpha < hValue) alpha = hValue;
-                    } else {
-                        if (beta > hValue) beta = hValue;
-                    }
-        
-                } else {
-                    Minimax.minimax(node, depth+1, alpha, beta, maxPlayer, levelPlayer == 'w' ? 'b' : 'w');
+        function moveOrderValue(amove: AttemptMove) {
+            const moveNumber: number = node.moveNumber;
+            const move = amove.move;
+            if (currentKing.checked) {
+                assertCondition(!csmv.isCastlingInfo(move));
+                const p = cscnv.getPieceKeyName(move.piece);
+                if (p == 'K') return -6;
+                else {
+                    const v = Piece.pieceValue(p);
+                    return amove.threated ?
+                        (amove.defended ? -v << 1 : - v) : (amove.defended ? 15 - v : (15 - v) << 1);
                 }
-
-                // undoMove
+            } else if (csmv.isCastlingInfo(move)) {
+                return moveNumber < 6 ? -20 : moveNumber < 10 ? -10 : -1;
+            } else {
+                let tmpResult: number;
+                const p = cscnv.getPieceKeyName(move.piece);
+                if (p == 'K') { tmpResult = moveNumber < 6 ? -20 : moveNumber < 10 ? -10 : -1; }
+                else {
+                    const v = Piece.pieceValue(p);
+                    if (moveNumber < 3) tmpResult = v > 2 ? -v : v;
+                    else if (moveNumber < 6) tmpResult = v > 4 ? -v : v;
+                    else if (moveNumber < 12) tmpResult = v > 10 ? -v : v;
+                    else tmpResult = v;
+                    if (amove.threated) tmpResult -= v;
+                    if (amove.defended) tmpResult += 2;
+                }
+                if (csmv.isCaptureInfo(move)) tmpResult += Piece.pieceValue(cscnv.getPieceKeyName(move.captured)) << 2;
+                return tmpResult;
             }
+        }
+
+        //TODO: Check case (take a look deeper)
+        //TODO: Return the move sequence
+        if (depth < Minimax.maxDepth) {
+            moves.sort((a, b) => moveOrderValue(a) - moveOrderValue(b));
+            if (levelPlayer == maxPlayer) {
+                for (const m of moves) {
+                    node.pushMove(m.move);
+                    const hValue = Minimax.minimax(node, depth + 1, alpha, beta, maxPlayer, levelPlayer == 'w' ? 'b' : 'w');
+                    node.popMove();
+                    if (alpha < hValue) alpha = hValue;
+                    if (beta <= alpha) break;
+                }
+                return alpha;
+            } else {
+                for (const m of moves) {
+                    node.pushMove(m.move);
+                    const hValue = Minimax.minimax(node, depth + 1, alpha, beta, maxPlayer, levelPlayer == 'w' ? 'b' : 'w');
+                    node.popMove();
+                    if (beta > hValue) beta = hValue;
+                    if (beta <= alpha) break;
+                }
+                return beta;
+            }
+        } else {
+            return node.getHeuristicValue(node.currentHeuristic);
+        }
     }
 
-    private static generateMoves(node: Board, currentKing: King) {
+    private static generateMoves(node: Game, currentKing: King) {
         const color: PieceColor = currentKing.color;
         const closeChecks = Minimax.closeCheckBitset(node, currentKing);
         const knightChecks = Minimax.knightCheckBitset(node, currentKing);
-        const [orthogonalChecks, orthogonalDiscoveredChecks] = Minimax.OrthogonalCheckBitset(node, currentKing);
-        const [diagonalChecks, diagonalDiscoveredChecks] = Minimax.DiagonalCheckBitset(node, currentKing);
+        const [orthogonalChecks, orthogonalDiscoveredChecks] = Minimax.orthogonalCheckBitset(node, currentKing);
+        const [diagonalChecks, diagonalDiscoveredChecks] = Minimax.diagonalCheckBitset(node, currentKing);
         const result: AttemptMove[] = [];
 
+        function getUndoInfo(move: MoveInfo) {
+            const turnInfo: UndoStatus = {
+                n: 1, //node.moveNumber,
+                turn: node.turn,
+                move: move,
+                specialPawnCapture: node.specialPawnCapture == null ? undefined : node.specialPawnCapture.toString(),
+                castlingStatus: (csmv.isMoveInfo(move) && ['K', 'R'].indexOf(cscnv.getPieceKeyName(move.piece)) >= 0) ?
+                    node.playerCastlingStatus() : undefined
+            };
+            return turnInfo;
+        }
+
+        //TODO: Checked is state for all the moves
         //TODO: Castlings, pawn promotion
 
         //this is a quick sort heuristic:
         //- computed closeChecks doesn't ensures check, only close position
         //- discovered doesn't ensures piece move destination allows discovered check not to be hiden
         for (const piece of color == 'w' ? node.whitePieces() : node.blackPieces()) {
-            for (const pos of node.pieceMoves(piece)) {
-                const isEnPassantCapture = cspty.isPawn(piece) && node.specialPawnCapture != null &&
-                    node.specialPawnCapture.isEnPassantCapturable() && node.specialPawnCapture.isEnPassantCapture(pos, piece);
-                const capturedValue = node.getPiece(pos)?.value ?? (isEnPassantCapture ? piece.value : 0);
-                let pawnValue = 0;
-                let checkValue: CheckType = 0;
-                if (piece.hasOnlyCloseAttack) {
-                    if (Minimax.isBitset(orthogonalDiscoveredChecks, piece.position!)
-                        || Minimax.isBitset(diagonalDiscoveredChecks, piece.position!)) checkValue = 128;
-                    else if (Minimax.isBitset(closeChecks, pos)) checkValue = (node.hasThreat(pos, color) ? 64 : 32);
-                    if (cspty.isPawn(piece)) {
-                        if (PositionHelper.isPromotionHex(pos, color)) {
-                            const maxPromotionValue = node.maxRegainablePiecesValue(PositionHelper.hexColor(pos));
-                            pawnValue = maxPromotionValue > 0 ? maxPromotionValue - 1 : 0;
+            //1st: awaiting promotion (when not in check)
+            if (currentKing.checked)
+                for (const pos of node.pieceMoves(piece)) {
+                    const isEnPassantCapture = (cspty.isPawn(piece) || cspty.isAlmogaver(piece)) && node.specialPawnCapture != null &&
+                        node.specialPawnCapture.isEnPassantCapturable() && node.specialPawnCapture.isEnPassantCapture(pos, piece);
+                    const capturedValue = node.getPiece(pos)?.value ?? (isEnPassantCapture ? piece.value : 0);
+                    let pawnValue = 0;
+                    let checkValue: CheckType = 0;
+                    if (piece.hasOnlyCloseAttack) {
+                        if (Minimax.isBitset(orthogonalDiscoveredChecks, piece.position!)
+                            || Minimax.isBitset(diagonalDiscoveredChecks, piece.position!)) checkValue = 128;
+                        else if (Minimax.isBitset(closeChecks, pos)) checkValue = (node.hasThreat(pos, color) ? 64 : 32);
+                        if (cspty.isPawn(piece)) {
+                            if (PositionHelper.isPromotionHex(pos, color)) {
+                                const maxPromotionValue = node.maxRegainablePiecesValue(PositionHelper.hexColor(pos));
+                                pawnValue = maxPromotionValue > 0 ? maxPromotionValue - 1 : 0;
+                            }
+                            if (pos[0] == piece.position![0]) pawnValue += 0.1;  //better walk stright
+                            if (pos[1] > piece.position![1] + 2) pawnValue += 0.1; //better long steps
                         }
-                        if (pos[0] == piece.position![0]) pawnValue += 0.1;  //better walk stright
-                        if (pos[1] > piece.position![1] + 2) pawnValue += 0.1; //better long steps
                     }
+                    else if (piece.hasKnightJumpAttack && Minimax.isBitset(knightChecks, pos)) {
+                        if (Minimax.isBitset(orthogonalDiscoveredChecks, piece.position!)
+                            || Minimax.isBitset(diagonalDiscoveredChecks, piece.position!)) checkValue = 256;
+                        else checkValue = 192;
+                    }
+                    else if (piece.hasOrthogonalAttack && Minimax.isBitset(orthogonalChecks, pos)) {
+                        checkValue = Minimax.isBitset(diagonalDiscoveredChecks, piece.position!) ? 256
+                            : Minimax.isBitset(closeChecks, pos) ? node.hasThreat(pos, color) ? 192 : 64 : 128;
+                    }
+                    else if (piece.hasDiagonalAttack && Minimax.isBitset(diagonalChecks, pos)) {
+                        checkValue = Minimax.isBitset(orthogonalDiscoveredChecks, piece.position!) ? 256
+                            : Minimax.isBitset(closeChecks, pos) ? node.hasThreat(pos, color) ? 192 : 64 : 128;
+                    }
+                    else if (Minimax.isBitset(orthogonalDiscoveredChecks, piece.position!)
+                        || Minimax.isBitset(diagonalDiscoveredChecks, piece.position!)) {
+                        checkValue = 128;
+                    }
+                    // result.push({
+                    //     check: checkValue, capture: capturedValue + pawnValue,
+                    //     defended: node.hasThreat(pos, color),
+                    //     threated: node.isThreatened(pos, color)
+                    // } as AttemptMove);
                 }
-                else if (piece.hasKnightJumpAttack && Minimax.isBitset(knightChecks, pos)) {
-                    if (Minimax.isBitset(orthogonalDiscoveredChecks, piece.position!)
-                        || Minimax.isBitset(diagonalDiscoveredChecks, piece.position!)) checkValue = 256;
-                    else checkValue = 192;
-                }
-                else if (piece.hasOrthogonalAttack && Minimax.isBitset(orthogonalChecks, pos)) {
-                    checkValue = Minimax.isBitset(diagonalDiscoveredChecks, piece.position!) ? 256
-                        : Minimax.isBitset(closeChecks, pos) ? node.hasThreat(pos, color) ? 192 : 64 : 128;
-                }
-                else if (piece.hasDiagonalAttack && Minimax.isBitset(diagonalChecks, pos)) {
-                    checkValue = Minimax.isBitset(orthogonalDiscoveredChecks, piece.position!) ? 256
-                        : Minimax.isBitset(closeChecks, pos) ? node.hasThreat(pos, color) ? 192 : 64 : 128;
-                }
-                else if (Minimax.isBitset(orthogonalDiscoveredChecks, piece.position!)
-                    || Minimax.isBitset(diagonalDiscoveredChecks, piece.position!)) {
-                    checkValue = 128;
-                }
-                result.push({
-                    piece: piece, pos: pos,
-                    check: checkValue, capture: capturedValue + pawnValue,
-                    defended: node.hasThreat(pos, color),
-                    threated: node.isThreatened(pos, color)
-                } as AttemptMove);
-            }
         }
         return result;
     }
@@ -177,7 +220,7 @@ abstract class Minimax {
         }
         return checks;
     }
-    private static OrthogonalCheckBitset(node: Board, currentKing: King): [Bitset, Bitset] {
+    private static orthogonalCheckBitset(node: Board, currentKing: King): [Bitset, Bitset] {
         const checks: Bitset = [0, 0, 0, 0, 0, 0, 0, 0];
         const discoveredChecks: Bitset = [0, 0, 0, 0, 0, 0, 0, 0];
         for (const d of cscnv.orthogonalDirections()) {
@@ -209,7 +252,7 @@ abstract class Minimax {
         }
         return [checks, discoveredChecks];
     }
-    private static DiagonalCheckBitset(node: Board, currentKing: King): [Bitset, Bitset] {
+    private static diagonalCheckBitset(node: Board, currentKing: King): [Bitset, Bitset] {
         const checks: Bitset = [0, 0, 0, 0, 0, 0, 0, 0];
         const discoveredChecks: Bitset = [0, 0, 0, 0, 0, 0, 0, 0];
         for (const d of cscnv.diagonalDirections()) {
