@@ -33,35 +33,46 @@ export type Heuristic = {
 
 //#region PawnSpecialCapture classes
 
+/** register a pawn special capture state */
 export abstract class PawnSpecialCaptureStatus implements IPawnSpecialCaptureStatus {
 
+    /**
+     * @param  {IBoard} board - callback reference
+     * @param  {Nullable<string>} value
+     * @returns {Nullable<PawnSpecialCaptureStatus>}
+     */
     public static parse(board: IBoard, value: Nullable<string>): Nullable<PawnSpecialCaptureStatus> {
         if (value != null && value.length > 0 && value != "-") {
             if (value.length >= 4) {
                 const elements = value.split("@");
-                if (elements.length = 2) {
-                    const p0 = PositionHelper.parse(elements[0]);
-                    if (elements[1].includes(",") || !isNaN(Number(elements[1]))) {
-                        const piece = board.getPiece(p0);
-                        if (piece != null) {
-                            const values = elements[1].split(",");
-                            if (values.length >= 1 && values.length <= 2) {
-                                let captureTo: Position[] = [];
-                                for (const s of values) {
-                                    let l = Number(s);
-                                    if (!isNaN(l) && csty.isLine(l)) {
-                                        captureTo.push(PositionHelper.fromBoardPosition(p0[0], l, true));
-                                    } else throw new TypeError("Invalid en passant capture line value");
-                                }
-                                return new EnPassantCapturable(piece, captureTo);
-                            } else throw new TypeError("Missing or invalid en passant capture lines");
-                        } else throw new Error(PositionHelper.toString(p0) + " doesn't have a pawn");
-                    }
-                    else {
+                if (elements.length == 2 && elements[0].length >= 1 && elements[0].length <= 3 && elements[1].length >= 2) {
+                    if (elements[0] == 'P') {
+                        const enPassantelements = elements[1].slice(0, elements[1].length - 1).split("[");
+                        if (elements[1].endsWith("]") && enPassantelements.length == 2) {
+                            const p0 = PositionHelper.parse(enPassantelements[1]);
+                            const piece = board.getPiece(p0);
+                            if (piece != null) {
+                                const values = enPassantelements[0].split(",");
+                                if (values.length >= 1 && values.length <= 2) {
+                                    let captureTo: Position[] = [];
+                                    captureTo.push(PositionHelper.parse(values[0]));
+                                    if (values.length == 2) {
+                                        let l = Number(values[1]);
+                                        if (!isNaN(l) && csty.isLine(l)) {
+                                            captureTo.push(PositionHelper.fromBoardPosition(captureTo[0][0], l, true));
+                                        } else throw new TypeError("Invalid en passant capture line value");
+                                        return new EnPassantCapturable(piece, captureTo);
+                                    }
+                                } else throw new TypeError("Missing or invalid en passant capture positions");
+
+                            } else throw new Error(PositionHelper.toString(p0) + " doesn't have a pawn nor promoted pawn");
+                        } else throw new TypeError("Invalid special 'en passant' pawn capture status string");
+                    } else {
+                        const p0 = PositionHelper.parse(elements[0]);
                         const p1 = PositionHelper.parse(elements[1]);
                         const piece = board.getPiece(p1);
                         if (piece != null) return new ScornfulCapturable(piece, p0);
-                        else throw new Error(PositionHelper.toString(p1) + " doesn't have a pawn");
+                        else throw new Error(PositionHelper.toString(p1) + " doesn't have a pawn nor promoted pawn");
                     }
                 }
                 else throw new TypeError("Invalid special pawn capture status string");
@@ -70,33 +81,65 @@ export abstract class PawnSpecialCaptureStatus implements IPawnSpecialCaptureSta
     }
 
     public readonly abstract specialCaptureType: 'scornful' | 'enPassant';
+    protected readonly _capturablePiece: Piece;
 
+    /**
+     * subtype predicate
+     * @returns {boolean} - this is ScornfulCapturable
+     */
     public isScornfulCapturable(): this is ScornfulCapturable {
         return this.specialCaptureType == 'scornful';
     }
 
+    /**
+     * subtype predicate
+     * @returns {boolean} - this is EnPassantCapturable
+     */
     public isEnPassantCapturable(): this is EnPassantCapturable {
         return this.specialCaptureType == 'enPassant';
     }
 
+    /**
+     * @returns {string}
+     */
     public abstract toString(): string;
-    protected readonly _capturablePiece: Piece;
 
-    constructor(capturablePawn: Piece) {
-        this._capturablePiece = capturablePawn;
-    }
+    /**
+     * The piece, usually a pawn, if not promoted, which can be captured. It can be also an Almogaver in grand C'escacs
+     * @returns {Piece}
+     */
+    public get capturablePiece(): Piece { return this._capturablePiece; }
 
-    public get capturablePiece() { return this._capturablePiece; }
-
-    public get capturablePawn() {
+    /**
+     * In initial constructor, the pawn which made a special move;
+     * afterwards, cause of promotion, it could be any piece. Use capturablePiece to query for it.
+     * @returns {Pawn}
+     */
+    public get capturablePawn(): Pawn {
         assertCondition(cspty.isPawn(this._capturablePiece));
         return this._capturablePiece;
     }
 
+    /**
+     * @constructor
+     * @param  {Piece} capturablePawn
+     */
+    constructor(capturablePawn: Piece) {
+        this._capturablePiece = capturablePawn;
+    }
+
 }
 
+/** register a pawn special capture state: Scornful case */
 export class ScornfulCapturable extends PawnSpecialCaptureStatus implements IScornfulCapturable {
 
+    /**
+     * After the promotion, a promoting panw as the new piece regained must update the special capture register, 
+     * if it were just created in the movement because of a scornful move
+     * @param  {ScornfulCapturable} scorfulCapturable - the instance to upgrade
+     * @param  {Piece} capturablePiece - the piece which the pawn promoted to
+     * @returns {ScornfulCapturable} - the instance upgraded
+     */
     public static promoteCapturablePawn(scorfulCapturable: ScornfulCapturable, capturablePiece: Piece): ScornfulCapturable {
         return new ScornfulCapturable(capturablePiece, scorfulCapturable._capturerPawnPos)
     }
@@ -104,12 +147,29 @@ export class ScornfulCapturable extends PawnSpecialCaptureStatus implements ISco
     public readonly specialCaptureType = 'scornful';
     private readonly _capturerPawnPos: Position;
 
+    /**
+     * Available capture of a scornful pawn (which could've been promoted), which must be done from a pawn position
+     * @constructor
+     * @param  {Piece} capturablePawn
+     * @param  {Position} scornedPawnPos
+     */
     constructor(capturablePawn: Piece, scornedPawnPos: Position) {
         super(capturablePawn);
         this._capturerPawnPos = scornedPawnPos;
     }
 
+    /**
+     * If a pawn have been scorned, and can do a scornful capture
+     * @param  {Pawn} pawn
+     * @returns {boolean}
+     */
     public isScorned(pawn: Pawn): boolean
+    /**
+     * If a pawn have been scorned, and can do a scornful capture on a specific position
+     * @param  {Pawn} pawn
+     * @param  {Position} pos
+     * @returns {boolean}
+     */
     public isScorned(pawn: Pawn, pos: Position): boolean
     public isScorned(pawn: Pawn, pos?: Position): boolean {
         const result = pawn.position != null && PositionHelper.equals(pawn.position, this._capturerPawnPos);
@@ -117,6 +177,10 @@ export class ScornfulCapturable extends PawnSpecialCaptureStatus implements ISco
         else return result && PositionHelper.equals(pos, this.capturablePiece.position!);
     }
 
+    /**
+     * Orthogonal direction from the scorned pawn to the capturable pawn
+     * @returns {ScornfulCaptureDirection}
+     */
     public get scornfulCaptureDirection(): ScornfulCaptureDirection {
         const capturerColumnIndex = this._capturerPawnPos[0];
         const capturablePawnPos = this.capturablePiece.position!;
@@ -128,13 +192,25 @@ export class ScornfulCapturable extends PawnSpecialCaptureStatus implements ISco
         }
     }
 
+    /**
+     * Scornful notation: just the move needed to capture
+     * @returns {string}
+     */
     public toString(): string {
         return PositionHelper.toString(this._capturerPawnPos) + "@" + PositionHelper.toString(this.capturablePiece.position!);
     }
 }
 
+/** register a pawn special capture state: En passant case */
 export class EnPassantCapturable extends PawnSpecialCaptureStatus implements IEnPassantCapturable {
 
+    /**
+     * After the promotion, a promoting panw as the new piece regained must update the special capture register, 
+     * if it were just created in the movement because of double stepping
+     * @param  {EnPassantCapturable} enpassantCapturable - the instance to upgrade
+     * @param  {Piece} capturablePiece - the piece which the pawn promoted to
+     * @returns {EnPassantCapturable} - the instance upgraded
+     */
     public static promoteCapturablePawn(enpassantCapturable: EnPassantCapturable, capturablePiece: Piece): EnPassantCapturable {
         return new EnPassantCapturable(capturablePiece, enpassantCapturable._captureTo)
     }
@@ -142,12 +218,28 @@ export class EnPassantCapturable extends PawnSpecialCaptureStatus implements IEn
     public readonly specialCaptureType = 'enPassant';
     private readonly _captureTo: Position[];
 
+    /**
+     * @constructor
+     * @param  {Piece} capturablePawn
+     * @param  {Position[]} captureTo
+     */
     constructor(capturablePawn: Piece, captureTo: Position[]) {
         super(capturablePawn);
         this._captureTo = captureTo;
     }
 
+    /**
+     * Check if a position is an en passant capture position
+     * @param  {Position} pos
+     * @returns {boolean}
+     */
     public isEnPassantCapture(pos: Position): boolean
+    /**
+     * Check if a position is an en passant position for a capturer Pawn (or Almogaver)
+     * @param  {Position} pos
+     * @param  {Pawn|Almogaver} capturerPawn
+     * @returns {boolean}
+     */
     public isEnPassantCapture(pos: Position, capturerPawn: Pawn | Almogaver): boolean
     public isEnPassantCapture(pos: Position, capturerPawn?: Pawn | Almogaver): boolean {
         const isEnPassantCapturePos = this._captureTo.some(x => PositionHelper.equals(x, pos));
@@ -163,20 +255,17 @@ export class EnPassantCapturable extends PawnSpecialCaptureStatus implements IEn
         } else return false;
     }
 
+    /**
+     * En Passant notation: The capturable pawn position and its preceding one or two lines where it can be captured
+     * @returns {string}
+     */
     public toString(): string {
-        return PositionHelper.toString(this.capturablePiece.position!) + "@" + this.captureLines();
-    }
-
-    private captureLines(): string {
         const captureTo = this._captureTo;
-        if (captureTo.length > 0 && captureTo.length <= 2) {
-            let r = (captureTo[0][1]).toString();
-            if (captureTo.length > 1) {
-                r += "," + (captureTo[1][1]).toString();
-            }
-            return r;
+        let strCaptureTo = PositionHelper.toString(captureTo[0]);
+        if (captureTo.length == 2) {
+            strCaptureTo += "," + (captureTo[1][1]).toString();
         }
-        else throw new Error("Invalid en passant capture positions set");
+        return "P@" + strCaptureTo + "[" + PositionHelper.toString(this.capturablePiece.position!) + "]";
     }
 }
 
@@ -225,14 +314,24 @@ export abstract class Board implements IBoard {
     private _bAwaitingPromotion: boolean = false;
     private _turn: Turn;
 
-    constructor(grand: boolean)
-    constructor(grand: boolean, turn: Turn)
-    constructor(readonly isGrand: boolean, turn?: Turn) {
+    /**
+     * Creates an instance of Board.
+     * @param {boolean} isGrand
+     * @param {Turn} [turn='w']
+     * @memberof Board
+     */
+    constructor(public readonly isGrand: boolean, turn: Turn = 'w') {
         this._turn = turn ?? 'w';
         this.pieces.set(this.wKing.key, this.wKing);
         this.pieces.set(this.bKing.key, this.bKing);
     }
-
+    /**
+     *
+     *
+     * @readonly
+     * @type {Turn}
+     * @memberof Board
+     */
     public get turn(): Turn { return this._turn; }
 
     protected get turnKing(): King { return (this.turn === 'w' ? this.wKing : this.bKing); }
@@ -241,12 +340,31 @@ export abstract class Board implements IBoard {
     protected get isSingleCheck(): boolean { return this.turnKing.isSingleCheck(); }
     protected get isDoubleCheck(): boolean { return this.turnKing.isDoubleCheck(); }
 
+    /**
+     * Get a piece by its unique key. Used for serialization of game status.
+     *
+     * @param {PieceKey} key
+     * @return {Piece}
+     * @memberof Board
+     */
     public pieceByKey(key: PieceKey): Piece {
         const piece = this.pieces.get(key); assertNonNullish(piece, "piece from unique key"); return piece;
     }
+    /**
+     * Special pawn capture available for next move
+     *
+     * @type {Nullable<PawnSpecialCaptureStatus>}
+     * @memberof Board
+     */
     public get specialPawnCapture(): Nullable<PawnSpecialCaptureStatus> { return this._specialPawnCapture; }
     protected set specialPawnCapture(value: Nullable<PawnSpecialCaptureStatus>) { this._specialPawnCapture = value; }
-
+    /**
+     * Special awaiting promotion status
+     *
+     * @readonly
+     * @type {boolean}
+     * @memberof Board
+     */
     public get isAwaitingPromotion() { return this._turn == 'w' ? this._wAwaitingPromotion : this._bAwaitingPromotion; }
     protected setAwaitingPromotion(color: PieceColor) {
         if (color == 'w') this._wAwaitingPromotion = true; else this._bAwaitingPromotion = true;
@@ -257,16 +375,30 @@ export abstract class Board implements IBoard {
         if (color == 'w') this._wAwaitingPromotion = value; else this._bAwaitingPromotion = value;
     }
 
-    public get currentHeuristic() { return this._currentHeuristic; }
+    /**
+     * Get Heuristic object of the position
+     *
+     * @readonly
+     * @type {Heuristic}
+     * @memberof Board
+     */
+    public get currentHeuristic(): Heuristic { return this._currentHeuristic; }
 
-    public getHeuristicValue(h: Heuristic) {
+    /**
+     * Get the total numeric value from Heuristic
+     *
+     * @param {Heuristic} h
+     * @return {number}
+     * @memberof Board
+     */
+    public getHeuristicValue(h: Heuristic): number {
         return round2hundredths(h.pieces[0] - h.pieces[1] + h.space[0] - h.space[1] + h.positioning + h.mobility + h.king);
     }
 
     protected createPiece(pieceName: PieceName, color: PieceColor, column: Column, line: Line): Piece {
         let piece: Piece;
         switch (pieceName) {
-            //TODO: correct King creation exception?
+            //TODO: correct the King creation exception?
             case "K": throw new Error("King must be created before setting it on the board");
             case "D": piece = new Queen(color, column, line); break;
             case "V": piece = new Wyvern(color, column, line); break;
@@ -302,6 +434,13 @@ export abstract class Board implements IBoard {
         positions[posCol] |= posLineMask;
     }
 
+    /**
+     * Is there a piece? Which color is it?
+     *
+     * @param {Position} pos
+     * @return {Nullable<PieceColor>}
+     * @memberof Board
+     */
     public hasPiece(pos: Position): Nullable<PieceColor> {
         const posCol = (pos[0] + 1) >>> 1;
         const posLineMask = Board.lineMask(pos[1]);
@@ -313,6 +452,13 @@ export abstract class Board implements IBoard {
         } else return null;
     }
 
+    /**
+     * Get the piece of the position
+     *
+     * @param {Position} pos
+     * @return {Nullable<Piece>}
+     * @memberof Board
+     */
     public getPiece(pos: Position): Nullable<Piece> {
         const color = this.hasPiece(pos);
         if (color == null) return null;
@@ -323,16 +469,37 @@ export abstract class Board implements IBoard {
         }
     }
 
+    /**
+     * Is color defended in position?
+     *
+     * @param {Position} pos
+     * @param {PieceColor} color
+     * @return {boolean}
+     * @memberof Board
+     */
     public hasThreat(pos: Position, color: PieceColor): boolean {
         const posCol = (pos[0] + 1) >>> 1;
         return ((color == "w" ? this.wThreats : this.bThreats)[posCol] & Board.lineMask(pos[1])) != 0;
     }
-
+    /**
+     * Is color threatened in position?
+     *
+     * @param {Position} pos
+     * @param {PieceColor} color
+     * @return {boolean}
+     * @memberof Board
+     */
     public isThreatened(pos: Position, color: PieceColor): boolean {
         const posCol = (pos[0] + 1) >>> 1;
         return ((color == "w" ? this.bThreats : this.wThreats)[posCol] & Board.lineMask(pos[1])) != 0;
     }
-
+    /**
+     * Mark a threat for the opposite color, a defense to its own color, in the position
+     *
+     * @param {Position} pos
+     * @param {PieceColor} color
+     * @memberof Board
+     */
     public setThreat(pos: Position, color: PieceColor): void {
         const posCol = (pos[0] + 1) >>> 1;
         (color == "w" ? this.wThreats : this.bThreats)[posCol] |= Board.lineMask(pos[1]);
@@ -347,12 +514,24 @@ export abstract class Board implements IBoard {
         }
     }
 
+    /**
+     * Are threre any regainable pieces for the current player?
+     *
+     * @param {HexColor} hexColor - needed to select bishop color
+     * @return {boolean}
+     * @memberof Board
+     */
     public hasRegainablePieces(hexColor: HexColor): boolean {
         const currentColor = this._turn;
         return this._regainablePieces.reduce(
             (found, p) => found || p.color == currentColor && (!cspty.isBishop(p) || p.hexesColor == hexColor), false);
     }
-
+    /**
+     * Check regainable pieces with awaiting promotion pawns, to select the available regainable bishops
+     *
+     * @return {boolean} 
+     * @memberof Board
+     */
     public hasAwaitingRegainablePieces() {
         const currentColor = this._turn;
         if (this._regainablePieces.reduce((found, p) => found || p.color == currentColor && p.symbol != 'J', false))
@@ -373,33 +552,65 @@ export abstract class Board implements IBoard {
         }
     }
 
-    protected findRegeinablePiece(color: PieceColor, promoteTo: PieceName, hexColor: HexColor): Piece {
-        const piece = this._regainablePieces.find(p => p.color == color && p.symbol == promoteTo && (!cspty.isBishop(p) || p.hexesColor == hexColor))
-        assertNonNullish(piece, "retrieve the promoted piece");
-        return piece;
-    }
-
+    /**
+     * Set of the regainable pieces available for current player
+     *
+     * @param {HexColor} hexColor
+     * @return {Set<PieceName>}
+     * @memberof Board
+     */
     public currentRegainablePieceNames(hexColor: HexColor): Set<PieceName> {
         const currentColor = this._turn;
         return this._regainablePieces.reduce((s: Set<PieceName>, x: Piece) =>
             x.color == currentColor && (!cspty.isBishop(x) || x.hexesColor == hexColor) ? s.add(x.symbol) : s,
             new Set<PieceName>());
     }
-
+    /**
+     * Max regainable piece value for current player
+     *
+     * @param {HexColor} hexColor
+     * @return {*}  {number}
+     * @memberof Board
+     */
     public maxRegainablePiecesValue(hexColor: HexColor): number {
         const currentColor = this._turn;
         return this._regainablePieces.reduce((acc, x) =>
             x.value > acc && x.color == currentColor && (!cspty.isBishop(x) || x.hexesColor == hexColor) ? x.value : acc, 0);
     }
 
+    protected findRegeinablePiece(color: PieceColor, promoteTo: PieceName, hexColor: HexColor): Piece {
+        const piece = this._regainablePieces.find(p => p.color == color && p.symbol == promoteTo && (!cspty.isBishop(p) || p.hexesColor == hexColor))
+        assertNonNullish(piece, "retrieve the promoted piece");
+        return piece;
+    }
+
     //#endregion
 
-    public * whitePieces() { for (const p of this.wPieces.values()) yield p; }
-    public * blackPieces() { for (const p of this.bPieces.values()) yield p; }
+    /**
+     * White player current pieces
+     *
+     * @yields {Piece}
+     * @memberof Board
+     */
+    public * whitePieces(): Generator<Piece, void, void> { for (const p of this.wPieces.values()) yield p; }
+    /**
+     * Black player current pieces
+     *
+     * @yields {Piece}
+     * @memberof Board
+     */
+    public * blackPieces(): Generator<Piece, void, void> { for (const p of this.bPieces.values()) yield p; }
 
-    protected * whitePiecePositions() { for (const p of this.wPieces.values()) yield p.position!; }
-    protected * blackPiecePositions() { for (const p of this.bPieces.values()) yield p.position!; }
+    protected * whitePiecePositions(): Generator<Position, void, void> { for (const p of this.wPieces.values()) yield p.position!; }
+    protected * blackPiecePositions(): Generator<Position, void, void> { for (const p of this.bPieces.values()) yield p.position!; }
 
+    /**
+     * Move options for a piece on a board context
+     *
+     * @param {Piece} piece
+     * @yields {Position}
+     * @memberof Board
+     */
     public * pieceMoves(piece: Piece): Generator<Position, void, void> {
         const currentKing = this.turnKing;
         if (currentKing.checked) {
@@ -1046,6 +1257,62 @@ export class Game extends Board {
 
     public get preMoveHeuristic(): Heuristic { return this.currentHeuristic; }
 
+
+    /**
+     * Current positions of the pieces
+     *
+     * @yield {string} - piece name, capitalized for whites, followed by hex name.
+     * @memberof Game
+     */
+     public * pieceList() {
+        for (const p of this.whitePieces()) yield p.uncapitalizedSymbolPositionString;
+        for (const p of this.blackPieces()) yield p.uncapitalizedSymbolPositionString;
+    }
+
+    /**
+     * Current positions of the player threatened pieces
+     *
+     * @yield {string} - hex name
+     * @memberof Game
+     */
+    public * threatenedPieceStringPositions(): Generator<string, void, void> {
+        const piecePositionsGenerator = this.turn == 'w' ? this.whitePiecePositions() : this.blackPiecePositions();
+        const color = this.turn;
+        for (const pos of piecePositionsGenerator) {
+            if (this.isThreatened(pos, color)) yield PositionHelper.toString(pos);
+        }
+    }
+    /**
+     * Current positions of pieces which the player threats
+     *
+     * @yield {string} - hex name
+     * @memberof Game
+     */
+    public * threatsPieceStringPositions(): Generator<string, void, void> {
+        const piecePositionsGenerator = this.turn == 'w' ? this.blackPiecePositions() : this.whitePiecePositions();
+        const color = this.turn;
+        for (const pos of piecePositionsGenerator) {
+            if (this.hasThreat(pos, color)) yield PositionHelper.toString(pos);
+        }
+        const specialPawnCapture = this.specialPawnCapture;
+        if (specialPawnCapture != null) {
+            if (specialPawnCapture.isScornfulCapturable())
+                yield PositionHelper.toString(specialPawnCapture.capturablePiece.position!);
+            else if (specialPawnCapture.isEnPassantCapturable()) {
+                const enPassantPos = specialPawnCapture.capturablePiece.position!;
+                if (this.isThreatened(enPassantPos, color)) yield PositionHelper.toString(enPassantPos);
+            }
+        }
+    }
+
+    /**
+     * Move from hex to hex (for GUI)
+     *
+     * @param {string} fromHex
+     * @param {string} toHex
+     * @param {PieceName} [pieceName] - Must be the piece on fromHex position; useless, but a check
+     * @memberof Game
+     */
     public doMove(fromHex: string, toHex: string, pieceName?: PieceName): void {
         try {
             assertCondition(this._top == this._moves.length - 1, "push the moves over the last one");
@@ -1088,6 +1355,14 @@ export class Game extends Board {
         }
     }
 
+    /**
+     * Move pawn with promotion (GUI)
+     *
+     * @param {string} fromHex
+     * @param {string} toHex
+     * @param {PieceName} promoteTo
+     * @memberof Game
+     */
     public doPromotePawn(fromHex: string, toHex: string, promoteTo: PieceName) {
         try {
             assertCondition(this._top == this._moves.length - 1, "push the moves over the last one");
@@ -1133,6 +1408,12 @@ export class Game extends Board {
         }
     }
 
+    /**
+     * Apply castling move (GUI; castling is selected from a list)
+     *
+     * @param {(CastlingString | GrandCastlingString)} strMove
+     * @memberof Game
+     */
     public doCastling(strMove: CastlingString | GrandCastlingString) {
         try {
             if (this.isGrand) assertCondition(csty.isGrandCastlingString(strMove), "castling move string");
@@ -1184,6 +1465,11 @@ export class Game extends Board {
         }
     }
 
+    /**
+     * Undo the last move
+     *
+     * @memberof Game
+     */
     public popMove() {
         if (this._moves.length > 1 || this._top == 0 && this._moves[0].move != '\u2026') {
             assertCondition(this._moves[this._top].move != '\u2026')
@@ -1403,6 +1689,7 @@ export class Game extends Board {
         }
     }
     public moveTop(): void {
+        debugger;
         while (this._top < this._moves.length - 1) {
             const moveInfo = this._moves[++this._top];
             assertCondition(moveInfo.move != '\u2026')
@@ -1417,14 +1704,22 @@ export class Game extends Board {
         return JSON.stringify(this._moves);
     }
     public restoreMovesJSON(moves: string) {
-        this._moves = JSON.parse(moves) as UndoStatus[];
-        this._top = this._moves.length - 1;
+        const tmpMoves: UndoStatusWhithCheckInfo[] = JSON.parse(moves) as UndoStatus[];
+        while (tmpMoves.length > 0) this._moves.push(tmpMoves.shift()!);
+        this.moveTop();
     }
 
     //#endregion
 
     //#region TLPD
 
+    /**
+     * Game state TLPD
+     *
+     * @readonly
+     * @type {string}
+     * @memberof Game
+     */
     public get valueTLPD(): string {
         return this.piecePositionsTLPD + " " + this.turn + " " + this.castlingStatus
             + " " + (this.specialPawnCapture?.toString() ?? "-")
@@ -1456,6 +1751,12 @@ export class Game extends Board {
         return r;
     }
 
+    /**
+     * Load game using TLPD string
+     *
+     * @param {string} restoreStatusTLPD
+     * @memberof Game
+     */
     public loadTLPD(restoreStatusTLPD: string): void {
         try {
             assertCondition(restoreStatusTLPD != null, "Not empty TLPD");
@@ -1605,6 +1906,12 @@ export class Game extends Board {
 
     //#region ADD STORED MOVES
 
+    /**
+     * Apply a numbered sequence of paired moves
+     *
+     * @param {string} sq
+     * @memberof Game
+     */
     public applyMoveSq(sq: string) {
         try {
             assertCondition(this._top == this._moves.length - 1, "push the moves over the last one");
@@ -1646,7 +1953,12 @@ export class Game extends Board {
             throw e;
         }
     }
-
+    /**
+     * Apply a string single move
+     *
+     * @param {string} mov
+     * @memberof Game
+     */
     public applyStringMove(mov: string) {
         const separatorIndex = (mov: string, ini: number = 0) => {
             let i = ini;
@@ -1703,36 +2015,12 @@ export class Game extends Board {
 
     //#endregion
 
-    public * pieceList() {
-        for (const p of this.whitePieces()) yield p.uncapitalizedSymbolPositionString;
-        for (const p of this.blackPieces()) yield p.uncapitalizedSymbolPositionString;
-    }
-
-    public * threatenedPieceStringPositions(): Generator<string, void, void> {
-        const piecePositionsGenerator = this.turn == 'w' ? this.whitePiecePositions() : this.blackPiecePositions();
-        const color = this.turn;
-        for (const pos of piecePositionsGenerator) {
-            if (this.isThreatened(pos, color)) yield PositionHelper.toString(pos);
-        }
-    }
-
-    public * ownThreatsPieceStringPositions(): Generator<string, void, void> {
-        const piecePositionsGenerator = this.turn == 'w' ? this.blackPiecePositions() : this.whitePiecePositions();
-        const color = this.turn;
-        for (const pos of piecePositionsGenerator) {
-            if (this.hasThreat(pos, color)) yield PositionHelper.toString(pos);
-        }
-        const specialPawnCapture = this.specialPawnCapture;
-        if (specialPawnCapture != null) {
-            if (specialPawnCapture.isScornfulCapturable())
-                yield PositionHelper.toString(specialPawnCapture.capturablePiece.position!);
-            else if (specialPawnCapture.isEnPassantCapturable()) {
-                const enPassantPos = specialPawnCapture.capturablePiece.position!;
-                if (this.isThreatened(enPassantPos, color)) yield PositionHelper.toString(enPassantPos);
-            }
-        }
-    }
-
+    /**
+     * Add a move to the game
+     *
+     * @param {MoveInfo} move
+     * @memberof Game
+     */
     public pushMove(move: MoveInfo) {
         const turnInfo: UndoStatus = {
             n: this._moveNumber,

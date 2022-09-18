@@ -129,9 +129,10 @@ abstract class Minimax {
         //TODO: Checked is state for all the moves
         //TODO: Castlings, pawn promotion
 
-        //this is a quick sort heuristic:
+        // * this is a quick sort heuristic:
         //- computed closeChecks doesn't ensures check, only close position
         //- discovered doesn't ensures piece move destination allows discovered check not to be hiden
+        // @param 
         for (const piece of color == 'w' ? node.whitePieces() : node.blackPieces()) {
             //1st: awaiting promotion (when not in check)
             if (currentKing.checked)

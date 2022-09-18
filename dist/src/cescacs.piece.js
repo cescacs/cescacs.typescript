@@ -9,6 +9,24 @@ class Piece {
     constructor(color) {
         this.color = color;
     }
+    static pieceValue(symbol) {
+        switch (symbol) {
+            case "K": return 256;
+            case "D": return 15;
+            case "V": return 14;
+            case "R": return 11;
+            case "G": return 8;
+            case "N": return 4;
+            case "J": return 3;
+            case "E":
+            case "M": return 2;
+            case "P": return 1;
+            default: {
+                const exhaustiveCheck = symbol;
+                throw new Error(exhaustiveCheck);
+            }
+        }
+    }
     static isRegainablePiece(symbol) {
         switch (symbol) {
             case "D":

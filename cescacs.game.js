@@ -23,13 +23,15 @@ function init() {
     document.querySelector("#dialogPromotion>span.close").addEventListener("click", () => {
         clearClickHex();
     });
+    debugger;
     //restore existing game from storage
     if (typeof (Storage) !== "undefined" && localStorage.getItem("cescacs") != null) {
         restoreGame();
     } else {
-        restoreBoard();
-        displayMoveStatus();
+        saveGame();
     }
+    restoreBoard();
+    displayMoveStatus();
     //title
     const gameTitle = document.getElementById("gameTitle");
     if (grandParam) {
@@ -62,6 +64,12 @@ function removeSymbol(hexElement) {
 }
 
 var selecting = false;
+/**
+ * Main GUI function, triggered from svg clic
+ *
+ * @param {*} hexElement - the svg hex
+ * @return {*} 
+ */
 function clickHex(hexElement) {
     if (!isExecutingAction() && !game.gameEnd) {
         if (clickHex.svg === undefined) {
@@ -97,7 +105,7 @@ function clickHex(hexElement) {
                                 removeSymbol(document.getElementById("HEX" + enPassantPos));
                             }
                             displayMoveStatus();
-                            //TODO: SaveGame()
+                            saveMoves();
                         } catch (e) {
                             console.log("doMove: ", e);
                             document.getElementById("gameStatus").innerHTML = (e instanceof Error ? e.message : "");
@@ -150,29 +158,13 @@ function clickHex(hexElement) {
         }
     }
 }
-function clearClickHex() {
-    const svg = clickHex.svg;
-    if (svg != null) {
-        for (const e of svg) { e.classList.remove('highlight'); }
-        svg.clear();
-        const item = clickHex.item;
-        if (item != null) {
-            item.classList.remove("selected");
-            if (item.lastChild != null) item.lastChild.classList.remove("selected");
-            clickHex.item = null;
-        }
-        clickHex.hexElement = undefined;
-        displayMoveStatus();
-    }
-}
-function isExecutingAction() {
-    if (boardTLPDStatus || loadNewGame || endingGameResign || endingGameDraw || showingThreatened || showingThreats) return true;
-    else return document.getElementById("TLPD").style.display != 'none'
-        || document.getElementById("castlingContainer").style.display != 'none'
-        || document.getElementById("movesPanel").style.display != 'none'
-        || document.getElementById("loadMovesPanel").style.display != 'none';
-}
-function showPromotionDialog(destCoord, closeable = false) {
+/**
+ * Choose promotion piece
+ *
+ * @param {*} destCoord
+ * @param {boolean} [closeable=false]
+ */
+ function showPromotionDialog(destCoord, closeable = false) {
     const dialog = document.getElementById("dialogPromotion");
     const selector = document.getElementById("promotionRegainableOptions");
     const bishopColor = cescacs.PositionHelper.hexColor(destCoord);
@@ -183,6 +175,10 @@ function showPromotionDialog(destCoord, closeable = false) {
     }
     dialog.showModal();
 }
+/**
+ * On change of promotionRegainableOptions list
+ *
+ */
 function activateConfirmPromotion() {
     const selector = document.getElementById("promotionRegainableOptions");
     const confirmButton = document.getElementById("confirmPromotion");
@@ -205,7 +201,7 @@ function confirmPromotion() {
         try {
             game.doPromotePawn(src, dest, pieceSymbol);
             displayMoveStatus();
-            //TODO: SaveGame()
+            saveMoves();
         } catch (e) {
             console.log("doPromotePawn: ", e);
             document.getElementById("gameStatus").innerHTML = (e instanceof Error ? e.message : "");
@@ -214,29 +210,41 @@ function confirmPromotion() {
         dialog.close();
     }
 }
-function confirmCastling() {
-    const buttonCastling = document.getElementById("buttonCastling");
-    const castlingContainer = document.getElementById("castlingContainer");
-    const castlingStatusLbl = document.getElementById("castlingStatusLbl");
-    castlingStatusLbl.innerHTML = "";
-    castlingContainer.style.display = "none";
-    for (const col of ['I', 'H', 'F', 'E', 'D']) {
-        const lbl = eval("castling" + col + "Lbl");
-        const btnContainer = eval("castling" + col + "Btns");
-        lbl.innerHTML = "";
-        btnContainer.innerHTML = "";
+/**
+ * clear move selection (highlighted and selected elements) and show game status
+ *
+ */
+function clearClickHex() {
+    const svg = clickHex.svg;
+    if (svg != null) {
+        for (const e of svg) { e.classList.remove('highlight'); }
+        svg.clear();
+        const item = clickHex.item;
+        if (item != null) {
+            item.classList.remove("selected");
+            if (item.lastChild != null) item.lastChild.classList.remove("selected");
+            clickHex.item = null;
+        }
+        clickHex.hexElement = undefined;
+        displayMoveStatus();
     }
-    buttonCastling.innerHTML = "Castling";
-    game.doCastling(previewCastling.move);
-    previewCastling.move = undefined;
-    previewCastling.k = undefined;
-    previewCastling.rk = undefined;
-    previewCastling.rq = undefined;
-    RestoreButtons();
-    displayMoveStatus();
-    //TODO: SaveGame()
 }
-
+/**
+ * only one action at a time; move selection not included in condition, as it will be cleared when other action begins
+ *
+ * @return {*} 
+ */
+function isExecutingAction() {
+    if (boardTLPDStatus || loadNewGame || endingGameResign || endingGameDraw || showingThreatened || showingThreats) return true;
+    else return document.getElementById("TLPD").style.display != 'none'
+        || document.getElementById("castlingContainer").style.display != 'none'
+        || document.getElementById("movesPanel").style.display != 'none'
+        || document.getElementById("loadMovesPanel").style.display != 'none';
+}
+/**
+ * Show moveText, Heuristic, and disable buttons on game end
+ *
+ */
 function displayMoveStatus() {
     let moveText = game.lastMove;
     if (game.gameEnd) {
@@ -256,9 +264,11 @@ function displayMoveStatus() {
     document.getElementById("gameStatus").innerHTML = moveText;
     document.getElementById("resultString").innerHTML = game.resultString ?? '\xa0';
     displayHeuristic();
-    //TODO: Remove SaveGame
-    saveGame(); //ensure to preserve status
 }
+/**
+ * really part of displayMoveStatus
+ *
+ */
 function displayHeuristic() {
     const turn = game.turn;
     const lblHeuristic = document.getElementById(turn == 'w' ? "HeuristicLabel1" : "HeuristicLabel2");
@@ -268,11 +278,15 @@ function displayHeuristic() {
     lblHeuristic.innerHTML = heuristic.toString();
     lblTurn.innerHTML = isNaN(previousHeuristic) ? "" : " Δ: " + cescacs.round2hundredths(heuristic - previousHeuristic).toString();
 }
-
+/**
+ * Show pieces on board (repaint)
+ *
+ */
 function restoreBoard() {
     for (const item of document.querySelectorAll(`[id^="HEX"]`)) {
         removeSymbol(item)
     }
+    debugger;
     for (const p of game.pieceList()) {
         placeSymbol(p.slice(1), p[0]);
     }
@@ -280,16 +294,22 @@ function restoreBoard() {
 
 function saveGame() {
     try {
+        localStorage.setItem("cescacs-grand", game.isGrand ? 'grand' : "");
         localStorage.setItem("cescacs", game.valueTLPD);
-        localStorage.setItem("cescacs-mv", game.movesJSON);
+        localStorage.removeItem("cescacs-mv");
         if (game.gameEnd) localStorage.setItem("cescacs-end", game.resultString);
         else localStorage.removeItem("cescacs-end");
-        localStorage.setItem("cescacs-grand", game.isGrand ? 'grand' : "");
-    } catch (e) {
+} catch (e) {
         console.log("saveGame: ", e);
         document.getElementById("gameStatus").innerHTML = (e instanceof Error ? e.message : "");
         document.getElementById("resultString").innerHTML = 'ERROR';
     }
+}
+
+function saveMoves() {
+    localStorage.setItem("cescacs-mv", game.movesJSON);
+    if (game.gameEnd) localStorage.setItem("cescacs-end", game.resultString);
+    else localStorage.removeItem("cescacs-end");
 }
 
 function restoreGame() {
@@ -303,9 +323,7 @@ function restoreGame() {
                 game.restoreMovesJSON(localStorage.getItem("cescacs-mv"));
                 game.moveTop();
             }
-            restoreBoard();
             game.resultString = localStorage.getItem("cescacs-end");
-            displayMoveStatus();
         } catch (e) {
             console.log("restoreGame: ", e);
             document.getElementById("gameStatus").innerHTML = (e instanceof Error ? e.message : "");
@@ -319,7 +337,8 @@ function restoreGame() {
     }
 }
 
-////////////////// BUTTON ACTIONS IN UPPERCASE /////////////
+//SECTION BUTTON ACTIONS
+//------------- BUTTON ACTIONS IN UPPERCASE ------------------
 
 var boardTLPDStatus = false;
 function TLPDString() {
@@ -391,10 +410,8 @@ function LoadTLPD() {
                     buttonLoad.classList.remove("fullbutton");
                     buttonLoad.classList.add("halfbutton");
                     restoreBoard();
-                    localStorage.removeItem("cescacs");
-                    localStorage.removeItem("cescacs-mv");
-                    localStorage.removeItem("cescacs-end");
                     //cescacs-grand is preserved
+                    saveGame();
                     displayMoveStatus();
                 } catch (e) {
                     console.log("LoadTLPD: ", x.value, e);
@@ -456,14 +473,15 @@ function ConfirmAction() {
         endingGameResign = false;
         game.resign = true;
         displayMoveStatus();
-        //TODO: SaveGame()
+        localStorage.setItem("cescacs-end", game.resultString);
     } else if (endingGameDraw) {
         endingGameDraw = false;
         game.draw = true;
         displayMoveStatus();
-        //TODO: SaveGame()
+        localStorage.setItem("cescacs-end", game.resultString);
     }
 }
+
 function CancelAction() {
     RestoreButtons();
     loadNewGame = false;
@@ -481,29 +499,248 @@ function GrandCescacs() {
     window.location = parser.href;
 }
 
-function ShowHeuristic() {
-    clearClickHex();
-    const dialog = document.getElementById("dialogHeuristic");
-    const title = document.getElementById("dialogHeuristicTurn");
-    title.innerHTML = game.turn == 'w' ? 'White' : 'Black'
-    const h = game.preMoveHeuristic;
-    {
-        const hPieces0 = document.getElementById("hPieces0");
-        const hPieces1 = document.getElementById("hPieces1");
-        const hSpace0 = document.getElementById("hSpace0");
-        const hSpace1 = document.getElementById("hSpace1");
-        const hPositioning = document.getElementById("hPositioning");
-        const hMobility = document.getElementById("hMobility");
-        const hKing = document.getElementById("hKing");
-        hPieces0.innerHTML = cescacs.round2hundredths(h.pieces[0]);
-        hPieces1.innerHTML = cescacs.round2hundredths(h.pieces[1]);
-        hSpace0.innerHTML = cescacs.round2hundredths(h.space[0]);
-        hSpace1.innerHTML = cescacs.round2hundredths(h.space[1]);
-        hPositioning.innerHTML = cescacs.round2hundredths(h.positioning);
-        hMobility.innerHTML = cescacs.round2hundredths(h.mobility);
-        hKing.innerHTML = cescacs.round2hundredths(h.king);
+function ShowMoves() {
+    const buttonShowMoves = document.getElementById("buttonShowMoves");
+    const movesPanel = document.getElementById("movesPanel");
+    if (movesPanel.style.display == "none") {
+        const sepMoves = document.getElementById("sepMoves");
+        const movesGrid = document.getElementById("movesGrid");
+        clearClickHex();
+        HideButtons();
+        sepMoves.style.display = "block";
+        buttonShowMoves.classList.remove("halfbutton");
+        buttonShowMoves.classList.add("fullbutton");
+        buttonShowMoves.innerHTML = "Go on"
+        buttonShowMoves.style.display = "block";
+        const n = movesGrid.childElementCount;
+        for (const mv of game.moves(n)) {
+            const newdiv = document.createElement('div');
+            newdiv.innerHTML = cescacs.csmv.fullMoveNotation(mv);
+            if (cescacs.csmv.undoStatusId(mv) != "") {
+                newdiv.setAttribute("id", cescacs.csmv.undoStatusId(mv));
+                newdiv.onclick = function () { showId(this, this.getAttribute("id")); }
+            }
+            movesGrid.appendChild(newdiv);
+        }
+        if (movesGrid.childElementCount > 0) {
+            movesGrid.lastChild.classList.add("selected");
+            document.getElementById("buttonUndo").disabled = false;
+        } else {
+            document.getElementById("buttonUndo").disabled = true;
+        }
+        movesPanel.style.display = "block";
+        movesGrid.scrollTop = 10000;
+    } else {
+        movesPanel.style.display = "none";
+        for (const item of movesGrid.children) item.classList.remove("selected");
+        game.moveTop();
+        restoreBoard();
+        RestoreButtons();
+        buttonShowMoves.innerHTML = "Show mvs"
+        buttonShowMoves.classList.remove("fullbutton");
+        buttonShowMoves.classList.add("halfbutton");
+        displayMoveStatus();
     }
-    dialog.showModal();
+}
+
+//SECTION Options inside Show Moves
+
+function UndoMove() {
+    const movesGrid = document.getElementById("movesGrid");
+    movesGrid.lastElementChild.remove();
+    game.popMove();
+    if (movesGrid.childElementCount > 0 && movesGrid.lastElementChild.hasAttribute("id")) {
+        movesGrid.lastElementChild.classList.add("selected");
+    } else document.getElementById("buttonUndo").disabled = true;
+    restoreBoard();
+    displayMoveStatus();
+    saveMoves();
+}
+
+function showId(element, id) {
+    if (id != null) {
+        game.moveBottom();
+        while (game.topMoveId != id) {
+            game.moveForward();
+        }
+        restoreBoard();
+        for (const item of movesGrid.children) {
+            item.classList.remove("selected");
+        }
+        element.classList.add("selected");
+        buttonUndo.disabled = element.nextElementSibling != null;
+        document.getElementById("gameStatus").innerHTML = game.lastMove ?? '\xa0';
+        document.getElementById("resultString").innerHTML = game.resultString ?? '\xa0';
+    }
+}
+
+function showFirst() {
+    const movesGrid = document.getElementById("movesGrid");
+    const buttonUndo = document.getElementById("buttonUndo");
+    try {
+        game.moveBottom();
+        restoreBoard();
+        document.getElementById("gameStatus").innerHTML = game.lastMove ?? '\xa0';
+        document.getElementById("resultString").innerHTML = game.resultString ?? '\xa0';
+        posGridMoves(movesGrid);
+        movesGrid.scrollTop = 0;
+    } catch (e) {
+        console.log("showFirst: ", e);
+        document.getElementById("gameStatus").innerHTML = (e instanceof Error ? e.message : "");
+        document.getElementById("resultString").innerHTML = 'ERROR';
+    }
+}
+
+
+function showPrevious() {
+    const movesGrid = document.getElementById("movesGrid");
+    const buttonUndo = document.getElementById("buttonUndo");
+    try {
+        game.moveBackward();
+        restoreBoard();
+        document.getElementById("gameStatus").innerHTML = game.lastMove ?? '\xa0';
+        document.getElementById("resultString").innerHTML = game.resultString ?? '\xa0';
+        posGridMoves(movesGrid);
+    } catch (e) {
+        console.log("showFirst: ", e);
+        document.getElementById("gameStatus").innerHTML = (e instanceof Error ? e.message : "");
+        document.getElementById("resultString").innerHTML = 'ERROR';
+    }
+}
+
+function showNext() {
+    const movesGrid = document.getElementById("movesGrid");
+    const buttonUndo = document.getElementById("buttonUndo");
+    try {
+        game.moveForward();
+        restoreBoard();
+        document.getElementById("gameStatus").innerHTML = game.lastMove ?? '\xa0';
+        document.getElementById("resultString").innerHTML = game.resultString ?? '\xa0';
+        posGridMoves(movesGrid);
+    } catch (e) {
+        console.log("showFirst: ", e);
+        document.getElementById("gameStatus").innerHTML = (e instanceof Error ? e.message : "");
+        document.getElementById("resultString").innerHTML = 'ERROR';
+    }
+}
+
+function showLast() {
+    const movesGrid = document.getElementById("movesGrid");
+    const buttonUndo = document.getElementById("buttonUndo");
+    try {
+        game.moveTop();
+        restoreBoard();
+        document.getElementById("gameStatus").innerHTML = game.lastMove ?? '\xa0';
+        document.getElementById("resultString").innerHTML = game.resultString ?? '\xa0';
+        posGridMoves(movesGrid);
+        movesGrid.scrollTop = 10000;
+    } catch (e) {
+        console.log("showFirst: ", e);
+        document.getElementById("gameStatus").innerHTML = (e instanceof Error ? e.message : "");
+        document.getElementById("resultString").innerHTML = 'ERROR';
+    }
+}
+
+function posGridMoves(movesGrid) {
+    const elementId = game.topMoveId;
+    if (elementId != "") {
+        const element = document.getElementById(elementId);
+        for (const item of movesGrid.children) {
+            item.classList.remove("selected");
+        }
+        element.classList.add("selected");
+        buttonUndo.disabled = element.nextElementSibling != null;
+    }
+}
+
+/**
+ * Get the moves as a string
+ *
+ */
+function GetMoves() {
+    const buttonShowMoves = document.getElementById("buttonShowMoves");
+    const buttonMoves = document.getElementById("buttonMoves");
+    const buttonUndo = document.getElementById("buttonUndo");
+    const movesPanelTgl1 = document.getElementById("movesPanelTgl1");
+    const movesPanelTgl2 = document.getElementById("movesPanelTgl2");
+    if (movesPanelTgl1.style.display == 'none') {
+        buttonMoves.innerHTML = "Copy moves";
+        buttonShowMoves.style.display = 'block';
+        buttonUndo.style.display = 'block';
+        movesPanelTgl1.style.display = 'block';
+        movesPanelTgl2.style.display = 'none';
+    } else {
+        const movesArea = document.getElementById("movesArea");
+        buttonMoves.innerHTML = "Got";
+        buttonShowMoves.style.display = 'none';
+        buttonUndo.style.display = 'none';
+        movesPanelTgl1.style.display = 'none';
+        movesPanelTgl2.style.display = 'block';
+        movesArea.value = game.strMoves();
+        movesArea.select();
+        movesArea.setSelectionRange(0, 99999); /* For mobile devices */
+        navigator.clipboard.writeText(movesArea.value);
+    }
+}
+
+//!SECTION Options inside Show Moves
+
+/**
+ * Load a string with the next moves
+ *
+ */
+ function LoadMoves() {
+    const buttonLoadMoves = document.getElementById("buttonLoadMoves");
+    const loadMovesPanel = document.getElementById("loadMovesPanel");
+    if (loadMovesPanel.style.display == "none") {
+        const sepMoves = document.getElementById("sepMoves");
+        clearClickHex();
+        HideButtons();
+        sepMoves.style.display = "block";
+        buttonLoadMoves.classList.remove("halfbutton");
+        buttonLoadMoves.classList.add("fullbutton");
+        buttonLoadMoves.innerHTML = "Apply";
+        buttonLoadMoves.style.display = "block";
+        loadMovesPanel.style.display = "block";
+    } else {
+        const text = lMovesArea.value.trim();
+        if (text.length == 0) {
+            loadMovesPanel.style.display = "none";
+            RestoreButtons();
+            buttonLoadMoves.innerHTML = "Load mvs";
+            buttonLoadMoves.classList.remove("fullbutton");
+            buttonLoadMoves.classList.add("halfbutton");
+        } else if (text.length >= 6) {
+            try {
+                game.applyMoveSq(text);
+                loadMovesPanel.style.display = "none";
+                RestoreButtons();
+                buttonLoadMoves.innerHTML = "Load mvs";
+                buttonLoadMoves.classList.remove("fullbutton");
+                buttonLoadMoves.classList.add("halfbutton");
+                restoreBoard();
+                displayHeuristic();
+                saveMoves();
+            } catch (e) {
+                console.log("LoadMoves: ", e);
+                lMovesArea.value = ("LoadMoves: " + e instanceof Error ? e.toString() : String(e)) + "\n\n" + text;
+                document.getElementById("gameStatus").innerHTML = (e instanceof Error ? e.message : "");
+                document.getElementById("resultString").innerHTML = 'ERROR';
+            }
+        }
+    }
+}
+/**
+ * Enter a move string (string input using prompt). There is the LoadMoves proc also.
+ *
+ */
+function ManualMove() {
+    let move = window.prompt("Next move?");
+    if (move != null && move.length >= 2) {
+        game.applyStringMove(move);
+        restoreBoard();
+        saveMoves();
+    }
 }
 
 var showingThreatened = false;
@@ -564,7 +801,7 @@ function ShowThreats() {
     } else {
         clearClickHex();
         let n = 0;
-        for (const s of game.ownThreatsPieceStringPositions()) {
+        for (const s of game.threatsPieceStringPositions()) {
             const e = document.getElementById("HEX" + s);
             e.classList.add('highlight');
             ShowThreats.svg.add(e);
@@ -581,6 +818,31 @@ function ShowThreats() {
         if (n == 0 && !game.gameEnd) document.getElementById("gameStatus").innerHTML = "No threats";
         showingThreats = true;
     }
+}
+
+function ShowHeuristic() {
+    clearClickHex();
+    const dialog = document.getElementById("dialogHeuristic");
+    const title = document.getElementById("dialogHeuristicTurn");
+    title.innerHTML = game.turn == 'w' ? 'White' : 'Black'
+    const h = game.preMoveHeuristic;
+    {
+        const hPieces0 = document.getElementById("hPieces0");
+        const hPieces1 = document.getElementById("hPieces1");
+        const hSpace0 = document.getElementById("hSpace0");
+        const hSpace1 = document.getElementById("hSpace1");
+        const hPositioning = document.getElementById("hPositioning");
+        const hMobility = document.getElementById("hMobility");
+        const hKing = document.getElementById("hKing");
+        hPieces0.innerHTML = cescacs.round2hundredths(h.pieces[0]);
+        hPieces1.innerHTML = cescacs.round2hundredths(h.pieces[1]);
+        hSpace0.innerHTML = cescacs.round2hundredths(h.space[0]);
+        hSpace1.innerHTML = cescacs.round2hundredths(h.space[1]);
+        hPositioning.innerHTML = cescacs.round2hundredths(h.positioning);
+        hMobility.innerHTML = cescacs.round2hundredths(h.mobility);
+        hKing.innerHTML = cescacs.round2hundredths(h.king);
+    }
+    dialog.showModal();
 }
 
 function Castling() {
@@ -728,232 +990,30 @@ function previewCastling(value) {
     }
 }
 
-function ShowMoves() {
-    const buttonShowMoves = document.getElementById("buttonShowMoves");
-    const movesPanel = document.getElementById("movesPanel");
-    if (movesPanel.style.display == "none") {
-        const sepMoves = document.getElementById("sepMoves");
-        const movesGrid = document.getElementById("movesGrid");
-        clearClickHex();
-        HideButtons();
-        sepMoves.style.display = "block";
-        buttonShowMoves.classList.remove("halfbutton");
-        buttonShowMoves.classList.add("fullbutton");
-        buttonShowMoves.innerHTML = "Go on"
-        buttonShowMoves.style.display = "block";
-        const n = movesGrid.childElementCount;
-        for (const mv of game.moves(n)) {
-            const newdiv = document.createElement('div');
-            newdiv.innerHTML = cescacs.csmv.fullMoveNotation(mv);
-            if (cescacs.csmv.undoStatusId(mv) != "") {
-                newdiv.setAttribute("id", cescacs.csmv.undoStatusId(mv));
-                newdiv.onclick = function () { showId(this, this.getAttribute("id")); }
-            }
-            movesGrid.appendChild(newdiv);
-        }
-        if (movesGrid.childElementCount > 0) {
-            movesGrid.lastChild.classList.add("selected");
-            document.getElementById("buttonUndo").disabled = false;
-        } else {
-            document.getElementById("buttonUndo").disabled = true;
-        }
-        movesPanel.style.display = "block";
-        movesGrid.scrollTop = 10000;
-    } else {
-        movesPanel.style.display = "none";
-        for (const item of movesGrid.children) item.classList.remove("selected");
-        game.moveTop();
-        restoreBoard();
-        RestoreButtons();
-        buttonShowMoves.innerHTML = "Show mvs"
-        buttonShowMoves.classList.remove("fullbutton");
-        buttonShowMoves.classList.add("halfbutton");
-        displayMoveStatus();
+function confirmCastling() {
+    const buttonCastling = document.getElementById("buttonCastling");
+    const castlingContainer = document.getElementById("castlingContainer");
+    const castlingStatusLbl = document.getElementById("castlingStatusLbl");
+    castlingStatusLbl.innerHTML = "";
+    castlingContainer.style.display = "none";
+    for (const col of ['I', 'H', 'F', 'E', 'D']) {
+        const lbl = eval("castling" + col + "Lbl");
+        const btnContainer = eval("castling" + col + "Btns");
+        lbl.innerHTML = "";
+        btnContainer.innerHTML = "";
     }
-}
-
-function UndoMove() {
-    const movesGrid = document.getElementById("movesGrid");
-    movesGrid.lastElementChild.remove();
-    game.popMove();
-    if (movesGrid.childElementCount > 0 && movesGrid.lastElementChild.hasAttribute("id")) {
-        movesGrid.lastElementChild.classList.add("selected");
-    } else document.getElementById("buttonUndo").disabled = true;
-    restoreBoard();
+    buttonCastling.innerHTML = "Castling";
+    game.doCastling(previewCastling.move);
+    previewCastling.move = undefined;
+    previewCastling.k = undefined;
+    previewCastling.rk = undefined;
+    previewCastling.rq = undefined;
+    RestoreButtons();
     displayMoveStatus();
+    saveMoves();
 }
 
-function showId(element, id) {
-    if (id != null) {
-        game.moveBottom();
-        while (game.topMoveId != id) {
-            game.moveForward();
-        }
-        restoreBoard();
-        for (const item of movesGrid.children) {
-            item.classList.remove("selected");
-        }
-        element.classList.add("selected");
-        buttonUndo.disabled = element.nextElementSibling != null;
-        document.getElementById("gameStatus").innerHTML = game.lastMove ?? '\xa0';
-        document.getElementById("resultString").innerHTML = game.resultString ?? '\xa0';
-    }
-}
-
-function showFirst() {
-    const movesGrid = document.getElementById("movesGrid");
-    const buttonUndo = document.getElementById("buttonUndo");
-    try {
-        game.moveBottom();
-        restoreBoard();
-        document.getElementById("gameStatus").innerHTML = game.lastMove ?? '\xa0';
-        document.getElementById("resultString").innerHTML = game.resultString ?? '\xa0';
-        posGridMoves(movesGrid);
-        movesGrid.scrollTop = 0;
-    } catch (e) {
-        console.log("showFirst: ", e);
-        document.getElementById("gameStatus").innerHTML = (e instanceof Error ? e.message : "");
-        document.getElementById("resultString").innerHTML = 'ERROR';
-    }
-}
-
-
-function showPrevious() {
-    const movesGrid = document.getElementById("movesGrid");
-    const buttonUndo = document.getElementById("buttonUndo");
-    try {
-        game.moveBackward();
-        restoreBoard();
-        document.getElementById("gameStatus").innerHTML = game.lastMove ?? '\xa0';
-        document.getElementById("resultString").innerHTML = game.resultString ?? '\xa0';
-        posGridMoves(movesGrid);
-    } catch (e) {
-        console.log("showFirst: ", e);
-        document.getElementById("gameStatus").innerHTML = (e instanceof Error ? e.message : "");
-        document.getElementById("resultString").innerHTML = 'ERROR';
-    }
-}
-
-function showNext() {
-    const movesGrid = document.getElementById("movesGrid");
-    const buttonUndo = document.getElementById("buttonUndo");
-    try {
-        game.moveForward();
-        restoreBoard();
-        document.getElementById("gameStatus").innerHTML = game.lastMove ?? '\xa0';
-        document.getElementById("resultString").innerHTML = game.resultString ?? '\xa0';
-        posGridMoves(movesGrid);
-    } catch (e) {
-        console.log("showFirst: ", e);
-        document.getElementById("gameStatus").innerHTML = (e instanceof Error ? e.message : "");
-        document.getElementById("resultString").innerHTML = 'ERROR';
-    }
-}
-
-function showLast() {
-    const movesGrid = document.getElementById("movesGrid");
-    const buttonUndo = document.getElementById("buttonUndo");
-    try {
-        game.moveTop();
-        restoreBoard();
-        document.getElementById("gameStatus").innerHTML = game.lastMove ?? '\xa0';
-        document.getElementById("resultString").innerHTML = game.resultString ?? '\xa0';
-        posGridMoves(movesGrid);
-        movesGrid.scrollTop = 10000;
-    } catch (e) {
-        console.log("showFirst: ", e);
-        document.getElementById("gameStatus").innerHTML = (e instanceof Error ? e.message : "");
-        document.getElementById("resultString").innerHTML = 'ERROR';
-    }
-}
-
-function posGridMoves(movesGrid) {
-    const elementId = game.topMoveId;
-    if (elementId != "") {
-        const element = document.getElementById(elementId);
-        for (const item of movesGrid.children) {
-            item.classList.remove("selected");
-        }
-        element.classList.add("selected");
-        buttonUndo.disabled = element.nextElementSibling != null;
-    }
-}
-
-function GetMoves() {
-    const buttonShowMoves = document.getElementById("buttonShowMoves");
-    const buttonMoves = document.getElementById("buttonMoves");
-    const buttonUndo = document.getElementById("buttonUndo");
-    const movesPanelTgl1 = document.getElementById("movesPanelTgl1");
-    const movesPanelTgl2 = document.getElementById("movesPanelTgl2");
-    if (movesPanelTgl1.style.display == 'none') {
-        buttonMoves.innerHTML = "Copy moves";
-        buttonShowMoves.style.display = 'block';
-        buttonUndo.style.display = 'block';
-        movesPanelTgl1.style.display = 'block';
-        movesPanelTgl2.style.display = 'none';
-    } else {
-        const movesArea = document.getElementById("movesArea");
-        buttonMoves.innerHTML = "Got";
-        buttonShowMoves.style.display = 'none';
-        buttonUndo.style.display = 'none';
-        movesPanelTgl1.style.display = 'none';
-        movesPanelTgl2.style.display = 'block';
-        movesArea.value = game.strMoves();
-        movesArea.select();
-        movesArea.setSelectionRange(0, 99999); /* For mobile devices */
-        navigator.clipboard.writeText(movesArea.value);
-    }
-}
-
-function LoadMoves() {
-    const buttonLoadMoves = document.getElementById("buttonLoadMoves");
-    const loadMovesPanel = document.getElementById("loadMovesPanel");
-    if (loadMovesPanel.style.display == "none") {
-        const sepMoves = document.getElementById("sepMoves");
-        clearClickHex();
-        HideButtons();
-        sepMoves.style.display = "block";
-        buttonLoadMoves.classList.remove("halfbutton");
-        buttonLoadMoves.classList.add("fullbutton");
-        buttonLoadMoves.innerHTML = "Apply";
-        buttonLoadMoves.style.display = "block";
-        loadMovesPanel.style.display = "block";
-    } else {
-        const text = lMovesArea.value.trim();
-        if (text.length == 0) {
-            loadMovesPanel.style.display = "none";
-            RestoreButtons();
-            buttonLoadMoves.innerHTML = "Load mvs";
-            buttonLoadMoves.classList.remove("fullbutton");
-            buttonLoadMoves.classList.add("halfbutton");
-        } else if (text.length >= 6) {
-            try {
-                game.applyMoveSq(text);
-                loadMovesPanel.style.display = "none";
-                RestoreButtons();
-                buttonLoadMoves.innerHTML = "Load mvs";
-                buttonLoadMoves.classList.remove("fullbutton");
-                buttonLoadMoves.classList.add("halfbutton");
-                restoreBoard();
-                displayHeuristic();
-                saveGame(); //ensure to preserve status
-            } catch (e) {
-                console.log("LoadMoves: ", e);
-                lMovesArea.value = ("LoadMoves: " + e instanceof Error ? e.toString() : String(e)) + "\n\n" + text;
-                document.getElementById("gameStatus").innerHTML = (e instanceof Error ? e.message : "");
-                document.getElementById("resultString").innerHTML = 'ERROR';
-            }
-        }
-    }
-}
-
-function ManualMove() {
-    let move = window.prompt("Next move?");
-    if (move != null && move.length >= 2) {
-        game.applyStringMove(move);
-        restoreBoard();
-    }
-}
+//!SECTION BUTTON ACTIONS
 
 function HideButtons() {
     const buttonTLPD = document.getElementById("buttonTLPD");
