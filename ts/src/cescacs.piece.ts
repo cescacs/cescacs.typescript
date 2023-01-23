@@ -366,7 +366,6 @@ export class King extends Piece {
 
     public computeCheckAndPins(board: IBoard) {
         this.checkPosition = null;
-        console.log(`Compute ${this.color} pins`);
         for (const p of PositionHelper.knightMoves(this.position!)) {
             const piece = board.getPiece(p);
             if (piece != null && piece.color != this.color && piece.hasKnightJumpAttack) {
