@@ -21,7 +21,7 @@ import {
 import { UndoStatus, MoveInfo, CastlingSide, UndoStatusWhithCheckInfo } from "./cescacs.moves";
 import { csMoves as csmv } from "./cescacs.moves"
 
-export { PositionHelper, cspty, csmv, round2hundredths };
+export { PositionHelper, cscnv, cspty, csmv, round2hundredths };
 
 export type Heuristic = {
     readonly pieces: [number, number],
@@ -61,8 +61,8 @@ export abstract class PawnSpecialCaptureStatus implements IPawnSpecialCaptureSta
                                         if (!isNaN(l) && csty.isLine(l)) {
                                             captureTo.push(PositionHelper.fromBoardPosition(captureTo[0][0], l, true));
                                         } else throw new TypeError("Invalid en passant capture line value");
-                                        return new EnPassantCapturable(piece, captureTo);
                                     }
+                                    return new EnPassantCapturable(piece, captureTo);
                                 } else throw new TypeError("Missing or invalid en passant capture positions");
 
                             } else throw new Error(PositionHelper.toString(p0) + " doesn't have a pawn nor promoted pawn");
@@ -113,11 +113,11 @@ export abstract class PawnSpecialCaptureStatus implements IPawnSpecialCaptureSta
     /**
      * In initial constructor, the pawn which made a special move;
      * afterwards, cause of promotion, it could be any piece. Use capturablePiece to query for it.
-     * @returns {Pawn}
+     * @returns {Nullable<Pawn>}
      */
-    public get capturablePawn(): Pawn {
-        assertCondition(cspty.isPawn(this._capturablePiece));
-        return this._capturablePiece;
+    public get capturablePawn(): Nullable<Pawn> {
+        if (cspty.isPawn(this._capturablePiece)) return this._capturablePiece;
+        else return null;
     }
 
     /**
@@ -240,8 +240,8 @@ export class EnPassantCapturable extends PawnSpecialCaptureStatus implements IEn
      * @param  {Pawn|Almogaver} capturerPawn
      * @returns {boolean}
      */
-    public isEnPassantCapture(pos: Position, capturerPawn: Pawn | Almogaver): boolean
-    public isEnPassantCapture(pos: Position, capturerPawn?: Pawn | Almogaver): boolean {
+    public isEnPassantCapture(pos: Position, capturerPawn: Pawn | Elephant | Almogaver): boolean
+    public isEnPassantCapture(pos: Position, capturerPawn?: Pawn | Elephant | Almogaver): boolean {
         const isEnPassantCapturePos = this._captureTo.some(x => PositionHelper.equals(x, pos));
         if (capturerPawn == null) return isEnPassantCapturePos;
         else if (isEnPassantCapturePos && capturerPawn.position != null) {
@@ -251,7 +251,7 @@ export class EnPassantCapturable extends PawnSpecialCaptureStatus implements IEn
                     if (capturerPawn.color == 'w') return pos[1] - capturerPos[1] == 3;
                     else return capturerPos[1] - pos[1] == 3;
                 } else return false;
-            } else return PositionHelper.isDiagonally(pos, capturerPos) != null;
+            } else return PositionHelper.isDiagonally(pos, capturerPos, cspty.isElephant(capturerPawn)) != null;
         } else return false;
     }
 
@@ -339,6 +339,7 @@ export abstract class Board implements IBoard {
     protected get isKnightOrCloseCheck(): boolean { return this.turnKing.isKnightOrCloseCheck(); }
     protected get isSingleCheck(): boolean { return this.turnKing.isSingleCheck(); }
     protected get isDoubleCheck(): boolean { return this.turnKing.isDoubleCheck(); }
+
 
     /**
      * Get a piece by its unique key. Used for serialization of game status.
@@ -532,7 +533,7 @@ export abstract class Board implements IBoard {
      * @return {boolean} 
      * @memberof Board
      */
-    public hasAwaitingRegainablePieces() {
+    public hasAwaitingRegainablePieces(): boolean {
         const currentColor = this._turn;
         if (this._regainablePieces.reduce((found, p) => found || p.color == currentColor && p.symbol != 'J', false))
             return true;
@@ -664,35 +665,43 @@ export abstract class Board implements IBoard {
                 if (piece.color == 'w') this._wAwaitingPromotion = true;
                 else this._bAwaitingPromotion = true;
             }
+        } else if (cspty.isElephant(piece)) {
+            if (piece.position[0] == toColumnIndex && Math.abs(toLine - piece.position[1]) > 2) {
+                const captureLine = (toLine > piece.position[1] ? (piece.position[1] + 2) : (piece.position[1] - 2)) as Line
+                const captureTo: Position[] = [[toColumnIndex, captureLine]];
+                this._specialPawnCapture = new EnPassantCapturable(piece, captureTo);
+            } else {
+                this._specialPawnCapture = null;
+            }
         } else if (cspty.isAlmogaver(piece)) {
             const dirMove = PositionHelper.isOrthogonally(piecePos, [toColumnIndex, toLine]);
             if (dirMove != null) {
-                const multipleStep: Position[] = [];
+                const captureTo: Position[] = [];
                 switch (dirMove) {
                     case "ColumnUp":
-                        multipleStep.push([piecePos[0], piecePos[1] + 2 as Line]);
+                        captureTo.push([piecePos[0], piecePos[1] + 2 as Line]);
                         break;
                     case "ColumnDown":
-                        multipleStep.push([piecePos[0], piecePos[1] - 2 as Line]);
+                        captureTo.push([piecePos[0], piecePos[1] - 2 as Line]);
                         break;
                     case "FileUp":
-                        multipleStep.push([piecePos[0] + 1 as ColumnIndex, piecePos[1] + 1 as Line]);
+                        captureTo.push([piecePos[0] + 1 as ColumnIndex, piecePos[1] + 1 as Line]);
                         break;
                     case "FileDown":
-                        multipleStep.push([piecePos[0] + 1 as ColumnIndex, piecePos[1] - 1 as Line]);
+                        captureTo.push([piecePos[0] + 1 as ColumnIndex, piecePos[1] - 1 as Line]);
                         break;
                     case "FileInvUp":
-                        multipleStep.push([piecePos[0] - 1 as ColumnIndex, piecePos[1] + 1 as Line]);
+                        captureTo.push([piecePos[0] - 1 as ColumnIndex, piecePos[1] + 1 as Line]);
                         break;
                     case "FileInvDown":
-                        multipleStep.push([piecePos[0] - 1 as ColumnIndex, piecePos[1] - 1 as Line]);
+                        captureTo.push([piecePos[0] - 1 as ColumnIndex, piecePos[1] - 1 as Line]);
                         break;
                     default: {
                         const exhaustiveCheck: never = dirMove;
                         throw new Error(exhaustiveCheck);
                     }
                 }
-                this._specialPawnCapture = new EnPassantCapturable(piece, multipleStep);
+                this._specialPawnCapture = new EnPassantCapturable(piece, captureTo);
             } else {
                 this._specialPawnCapture = null;
             }
@@ -774,6 +783,30 @@ export abstract class Board implements IBoard {
         piece.captured();
         this._regainablePieces.push(piece);
         pieces.set(PositionHelper.positionKey(pawn.position!), pawn);
+    }
+
+    protected insuficientMaterial() {
+        const hasPawns = (values: IterableIterator<Piece>) => { for (const p of values) if (cspty.isPawn(p)) return true; return false; }
+        const hasMajorPieces = (values: IterableIterator<Piece>) => { for (const p of values) if (cspty.isMajorPiece(p)) return true; return false; }
+        const hasMinorPieces = (values: IterableIterator<Piece>) => { for (const p of values) if (cspty.isMinorPiece(p)) return true; return false; }
+        const mediumPieceCount = (values: IterableIterator<Piece>) => {
+            let n = 0;
+            for (const p of values) if (cspty.isMediumPiece(p)) n++;
+            return n;
+        }
+        if (this.wPieces.size <= 3 && this.bPieces.size <= 3
+            && !hasPawns(this.wPieces.values()) && !hasPawns(this.bPieces.values())) {
+            if (hasMajorPieces(this.wPieces.values()) || hasMajorPieces(this.bPieces.values())) return false;
+            else {
+                const wG = mediumPieceCount(this.wPieces.values());
+                if (wG == 2) return false;
+                else if (wG == 1 && hasMinorPieces(this.wPieces.values())) return false;
+                const bG = mediumPieceCount(this.bPieces.values());
+                if (bG == 2) return false;
+                else if (bG == 1 && hasMinorPieces(this.bPieces.values())) return false;
+                return true;
+            }
+        }
     }
 
     protected nextTurn(): void {
@@ -1103,6 +1136,25 @@ export abstract class Board implements IBoard {
 
 export class Game extends Board {
 
+    public static movesToString(moves: UndoStatusWhithCheckInfo[]): string {
+        let result: string[] = [];
+        if (moves.length > 0) {
+            let ini: number;
+            if (moves[0].turn == 'b') {
+                result.push(moves[0].n + ". \u2026, " + csmv.fullMoveNotation(moves[0]));
+                ini = 1;
+            } else ini = 0;
+            for (let i = ini; i < moves.length; i += 2) {
+                let move = csmv.fullMoveNotation(moves[i]);
+                if (i + 1 < moves.length) {
+                    move += ", " + csmv.fullMoveNotation(moves[i + 1]);
+                }
+                result.push(move);
+            }
+        }
+        return result.join("\n");
+    }
+
     public static kingCastlingPosition(color: PieceColor, column: CastlingColumn): Position {
         const kingPosition = (color == 'w' ? PositionHelper.whiteKingInitPosition : PositionHelper.blackKingInitPosition);
         const kingCastleMove = (color == 'w' ? Game.whiteKingCastlingMove : Game.blackKingCastlingMove)[column];
@@ -1210,12 +1262,17 @@ export class Game extends Board {
         else return this.getPiece(p);
     }
 
-    public get lastMove() {
+    public get lastMove(): Nullable<UndoStatusWhithCheckInfo> {
+        if (this._moves.length > 0) return this._moves[this._moves.length - 1];
+        else return null;
+    }
+
+    public get strLastMove(): Nullable<string> {
         if (this._top >= 0) return csmv.fullMoveNotation(this._moves[this._top], false);
         else return null;
     }
 
-    public get resultString() {
+    public get resultString(): Nullable<string> {
         if (this.gameEnd) {
             if (this._mate || this._resigned) return this.turn == 'w' ? "0 - 3" : "3 - 0";
             else if (this._stalemate) return this.turn == 'w' ? "1 - 2" : "2 - 1";
@@ -1257,14 +1314,13 @@ export class Game extends Board {
 
     public get preMoveHeuristic(): Heuristic { return this.currentHeuristic; }
 
-
     /**
      * Current positions of the pieces
      *
      * @yield {string} - piece name, capitalized for whites, followed by hex name.
      * @memberof Game
      */
-     public * pieceList() {
+    public * pieceList() {
         for (const p of this.whitePieces()) yield p.uncapitalizedSymbolPositionString;
         for (const p of this.blackPieces()) yield p.uncapitalizedSymbolPositionString;
     }
@@ -1337,7 +1393,8 @@ export class Game extends Board {
                 move.captured = capturedPiece.key;
                 move.special = isScornfulCapture ? moveTo : undefined;
                 this._enpassantCaptureCoordString = null;
-            } else if (this.specialPawnCapture != null && (cspty.isPawn(piece) || cspty.isAlmogaver(piece))
+            } else if (this.specialPawnCapture != null
+                && (cspty.isPawn(piece) || cspty.isElephant(piece) || cspty.isAlmogaver(piece))
                 && this.specialPawnCapture.isEnPassantCapturable()
                 && this.specialPawnCapture.isEnPassantCapture(moveTo, piece)) {
                 const enPassantCapture = this.specialPawnCapture.capturablePiece;
@@ -1648,25 +1705,10 @@ export class Game extends Board {
 
     //#region STORED MOVES
 
+    public get topHalfMove(): number { return this._top; }
     public moves(fromMove: number) { return Object.freeze(this._moves.slice(fromMove)); }
-    public strMoves(): string {
-        let result = [];
-        if (this._moves.length > 0) {
-            let ini: number;
-            if (this._moves[0].turn == 'b') {
-                result.push(this._moves[0].n + ". \u2026, " + csmv.fullMoveNotation(this._moves[0]));
-                ini = 1;
-            } else ini = 0;
-            for (let i = ini; i <= this._top; i += 2) {
-                let move = csmv.fullMoveNotation(this._moves[i]);
-                if (i < this._top) {
-                    move += ", " + csmv.fullMoveNotation(this._moves[i + 1]);
-                }
-                result.push(move);
-            }
-        }
-        return result.join("\n");
-    }
+    public strMoves(): string { return Game.movesToString(this._moves); }
+
     public moveBottom(): void {
         while (this._top > 1 || this._top == 1 && this._moves[0].move != '\u2026') {
             const moveInfo = this._moves[this._top--];
@@ -1689,10 +1731,9 @@ export class Game extends Board {
         }
     }
     public moveTop(): void {
-        debugger;
         while (this._top < this._moves.length - 1) {
             const moveInfo = this._moves[++this._top];
-            assertCondition(moveInfo.move != '\u2026')
+            assertCondition(moveInfo.move != '\u2026');
             this.applyMove(moveInfo.move, moveInfo.turn);
         }
     }
@@ -1703,10 +1744,19 @@ export class Game extends Board {
     public get movesJSON() {
         return JSON.stringify(this._moves);
     }
-    public restoreMovesJSON(moves: string) {
-        const tmpMoves: UndoStatusWhithCheckInfo[] = JSON.parse(moves) as UndoStatus[];
-        while (tmpMoves.length > 0) this._moves.push(tmpMoves.shift()!);
-        this.moveTop();
+
+    public restoreMovesJSON(moves: string): void {
+        const tmpMoves: UndoStatusWhithCheckInfo[] = JSON.parse(moves) as UndoStatusWhithCheckInfo[];
+        this.restoreMoves(tmpMoves);
+    }
+
+    public restoreMoves(moves: UndoStatusWhithCheckInfo[]): void {
+        while (moves.length > 0) {
+            const moveInfo = moves.shift()!;
+            assertCondition(moveInfo.move != '\u2026');
+            this.pushMove(moveInfo.move);
+        }
+        this.initGame();
     }
 
     //#endregion
@@ -2047,7 +2097,7 @@ export class Game extends Board {
         if (!anyMove) {
             if (this.checked) { this._mate = true; endGame = "mate"; }
             else { this._stalemate = true; endGame = "stalemate"; }
-        } else if (this.halfmoveClock >= 200) {
+        } else if (this.halfmoveClock >= 200 || super.insuficientMaterial()) {
             this._draw = true; endGame = "draw";
         } else if (this.checked) {
             if (this.isKnightOrCloseCheck) check = "^+";
@@ -2192,7 +2242,7 @@ export class Game extends Board {
         if (!anyMove) {
             if (this.checked) this._mate = true;
             else this._stalemate = true;
-        } else if (this.halfmoveClock >= 100) this._draw = true;
+        } else if (this.halfmoveClock >= 200) this._draw = true;
         super.computeHeuristic(this.turn, this._moveNumber, anyMove, this.currentHeuristic);
     }
 

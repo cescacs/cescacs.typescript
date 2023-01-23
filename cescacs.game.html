@@ -18,7 +18,7 @@
     <div class="w3-row">
         <div class="w3-content w3-left" style="max-width:1170px; position:relative">
             <h1 id="gameTitle" class="board-title cescacs-title w3-text-green">C'escacs</h1>
-            <svg  width="1170" height="1013" style="margin-top: 1.5ex;" viewBox='0 0 5630 6500' xmlns='http://www.w3.org/2000/svg' xmlns:svg='http://www.w3.org/2000/svg'>
+            <svg  width="1170" height="1013" style="margin-top: 1.5ex;" viewBox='0 0 5630 6500' xmlns='http://www.w3.org/2000/svg'>
                 <title>Hexagonal board</title>
                 <style>
                     @namespace svg url(http://www.w3.org/2000/svg);
@@ -373,7 +373,7 @@
                         <button id="buttonTLPD" class="w3-button w3-black halfbutton stacked"
                             onclick="TLPDString()">Get</button>
                         <button id="buttonLoad" class="w3-button w3-black halfbutton stacked"
-                            onclick="LoadTLPD()">Load</button>
+                            onclick="LoadTLPD()">Load new</button>
                     </div>
                     <button id="buttonNew" class="w3-button w3-black fullbutton stacked" onclick="LoadNewGame()">New
                         game</button>
@@ -391,9 +391,12 @@
                         <button id="buttonLoadMoves" class="w3-button w3-black halfbutton stacked"
                             onclick="LoadMoves()">Load mvs</button>
                     </div>
-                    <button id="buttonManualMove" class="w3-button w3-black fullbutton stacked"
-                        onclick="ManualMove()">Enter
-                        Manual Move</button>
+                    <div class="btn-subgroup">
+                        <button id="buttonManualMove" class="w3-button w3-black halfbutton stacked"
+                            onclick="ManualMove()">Manual</button>
+                        <button id="buttonStopEngine" class="w3-button w3-black halfbutton stacked"
+                            onclick="StopEngine()">Stop Engine</button>
+                    </div>
                     <div id="confirmationArea" style="display:none;">
                         <div class="w3-bar w3-black w3-text-amber" style="border-bottom: green;">
                             <div><label id="confirmLblPrevi"></label></div>
@@ -423,7 +426,8 @@
                     <div class="btn-subgroup">
                         <button id="buttonHeuristic" class="w3-button w3-black halfbutton stacked"
                             onclick="ShowHeuristic()">Heuristic</button>
-                        <button id="buttonSugestMove" class="w3-button w3-black halfbutton stacked">Sugest mv</button>
+                        <button id="buttonSuggestMove" class="w3-button w3-black halfbutton stacked"
+                            onclick="SuggestMove()">Suggest mv</button>
                     </div>
                     <div id="sepCastling" class="w3-bar w3-amber w3-center"
                         style="height: 3ex; width: 14em; border: 1px solid green;"><span>Castling</span>
@@ -439,13 +443,13 @@
                         &nbsp; TLPD string copied into the clipboard
                     </label>
                     <label id="loadTLPDLabel" for="TLPD" class="w3-amber w3-bar w3-center" style="display:none;">
-                        &nbsp; Enter TLPD string, and press again the button<br />
+                        &nbsp; Enter TLPD string, and press again the button<br>
                         &nbsp; <small>To load correctly you first start new to choose as normal or Grand &nbsp;</small>
                     </label>
                 </div>
                 <div id="loadMovesPanel" style="width: 14em; display: none" class="w3-right">
-                    <textarea id="lMovesArea" cols="19" rows="20" class="w3-large"
-                        placeholder="Enter moves, empty to cancel" style="resize: vertical"></textarea>
+                    <textarea id="lMovesArea" cols="22" rows="20" class="w3-large"
+                        placeholder="Enter moves, empty to cancel" style="font-family:'Courier New', Courier, monospace; resize:vertical"></textarea>
                     <label id="lMovesAreaLbl" for="lMovesArea" class="w3-amber w3-bar w3-center" style="display:block">
                         &nbsp; Moves must be consistent
                     </label>
@@ -501,9 +505,22 @@
                             moves</button>
                     </div>
                 </div>
-                <div id="castlingContainer"
-                    class="w3-container w3-topbar w3-bottombar w3-leftbar w3-rightbar w3-border-amber"
-                    style="display:none; width:16em">
+                <div id="suggestMoveContainer" class="w3-container w3-topbar w3-bottombar w3-leftbar w3-rightbar w3-border-amber"
+                    style="display:none; width:16em;text-align:center;">
+                    <figure id="suggestMoveWaiting">
+                        <img src="../img/Chariot_run.gif" alt="" style="width:100%">
+                        <figcaption>
+                            <small style="font-size:xx-small;"><a
+                                    href="https://upload.wikimedia.org/wikipedia/commons/f/fa/Chariot_run.gif">Ashsssss5, CC
+                                    BY-SA</a></small>
+                        </figcaption>
+                    </figure>
+                    <div id="suggestMoveResult">
+
+                    </div>
+                </div>
+                <div id="castlingContainer" class="w3-container w3-topbar w3-bottombar w3-leftbar w3-rightbar w3-border-amber"
+                    style="display:none; width:16em;text-align:center;">
                     <div style="margin-bottom: 2ex;">
                         <label>Castling status: <strong id="castlingStatusLbl"></strong></label>
                     </div>
@@ -544,11 +561,11 @@
                     <label><small>WHITE heuristic:&nbsp; </small></label><label><small
                             id="HeuristicLabel1"></small></label>
                     <span id="whiteTurn" class="w3-small"></span>
-                    <br />
+                    <br>
                     <label><small>BLACK heuristic:&nbsp; </small></label><label><small
                             id="HeuristicLabel2"></small></label>
                     <span id="blackTurn" class="w3-small"></span>
-                    <br />
+                    <br>
                 </div>
             </div>
         </div>
@@ -633,18 +650,71 @@
                         class="cescacs-title w3-xlarge">Grand Hunigcamb Chess</span>...</p>
                 <div style="text-align:center;">
                     <p style="font-size: smaller;">Th're art catalan almogavars, a foot soldi'r so brave yond t is w'rth
-                        two pawns; <br />
-                        howev'r, some n'rth'rn playeth'rs pref'r to playeth those folk as english arch'rs<br />
+                        two pawns; <br>
+                        howev'r, some n'rth'rn playeth'rs pref'r to playeth those folk as english arch'rs<br>
                         <!-- It includes the Catalan Almogavars, a so much brave foot soldier that worth as much as two pawns.
                     however, some northern players prefer to call it English archer.-->
                         <small>They move in any direction: they capture diagonally, and move, always two steps at a
-                            time, orthogonally.<br />
+                            time, orthogonally.<br>
                             They can also make <q>en passant</q> capture to pawns when they take multiple steps</small>
                     </p>
                 </div>
             </div>
         </dialog>
     </div>
+    <script>
+        const myWorker = undefined; // = new Worker("./dist/bundle-worker.js");
+
+        /* FIXME - Removed code */
+        // try {
+        //     myWorker.onmessage = function(e) {
+        //         if (Array.isArray(e.data)) {
+        //             console.log('Message received from worker -> ', e.data[0]);
+        //             switch(e.data[0]) {
+        //                 case 'MR' /* RQ ANSWER */: {
+        //                     const suggestMoveResult = document.getElementById("suggestMoveResult");
+        //                     const suggestMoveWaiting = document.getElementById("suggestMoveWaiting");
+        //                     suggestMoveWaiting.style.display = "none";
+        //                     suggestMoveResult.style.display = "block";
+        //                     suggestMoveResult.textContent = e.data[1];
+        //                     console.log("Worker move: ", e.data[1]);
+        //                     break;
+        //                 }
+        //                 case 'RQINI' /* REQUEST INI FROM WORKER, CAUSED BY A MESSAGE ERROR */: {
+        //                     console.log("Received RQINI from worker: ", e.data[1]);
+        //                     WINI();
+        //                     break;
+        //                 }
+        //                 case 'WOFF' /* WORKER PAUSED */: {
+        //                     wPaused();
+        //                     break;
+        //                 }
+        //                 case 'WON' /* WORKER EXECUTION GOES ON */: {
+        //                     wWorking();
+        //                     break;
+        //                 }
+        //                 default: {
+        //                     console.log("Unknown message tag from worker '", e.data[0], "''");
+        //                 }
+        //             }
+        //         }
+        //         else console.log("Unknown message format from worker: ", e.data)
+        //     }
+        // } catch (error) { console.log(error); }
+
+        // window.addEventListener('beforeunload', function (e) {
+        //     e.preventDefault();
+        //     e.returnValue = '';
+        // });
+
+        // window.addEventListener('onunload', function (e) {
+        //     if (typeof(myWorker) !== "undefined") {
+        //         myWorker.terminate();
+        //         myWorker = undefined;
+        //     }
+        // });
+
+        </script>
 </body>
 
 </html>

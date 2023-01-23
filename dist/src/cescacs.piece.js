@@ -6,9 +6,6 @@ const cescacs_positionHelper_1 = require("./cescacs.positionHelper");
 const ts_general_1 = require("./ts.general");
 const cescacs_1 = require("./cescacs");
 class Piece {
-    constructor(color) {
-        this.color = color;
-    }
     static pieceValue(symbol) {
         switch (symbol) {
             case "K": return 256;
@@ -37,6 +34,9 @@ class Piece {
             case "J": return true;
             default: return false;
         }
+    }
+    constructor(color) {
+        this.color = color;
     }
     get position() { return this._position; }
     setPositionTo(p) {
@@ -266,7 +266,7 @@ class King extends Piece {
         return this._moved;
     }
     set castlingStatus(castlingStatusValue) {
-        this._moved = this._moved || (castlingStatusValue == "-");
+        this._moved = this.isInitialPosition && (castlingStatusValue == "-");
     }
     getCastlingStatus(callback) {
         if (this._moved)
@@ -476,49 +476,6 @@ class King extends Piece {
         }
         return r;
     }
-    //NOT USED THIS WAY (castlingStrMoves is defined on Board)
-    // public * castlings(board: IBoard): Generator<[Nullable<Position>, Position, Nullable<Position>], void, void> {
-    //     // - No check on final king position
-    //     // - Empty hexes
-    //     // - Rook can do the move
-    //     if (!this._moved && !this.checked) {
-    //         const isWhite: boolean = this.color == "White";
-    //         const qRookPos: Position = PositionHelper.initialQueenSideRookPosition(this.color, board.isGrand);
-    //         const kRookPos: Position = PositionHelper.initialKingSideRookPosition(this.color, board.isGrand);
-    //         const qRook: Nullable<Rook> = board.getPiece(qRookPos) as Nullable<Rook>;
-    //         const kRook: Nullable<Rook> = board.getPiece(kRookPos) as Nullable<Rook>;
-    //         if (qRook != null && !qRook.moved) {
-    //             yield [PositionHelper.fromBoardPosition("D", isWhite ? 4 : 24), PositionHelper.fromBoardPosition("D", isWhite ? 2 : 26), null];
-    //             yield [PositionHelper.fromBoardPosition("E", isWhite ? 1 : 27), PositionHelper.fromBoardPosition("D", isWhite ? 2 : 26), null];
-    //             yield [PositionHelper.fromBoardPosition("H", isWhite ? 8 : 20), PositionHelper.fromBoardPosition("H", isWhite ? 6 : 22), null];
-    //             yield [PositionHelper.fromBoardPosition("G", isWhite ? 7 : 21), PositionHelper.fromBoardPosition("H", isWhite ? 6 : 22), null];
-    //             yield [PositionHelper.fromBoardPosition("G", isWhite ? 7 : 21), PositionHelper.fromBoardPosition("F", isWhite ? 6 : 22), null];
-    //             yield [PositionHelper.fromBoardPosition("E", isWhite ? 5 : 23), PositionHelper.fromBoardPosition("F", isWhite ? 6 : 22), null];
-    //             yield [PositionHelper.fromBoardPosition("F", isWhite ? 6 : 22), PositionHelper.fromBoardPosition("E", isWhite ? 5 : 23), null];
-    //             yield [PositionHelper.fromBoardPosition("D", isWhite ? 4 : 24), PositionHelper.fromBoardPosition("E", isWhite ? 5 : 23), null];
-    //         }
-    //         if (kRook != null && !kRook.moved) {
-    //             yield [null, PositionHelper.fromBoardPosition("I", isWhite ? 5 : 23), PositionHelper.fromBoardPosition("I", isWhite ? 7 : 21)];
-    //             yield [null, PositionHelper.fromBoardPosition("I", isWhite ? 5 : 23), PositionHelper.fromBoardPosition("K", isWhite ? 4 : 24)];
-    //             yield [null, PositionHelper.fromBoardPosition("I", isWhite ? 5 : 23), PositionHelper.fromBoardPosition("H", isWhite ? 4 : 24)];
-    //             yield [null, PositionHelper.fromBoardPosition("H", isWhite ? 6 : 22), PositionHelper.fromBoardPosition("I", isWhite ? 5 : 23)];
-    //             yield [null, PositionHelper.fromBoardPosition("H", isWhite ? 6 : 22), PositionHelper.fromBoardPosition("I", isWhite ? 7 : 21)];
-    //             yield [null, PositionHelper.fromBoardPosition("H", isWhite ? 6 : 22), PositionHelper.fromBoardPosition("H", isWhite ? 4 : 24)];
-    //             yield [null, PositionHelper.fromBoardPosition("H", isWhite ? 6 : 22), PositionHelper.fromBoardPosition("G", isWhite ? 5 : 23)];
-    //             yield [null, PositionHelper.fromBoardPosition("F", isWhite ? 6 : 22), PositionHelper.fromBoardPosition("G", isWhite ? 5 : 23)];
-    //             yield [null, PositionHelper.fromBoardPosition("F", isWhite ? 6 : 22), PositionHelper.fromBoardPosition("E", isWhite ? 7 : 21)];
-    //             yield [null, PositionHelper.fromBoardPosition("E", isWhite ? 5 : 23), PositionHelper.fromBoardPosition("F", isWhite ? 6 : 22)];
-    //             yield [null, PositionHelper.fromBoardPosition("E", isWhite ? 5 : 23), PositionHelper.fromBoardPosition("F", isWhite ? 7 : 21)];
-    //         }
-    //         if (qRook != null && !qRook.moved && kRook != null && !kRook.moved) {
-    //             yield [PositionHelper.fromBoardPosition("H", isWhite ? 8 : 20), PositionHelper.fromBoardPosition("H", isWhite ? 6 : 22), PositionHelper.fromBoardPosition("H", isWhite ? 6 : 22)];
-    //             yield [PositionHelper.fromBoardPosition("I", isWhite ? 7 : 21), PositionHelper.fromBoardPosition("H", isWhite ? 6 : 22), PositionHelper.fromBoardPosition("G", isWhite ? 5 : 23)];
-    //             yield [PositionHelper.fromBoardPosition("G", isWhite ? 7 : 21), PositionHelper.fromBoardPosition("F", isWhite ? 6 : 22), PositionHelper.fromBoardPosition("G", isWhite ? 5 : 23)];
-    //             yield [PositionHelper.fromBoardPosition("E", isWhite ? 5 : 23), PositionHelper.fromBoardPosition("F", isWhite ? 6 : 22), PositionHelper.fromBoardPosition("E", isWhite ? 7 : 21)];
-    //             yield [PositionHelper.fromBoardPosition("F", isWhite ? 6 : 22), PositionHelper.fromBoardPosition("E", isWhite ? 5 : 23), PositionHelper.fromBoardPosition("E", isWhite ? 7 : 21)];
-    //         }
-    //     }
-    // }
     setOrthogonalAtack(pos, dir) {
         if (this.checkPosition != null) {
             if (cescacs_types_1.csTypes.isPosition(this.checkPosition)) {
@@ -954,7 +911,9 @@ class Almogaver extends Piece {
                         const pieceColor = board.hasPiece(p);
                         if (pieceColor == null) {
                             const specialCapture = board.specialPawnCapture;
-                            if (specialCapture != null && specialCapture.isEnPassantCapturable() && specialCapture.isEnPassantCapture(p))
+                            if (specialCapture != null
+                                && specialCapture.isEnPassantCapturable()
+                                && specialCapture.isEnPassantCapture(p))
                                 yield p;
                         }
                         else if (pieceColor !== this.color)
@@ -1132,4 +1091,12 @@ var csPieceTypes;
     csPieceTypes.isPawn = isPawn;
     function isAlmogaver(p) { return p.symbol == 'M'; }
     csPieceTypes.isAlmogaver = isAlmogaver;
+    function isMajorPiece(p) { return ['D', 'V', 'R'].includes(p.symbol); }
+    csPieceTypes.isMajorPiece = isMajorPiece;
+    function isMinorPiece(p) { return p.symbol == 'J' || p.symbol == 'N'; }
+    csPieceTypes.isMinorPiece = isMinorPiece;
+    function isMediumPiece(p) { return p.symbol == 'G'; }
+    csPieceTypes.isMediumPiece = isMediumPiece;
+    function isTroup(p) { return ['P', 'E', 'M'].includes(p.symbol); }
+    csPieceTypes.isTroup = isTroup;
 })(csPieceTypes = exports.csPieceTypes || (exports.csPieceTypes = {}));

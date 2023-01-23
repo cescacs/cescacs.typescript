@@ -1,6 +1,6 @@
 import type { Nullable } from "./ts.general";
 import type {
-    Column, ColumnIndex, Line, Position,
+    Column, ColumnIndex, Line, Position, CompactPosition,
     OrthogonalDirection, DiagonalDirection, KnightDirection,
     HexColor, PieceColor
 } from "./cescacs.types";
@@ -14,6 +14,10 @@ export abstract class PositionHelper {
 
     public static toString(pos: Position): string {
         return cscnv.columnFromIndex(pos[0]) + pos[1].toString();
+    }
+
+    public static compactPosToString(cpos: CompactPosition): string {
+        return cscnv.getColumnFromCompact(cpos) + cscnv.getLineFromCompact(cpos).toString();
     }
 
     public static positionKey(k: Position): string {
@@ -110,11 +114,11 @@ export abstract class PositionHelper {
         }
     }
 
-    public static isDiagonally(from: Position, to: Position): Nullable<DiagonalDirection> {
+    public static isDiagonally(from: Position, to: Position, avoidTransversal: boolean = false): Nullable<DiagonalDirection> {
         const dif = [to[0] - from[0], to[1] - from[1]];
         if (dif[1] == 0) {
             if (dif[0] == 0) return null;
-            else if (dif[0] % 2 == 0)
+            else if (!avoidTransversal && dif[0] % 2 == 0)
                 return dif[0] > 0 ? "TransversalLineInc" : "TransversalLineDec";
             else return null;
         } else {

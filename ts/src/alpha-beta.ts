@@ -18,10 +18,11 @@ import {
 } from "./cescacs.piece";
 
 import { Board, csmv, Game, Heuristic } from "./cescacs";
-import { MoveInfo, UndoStatus } from "./cescacs.moves";
+import { MoveInfo, UndoStatus, isUndoStatus, UndoStatusWhithCheckInfo, undoStatusArrayEquals } from "./cescacs.moves";
+
+
 
 type Bitset = [number, number, number, number, number, number, number, number];
-
 
 type AttemptMove = {
     move: MoveInfo;
@@ -31,7 +32,396 @@ type AttemptMove = {
 
 type CheckType = 0 | 32 | 64 | 128 | 192 | 256; //none, CloseNotDefended, Close, Single, Knight, Double
 
-abstract class Minimax {
+
+/* running object */
+var searchTree: Minimax | undefined = undefined;
+
+/* Web Workers:
+    https://developer.mozilla.org/en-US/docs/Web/API/Worker
+    https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Using_web_workers
+ */
+/* Promise:
+    https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise
+    https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Using_promises
+    https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/async_function
+    https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/await
+    https://learn.microsoft.com/es-es/archive/msdn-magazine/2013/march/async-await-best-practices-in-asynchronous-programming
+    https://javascript.info/promise-basics
+    Also (same than the last one): https://basarat.gitbook.io/typescript/future-javascript/promise
+
+*/
+/* Async communication with workers: https://advancedweb.hu/how-to-use-async-await-with-postmessage/ */
+onmessage = async (e) => {
+    console.log(`Message ${e.data[0]} received from main script`);
+
+    if (e.data[0] == 'INI') {
+        console.log(`grand: ${e.data[1][0]} TLPD: ${e.data[1][1]}`);
+        const tmpMoves: UndoStatusWhithCheckInfo[] = JSON.parse(e.data[2]) as UndoStatusWhithCheckInfo[];
+        console.log(`e N-halfmoves: ${tmpMoves.length} Moves:\n ${Game.movesToString(tmpMoves)}`);
+        let activateLoop: boolean = false;
+        if (searchTree !== undefined && searchTree.grand === e.data[1][0] && searchTree.initStr === e.data[1][1]) {
+            activateLoop = searchTree.isWorking;
+            try {
+                console.log("Search tree count: ", searchTree.gameMoves.length, "values: ", Game.movesToString(searchTree.gameMoves));
+                if (searchTree.gameMoves.length == tmpMoves.length
+                    && undoStatusArrayEquals(searchTree.gameMoves, tmpMoves)) {
+                    /* Everything's OK, nothing to do */
+                    console.log("Everything's OK, nothing to do");
+                    if (!activateLoop) Minimax.sendWorkerPausedMessage();
+                    return;
+                } else if (searchTree.gameMoves.length < tmpMoves.length
+                    && undoStatusArrayEquals(searchTree.gameMoves, tmpMoves.slice(0, searchTree.gameMoves.length))) {
+                    /* S'han d'afegir nivells, ignorant les jugades que no siguin d'aquest arbre */
+                    searchTree.addMoves(tmpMoves.slice(searchTree.gameMoves.length, tmpMoves.length - searchTree.gameMoves.length));
+                } else if (searchTree.gameMoves.length > tmpMoves.length
+                    && undoStatusArrayEquals(searchTree.gameMoves.slice(0, tmpMoves.length), tmpMoves)) {
+                    /* S'ha retrocedit; s'han d'afegir nivells anteriors */
+                    for (let i = searchTree.gameMoves.length; i >= tmpMoves.length; i--) {
+                        console.log(`TODO: undo move:  ${csmv.fullMoveNotation(searchTree.gameMoves[i])}`);
+                        searchTree.undoLastMove();
+                    }
+                } else {
+                    /* L'arbre de jugades no es pot reaprofitar */
+                    console.log("Game moves doesn't match");
+                    searchTree.resetMoves(tmpMoves);
+                }
+            }
+            catch (error) {
+                console.log(error);
+                activateLoop = false;
+            }
+        }
+        else {
+            if (searchTree !== undefined) {
+                if (searchTree.isWorking) {
+                    console.log("Start game doesn't match: restart");
+                    searchTree.resetMoves([]);
+                    searchTree = undefined;
+                    activateLoop = true;
+                } else {
+                    Minimax.sendWorkerPausedMessage();
+                    return;
+                }
+            }
+            console.log("begin search tree for a new game");
+            searchTree = new Minimax(e.data[1][0], e.data[1][1], tmpMoves);
+        }
+        if (!searchTree.isWorking && activateLoop) searchTree.mainLoop();
+    } else if (searchTree !== undefined && searchTree.grand === e.data[1][0] && searchTree.initStr === e.data[1][1]) {
+        console.log(`${e.data[0]} issues correct grand and TLPD`);
+        switch (e.data[0]) {
+            case 'M' /* MOVE */: {
+                if (searchTree.isWorking) {
+                    if (csty.isTurn(e.data[2][0]) && e.data[2][0] == searchTree.gameTurn
+                        && typeof e.data[2][1] == 'number' && e.data[2][1] == searchTree.gameHalfMove
+                        && typeof e.data[2][2] == 'string') {
+                        const move: string = e.data[2][2];
+                        console.log(move);
+                        await searchTree.addStringMove(move);
+                        break;
+                    } else {
+                        console.log(`event ${e.data[0]} format error: ${e.data[2]} `);
+                        console.log(`e turn: ${e.data[2][0]} local turn: ${searchTree.gameTurn}`);
+                        console.log(`e halfMove #: ${e.data[2][1]} local halfMove #: ${searchTree.gameHalfMove}`);
+                        console.log(`error move: ${e.data[2][2]}`);
+                        searchTree.stop(true);
+                        Minimax.sendRqResetMessage("Incorrect 'M' (move) message received");
+                        return;
+                    }
+                } else {
+                    Minimax.sendWorkerPausedMessage();
+                    return;
+                }
+            }
+            case 'BK' /* UNDOMOVE */: {
+                if (searchTree.isWorking) {
+                    if (e.data.length == 2) {
+                        searchTree.undoLastMove();
+                        break;
+                    } else {
+                        console.log(`event ${e.data[0]} format error, data length: ${e.data.length} `);
+                        searchTree.stop(true);
+                        Minimax.sendRqResetMessage("Incorrect 'BK' (undo move) message received");
+                        return;
+                    }
+                } else {
+                    Minimax.sendWorkerPausedMessage();
+                    return;
+                }
+            }
+            case 'RQ' /* REQUEST FOR RESULT */: {
+                if (searchTree.isWorking) {
+                    if (e.data.length == 2) {
+                        const move = await searchTree.resultReady();
+                        //TODO: RQ RESULT
+                        console.log("OIDO COCINA");
+                        Minimax.sendWorkerMoveMessage(move);
+                    } else {
+                        console.log(`event ${e.data[0]} format error, data length: ${e.data.length} `);
+                        searchTree.stop(true);
+                        Minimax.sendRqResetMessage("Incorrect 'RQ' (request result) message received");
+                    }
+                } else {
+                    Minimax.sendWorkerPausedMessage();
+                }
+                return;
+            }
+            case 'P' /* PAUSE ENGINE */: {
+                searchTree.stop(false);
+                Minimax.sendWorkerPausedMessage();
+                return;
+            }
+            case 'ON' /* ENGINE WORK ON */: {
+                Minimax.sendWorkerWorkingMessage();
+                break;
+            }
+            default: {
+                if (searchTree.isWorking) {
+                    console.log(`Event identification error ${e.data[0]}`);
+                    searchTree.stop(false);
+                    Minimax.sendRqResetMessage("Unknown message received");
+                } else Minimax.sendWorkerPausedMessage();
+                return;
+            }
+        }
+        if (searchTree.isWorking) return;
+        searchTree.mainLoop();
+    } else {
+        console.log(`Game status doesn't match on event ${e.data[0]}`);
+        console.log(`Value grant: ${e.data[1][1]} TLPD: ${e.data[1][1]}`);
+        console.log(`Registered TLPD: ${searchTree?.initStr}`)
+        if (searchTree !== undefined) {
+            searchTree.stop(false);
+            if (searchTree.isWorking)
+                Minimax.sendRqResetMessage("Game status doesn't match on received event, or unknown message format received");
+        }
+        else Minimax.sendWorkerPausedMessage();
+    }
+}
+
+// - MVV-LVA: Most Valuable Victim - Least Valuable Aggressor (ordering moves)
+// https://www.chessprogramming.org/MVV-LVA
+// - Attack table allows Static Exchange Evaluation
+// https://www.chessprogramming.org/Static_Exchange_Evaluation
+// Lazy evaluation
+// https://www.chessprogramming.org/Lazy_Evaluation
+// - Transposition Tables
+// https://www.chessprogramming.org/Transposition_Table
+// - Alpha-beta
+// https://www.chessprogramming.org/Alpha-Beta
+// - Principal variation search: improvements to Alpha-beta
+// https://en.wikipedia.org/wiki/Principal_variation_search
+// https://www.chessprogramming.org/Principal_Variation_Search
+// - Null window
+// https://www.chessprogramming.org/Null_Window
+// - Aspiration Windows
+// https://www.chessprogramming.org/Aspiration_Windows
+// - Iterative deepening
+// https://www.chessprogramming.org/Iterative_Deepening
+// - MTD(f)
+// https://en.wikipedia.org/wiki/MTD(f)
+// - Best Node Search
+// https://en.wikipedia.org/wiki/Best_node_search
+
+// Quiesence search
+// https://www.chessprogramming.org/Quiescence_Search
+// Delta pruning
+// https://www.chessprogramming.org/Delta_Pruning
+// Null Move Pruning
+// https://www.chessprogramming.org/Null_Move_Pruning
+
+class Minimax {
+
+    public static sendRqResetMessage(message: string) {
+        postMessage(['RQINI', message]);
+    }
+
+    public static sendWorkerPausedMessage() {
+        postMessage(['WOFF']);
+    }
+
+    public static sendWorkerWorkingMessage() {
+        postMessage(['WON']);
+    }
+
+    public static sendWorkerMoveMessage(m: string) {
+        postMessage(['MR', m]);
+    }
+
+    private static readonly maxAnswerTime: number = 135 * 1000;
+    private static readonly maxDepth: number = 4;
+    private static readonly maxQDepth: number = 8;
+    private static readonly limitedDepth: number = 2;
+
+    private static availableProcessorCount() {
+        const logicalProcessorCount = navigator.hardwareConcurrency;
+        if (logicalProcessorCount >= 4) return (logicalProcessorCount - 2) >> 1;
+        else return 0;
+    }
+
+    public async addStringMove(move: string) {
+        //TODO: MOVE: see if main line can be reused
+        await this.stopLoop();
+        this.game.applyStringMove(move);
+        this._gameHalfMove = this.game.topHalfMove;
+        this._gameTurn = this.game.turn;
+        console.log("New halfMove value #:", this._gameHalfMove);
+    }
+
+    public async addMoves(moves: UndoStatusWhithCheckInfo[]) {
+        //TODO: MOVE: see if main line can be reused
+        console.log("WAIT FOR STOP LOOP");
+        await this.stopLoop();
+        console.log("AFTER WAIT FOR STOP LOOP");
+        for (let i = 0; i <= moves.length - 1; i++) {
+            const move: UndoStatusWhithCheckInfo = moves[i];
+            console.log(`TODO: add new move: ${csmv.fullMoveNotation(move)}`);
+            assertCondition(move.move != '\u2026', "First empty move");
+            this.game.pushMove(move.move);
+            this._gameHalfMove = this.game.topHalfMove;
+            console.log("New halfMove value #:", this._gameHalfMove);
+            this._gameTurn = this.game.turn;
+        }
+    }
+
+    public async undoLastMove() {
+        //TODO: UNDOMOVE
+        await this.stopLoop();
+        this.game.popMove();
+        this._gameHalfMove = this.game.topHalfMove;
+        this._gameTurn = this.game.turn;
+    }
+
+    public async resetMoves(moves: UndoStatusWhithCheckInfo[]) {
+        //TODO
+        await this.stopLoop();
+    }
+
+    public async mainLoop() {
+        if (this._done && !this._endLoop) {
+            if (!await this.isEndLoop(0)) {
+                let i = 10;
+                while (!await this.isEndLoop(i)) { if (i < 300) i << 1; }
+            }
+        }
+        if (this._done && this._endLoop) {
+            this._endLoop = this._done = false;
+            console.log("BEGIN MAIN LOOP");
+            let counter = 0; //simulation variable
+            while (!await this.done()) {
+                //TODO: Main loop step execution (TIMER SIMULATION)
+                setTimeout(() => {
+                    const v = Math.random();
+                    if (v <= 0.000009) { if (counter > 3) this._answerReady = true; else counter++; console.log("grossa! (", counter, ")"); }
+                    else if (v <= 0.000012) { if (counter > 3) this._qanswerReady = true; else counter++; console.log("premi consolació (", counter, ")"); }
+                }, 173);
+            }
+            this._endLoop = true;
+            console.log("MAIN LOOP ENDED");
+        } else {
+            console.log(`ERR!! done: ${this._done} end loop: ${this._endLoop}`);
+        }
+    }
+
+    public async resultReady(): Promise<string> {
+        const maxAnswerTime = Minimax.maxAnswerTime;
+        const maxLimitAnswerTime = maxAnswerTime << 1;
+        const meanAnswerTime = Math.min(this.meanms(), maxAnswerTime >> 1);
+        const start = Date.now();
+        let thecase = "default";
+        while (!await this.answerReady(10000)) {
+            const count = Date.now() + 500 - start;
+            if (count >= maxLimitAnswerTime) {
+                thecase = "1";
+                break;
+            } else if (count >= maxAnswerTime) {
+                if (this._n < 15 || this.meanms() > 2000) {
+                    thecase = "2";
+                    break;
+                }
+            } else if (count >= meanAnswerTime && this._qanswerReady) {
+                thecase = "3";
+                break;
+            }
+            console.log("bucle: ", count);
+        }
+        this._n++;
+        this._totalms += Date.now() - start;
+        //TODO RETURN VALUE & SEARCH NEW MOVE
+        const s = ((Date.now() - start) / 1000).toFixed(3);
+        const result = "Result in: " + s + " seconds, case: " + thecase;
+        console.log(this._answerReady, this._qanswerReady, " " + result);
+        this._answerReady = false;
+        this._qanswerReady = false;
+        return result;
+    }
+
+    public get isWorking() { return !this._done; }
+
+    public async stop(fatalError: boolean = false) {
+        if (!this._done || !this._endLoop) await this.stopLoop();
+        if (fatalError) Minimax.sendWorkerPausedMessage();
+    }
+
+    private async stopLoop() {
+        if (!this._done) {
+            console.log("BEGIN STOP LOOP");
+            this._done = true;
+            await new Promise(resolve => setTimeout(resolve, 0));
+        }
+        if (!await this.isEndLoop(0)) {
+            let i = 10;
+            while (!await this.isEndLoop(i)) { if (i < 300) i << 1; }
+        }
+        console.log("LOOP STOPPED");
+        assertCondition(this._done && this._endLoop, "stopLoop postcondition");
+    }
+
+    private async done(): Promise<boolean> {
+        return await new Promise(resolve => setTimeout(resolve, 0)).then(() => { return this._done; })
+    }
+
+    private async isEndLoop(milliseconds: number): Promise<boolean> {
+        return await new Promise(resolve => setTimeout(resolve, milliseconds)).then(() => { return this._endLoop; })
+    }
+
+    private async answerReady(milliseconds: number): Promise<boolean> {
+        await new Promise(resolve => setTimeout(resolve, milliseconds));
+        return this._answerReady;
+    }
+
+    private meanms = () => { return this._n > 0 ? this._totalms / this._n : Minimax.maxAnswerTime; }
+
+    private _done: boolean = true; //main loop flag: must be explitly set
+    private _endLoop: boolean = true;
+    private _answerReady = false;
+    private _qanswerReady = false;
+    private _n = 0;
+    private _totalms = 0;
+    private _gameHalfMove: number;
+    private _gameTurn: Turn;
+
+    private game: Game;
+
+    constructor(public readonly grand: boolean, public readonly initStr: string, public readonly gameMoves: UndoStatusWhithCheckInfo[]) {
+        this.game = new Game(grand, initStr);
+        this.game.restoreMoves(gameMoves);
+        this._gameHalfMove = this.game.topHalfMove;
+        this._gameTurn = this.game.turn;
+    }
+
+    public get gameHalfMove(): number {
+        return this._gameHalfMove;
+    }
+
+    public get gameTurn(): Turn {
+        return this._gameTurn;
+    }
+
+
+
+    private previousMove: MoveInfo | undefined = undefined;
+
 
     public static findBest(grand: boolean, board: string) {
         const actualGame: Game = new Game(grand, board);
@@ -40,17 +430,16 @@ abstract class Minimax {
     }
 
 
-    private static readonly maxDepth: number = 4;
-
     private static minimax(node: Game, depth: number, alpha: number, beta: number, maxPlayer: PieceColor, levelPlayer: PieceColor) {
         const currentKing = levelPlayer == 'w' ? node.wKing : node.bKing;
+        //TODO const attackTable: [Position[], (Piece|null)[], Array<Piece>[]];
         const moves = Minimax.generateMoves(node, currentKing);
 
         function moveOrderValue(amove: AttemptMove) {
             const moveNumber: number = node.moveNumber;
             const move = amove.move;
             if (currentKing.checked) {
-                assertCondition(!csmv.isCastlingInfo(move));
+                assertCondition(!csmv.isCastlingInfo(move), "No castling move");
                 const p = cscnv.getPieceKeyName(move.piece);
                 if (p == 'K') return -6;
                 else {
@@ -284,6 +673,34 @@ abstract class Minimax {
             }
         }
         return [checks, discoveredChecks];
+    }
+
+    private evaluate(): number {
+        //TODO Heuristic
+        return 0;
+    }
+
+    private * capturesAndChecks(): Generator<MoveInfo, void, void> {
+        const captures: MoveInfo[] = [];
+        const checks: MoveInfo[] = [];
+
+    }
+
+    public quiesce(alpha: number, beta: number): number {
+        let stand_pat: number = this.evaluate();
+        if (stand_pat >= beta)
+            return beta;
+        if (alpha < stand_pat) alpha = stand_pat;
+        for (const move of this.capturesAndChecks()) {
+            this.game.pushMove(move);
+            const score = -this.quiesce(-beta, -alpha);
+            this.game.popMove();
+            if (score >= beta)
+                return beta;
+            if (score > alpha)
+                alpha = score;
+        }
+        return alpha;
     }
 
 

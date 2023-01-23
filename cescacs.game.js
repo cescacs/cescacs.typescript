@@ -4,6 +4,54 @@ const grandParam = urlParams.get('grand') != null ||
     typeof (Storage) !== "undefined" && localStorage.getItem("cescacs-grand") == 'grand';
 const game = new cescacs.Game(grandParam);
 
+
+/* SECTION Worker functions */
+//TODO - Worker
+/* Initialize ! */
+const WINI = function () {
+    if (myWorker !== undefined) {
+        myWorker.postMessage(["INI", [game.isGrand, localStorage.getItem("cescacs")], game.movesJSON]);
+        console.log('Message INI posted to worker');
+    }
+}
+/* Pause the worker ? */
+const WP = function () {
+    if (myWorker !== undefined) {
+        myWorker.postMessage(["P", [game.isGrand, localStorage.getItem("cescacs")]]);
+        console.log('Message P posted to worker');
+    }
+}
+/* Resume the worker ? */
+const WON = function () {
+    if (myWorker !== undefined) {
+        myWorker.postMessage(["ON", [game.isGrand, localStorage.getItem("cescacs")]]);
+        console.log('Message ON posted to worker');
+    }
+}
+/* Inform a move ! */
+const WMOVE = function (turn, halfmoveNumber, move) {
+    if (myWorker !== undefined) {
+        myWorker.postMessage(["M", [game.isGrand, localStorage.getItem("cescacs")], [turn, halfmoveNumber, move]]);
+        console.log('Message M posted to worker');
+    }
+}
+/* Undo move ? */
+const WUNDO = function () {
+    if (myWorker !== undefined) {
+        myWorker.postMessage(["BK", [game.isGrand, localStorage.getItem("cescacs")]]);
+        console.log('Message BK posted to worker');
+    }
+}
+/* Require result ! */
+const WRQ = function () {
+    if (myWorker !== undefined) {
+        myWorker.postMessage(["RQ", [game.isGrand, localStorage.getItem("cescacs")]]);
+        console.log('Message RQ posted to worker');
+    }
+}
+
+/* !SECTION Worker functions */
+
 function init() {
     const rootElement = document.getElementById("HEX");
     const children = rootElement.children;
@@ -23,15 +71,18 @@ function init() {
     document.querySelector("#dialogPromotion>span.close").addEventListener("click", () => {
         clearClickHex();
     });
-    debugger;
     //restore existing game from storage
     if (typeof (Storage) !== "undefined" && localStorage.getItem("cescacs") != null) {
         restoreGame();
     } else {
         saveGame();
     }
+    //FIXME - removed code
+    /*
+    wPaused();
+    if (!game.gameEnd) { WINI(); WON(); }
+    */
     restoreBoard();
-    displayMoveStatus();
     //title
     const gameTitle = document.getElementById("gameTitle");
     if (grandParam) {
@@ -39,7 +90,34 @@ function init() {
         dialogGrandCescacs.showModal();
     } else gameTitle.innerHTML = "C'escacs";
     RestoreButtons();
+    displayMoveStatus();
 };
+
+//FIXME - removed code
+/*
+var WorkingWorker = false;
+
+function wPaused() {
+    const buttonStopEngine = document.getElementById("buttonStopEngine");
+    const buttonSuggestMove = document.getElementById("buttonSuggestMove");
+    buttonStopEngine.classList.remove('w3-black');
+    buttonStopEngine.classList.add('w3-red');
+    buttonStopEngine.innerHTML = "Start Engine";
+    if (suggestMoveContainer.style.display == 'block') SuggestMove();
+    buttonSuggestMove.disabled = true;
+    WorkingWorker = false;
+}
+
+function wWorking() {
+    const buttonStopEngine = document.getElementById("buttonStopEngine");
+    const buttonSuggestMove = document.getElementById("buttonSuggestMove");
+    buttonStopEngine.classList.add('w3-black');
+    buttonStopEngine.classList.remove('w3-red');
+    buttonStopEngine.innerHTML = "Stop Engine";
+    buttonSuggestMove.disabled = false;
+    WorkingWorker = true;
+}
+*/
 
 function placeSymbol(coord, pieceId) {
     const placeId = 'HEX' + coord;
@@ -104,6 +182,9 @@ function clickHex(hexElement) {
                             if (enPassantPos != null) {
                                 removeSymbol(document.getElementById("HEX" + enPassantPos));
                             }
+                            if (game.lastMove != null) {
+                                WMOVE(cescacs.cscnv.otherSide(game.turn), game.topHalfMove - 1, cescacs.csmv.fullMoveNotation(game.lastMove, false));
+                            }
                             displayMoveStatus();
                             saveMoves();
                         } catch (e) {
@@ -164,7 +245,7 @@ function clickHex(hexElement) {
  * @param {*} destCoord
  * @param {boolean} [closeable=false]
  */
- function showPromotionDialog(destCoord, closeable = false) {
+function showPromotionDialog(destCoord, closeable = false) {
     const dialog = document.getElementById("dialogPromotion");
     const selector = document.getElementById("promotionRegainableOptions");
     const bishopColor = cescacs.PositionHelper.hexColor(destCoord);
@@ -200,6 +281,9 @@ function confirmPromotion() {
         placeSymbol(dest, game.turn == 'w' ? pieceSymbol : pieceSymbol.toLowerCase());
         try {
             game.doPromotePawn(src, dest, pieceSymbol);
+            if (game.lastMove != null) {
+                WMOVE(cescacs.cscnv.otherSide(game.turn), game.topHalfMove - 1, cescacs.csmv.fullMoveNotation(game.lastMove, false));
+            }
             displayMoveStatus();
             saveMoves();
         } catch (e) {
@@ -246,16 +330,22 @@ function isExecutingAction() {
  *
  */
 function displayMoveStatus() {
-    let moveText = game.lastMove;
+    let moveText = game.strLastMove;
     if (game.gameEnd) {
         const buttonResign = document.getElementById("buttonResign");
         const buttonDraw = document.getElementById("buttonDraw");
+        const buttonLoadMoves = document.getElementById("buttonLoadMoves");
+        const buttonManualMove = document.getElementById("buttonManualMove");
+        const buttonStopEngine = document.getElementById("buttonStopEngine");
+        const buttonSuggestMove = document.getElementById("buttonSuggestMove");
         const buttonCastling = document.getElementById("buttonCastling");
-        const buttonSugestMove = document.getElementById("buttonSugestMove");
         buttonResign.disabled = true;
         buttonDraw.disabled = true;
+        buttonLoadMoves.disabled = true;
+        buttonManualMove.disabled = true;
+        buttonStopEngine.disabled = true;
+        buttonSuggestMove.disabled = true;
         buttonCastling.disabled = true;
-        buttonSugestMove.disabled = true;
         if (moveText == null) moveText = '\xa0';
     } else {
         if (moveText == null) moveText = "Ready " + (game.turn == "w" ? "whites" : "blacks");
@@ -286,7 +376,6 @@ function restoreBoard() {
     for (const item of document.querySelectorAll(`[id^="HEX"]`)) {
         removeSymbol(item)
     }
-    debugger;
     for (const p of game.pieceList()) {
         placeSymbol(p.slice(1), p[0]);
     }
@@ -299,7 +388,7 @@ function saveGame() {
         localStorage.removeItem("cescacs-mv");
         if (game.gameEnd) localStorage.setItem("cescacs-end", game.resultString);
         else localStorage.removeItem("cescacs-end");
-} catch (e) {
+    } catch (e) {
         console.log("saveGame: ", e);
         document.getElementById("gameStatus").innerHTML = (e instanceof Error ? e.message : "");
         document.getElementById("resultString").innerHTML = 'ERROR';
@@ -321,7 +410,6 @@ function restoreGame() {
             game.loadTLPD(localStorage.getItem("cescacs"));
             if (localStorage.getItem("cescacs-mv") != null) {
                 game.restoreMovesJSON(localStorage.getItem("cescacs-mv"));
-                game.moveTop();
             }
             game.resultString = localStorage.getItem("cescacs-end");
         } catch (e) {
@@ -569,7 +657,7 @@ function showId(element, id) {
         }
         element.classList.add("selected");
         buttonUndo.disabled = element.nextElementSibling != null;
-        document.getElementById("gameStatus").innerHTML = game.lastMove ?? '\xa0';
+        document.getElementById("gameStatus").innerHTML = game.strLastMove ?? '\xa0';
         document.getElementById("resultString").innerHTML = game.resultString ?? '\xa0';
     }
 }
@@ -580,7 +668,7 @@ function showFirst() {
     try {
         game.moveBottom();
         restoreBoard();
-        document.getElementById("gameStatus").innerHTML = game.lastMove ?? '\xa0';
+        document.getElementById("gameStatus").innerHTML = game.strLastMove ?? '\xa0';
         document.getElementById("resultString").innerHTML = game.resultString ?? '\xa0';
         posGridMoves(movesGrid);
         movesGrid.scrollTop = 0;
@@ -598,7 +686,7 @@ function showPrevious() {
     try {
         game.moveBackward();
         restoreBoard();
-        document.getElementById("gameStatus").innerHTML = game.lastMove ?? '\xa0';
+        document.getElementById("gameStatus").innerHTML = game.strLastMove ?? '\xa0';
         document.getElementById("resultString").innerHTML = game.resultString ?? '\xa0';
         posGridMoves(movesGrid);
     } catch (e) {
@@ -614,7 +702,7 @@ function showNext() {
     try {
         game.moveForward();
         restoreBoard();
-        document.getElementById("gameStatus").innerHTML = game.lastMove ?? '\xa0';
+        document.getElementById("gameStatus").innerHTML = game.strLastMove ?? '\xa0';
         document.getElementById("resultString").innerHTML = game.resultString ?? '\xa0';
         posGridMoves(movesGrid);
     } catch (e) {
@@ -630,7 +718,7 @@ function showLast() {
     try {
         game.moveTop();
         restoreBoard();
-        document.getElementById("gameStatus").innerHTML = game.lastMove ?? '\xa0';
+        document.getElementById("gameStatus").innerHTML = game.strLastMove ?? '\xa0';
         document.getElementById("resultString").innerHTML = game.resultString ?? '\xa0';
         posGridMoves(movesGrid);
         movesGrid.scrollTop = 10000;
@@ -689,7 +777,7 @@ function GetMoves() {
  * Load a string with the next moves
  *
  */
- function LoadMoves() {
+function LoadMoves() {
     const buttonLoadMoves = document.getElementById("buttonLoadMoves");
     const loadMovesPanel = document.getElementById("loadMovesPanel");
     if (loadMovesPanel.style.display == "none") {
@@ -719,7 +807,7 @@ function GetMoves() {
                 buttonLoadMoves.classList.remove("fullbutton");
                 buttonLoadMoves.classList.add("halfbutton");
                 restoreBoard();
-                displayHeuristic();
+                displayMoveStatus();
                 saveMoves();
             } catch (e) {
                 console.log("LoadMoves: ", e);
@@ -730,6 +818,7 @@ function GetMoves() {
         }
     }
 }
+
 /**
  * Enter a move string (string input using prompt). There is the LoadMoves proc also.
  *
@@ -738,8 +827,21 @@ function ManualMove() {
     let move = window.prompt("Next move?");
     if (move != null && move.length >= 2) {
         game.applyStringMove(move);
+        if (game.lastMove != null) {
+            WMOVE(cescacs.cscnv.otherSide(game.turn), game.topHalfMove - 1, cescacs.csmv.fullMoveNotation(game.lastMove, false));
+        }
         restoreBoard();
         saveMoves();
+    }
+}
+
+//TODO: Stop Engine
+function StopEngine() {
+    const buttonStopEngine = document.getElementById("buttonStopEngine");
+    if (buttonStopEngine.classList.contains("w3-red")) {
+        WON();
+    } else {
+        WP();
     }
 }
 
@@ -845,6 +947,38 @@ function ShowHeuristic() {
     dialog.showModal();
 }
 
+//FIXME - Removed code
+/*
+function SuggestMove() {
+    const buttonSuggestMove = document.getElementById("buttonSuggestMove");
+    const suggestContainer = document.getElementById("suggestMoveContainer");
+    const suggestMoveWaiting = document.getElementById("suggestMoveWaiting");
+    const suggestMoveResult = document.getElementById("suggestMoveResult");
+    if (suggestMoveContainer.style.display == 'none') {
+        clearClickHex();
+        HideButtons();
+        buttonSuggestMove.classList.add('w3-red');
+        buttonSuggestMove.classList.add("fullbutton");
+        buttonSuggestMove.classList.remove('w3-black');
+        buttonSuggestMove.classList.remove("halfbutton");
+        buttonSuggestMove.style.display = 'block';
+        suggestMoveContainer.style.display = 'block';
+        suggestMoveWaiting.style.display = "block";
+        suggestMoveResult.style.display = "none";
+        WRQ();
+    } else {
+        RestoreButtons();
+        buttonSuggestMove.classList.add('halfbutton');
+        buttonSuggestMove.classList.add('w3-black');
+        buttonSuggestMove.classList.remove('fullbutton');
+        buttonSuggestMove.classList.remove('w3-red');
+        suggestMoveContainer.style.display = 'none';
+        suggestMoveWaiting.style.display = "none";
+        suggestMoveResult.style.display = "block";
+    }
+}
+*/
+
 function Castling() {
     if (!game.checked) {
         const currentColor = game.turn;
@@ -871,7 +1005,7 @@ function Castling() {
                                 const btn = document.createElement("button");
                                 btn.setAttribute("id", m);
                                 btn.setAttribute("title", m);
-                                btn.setAttribute("class", "w3-button w3-round w3-small")
+                                btn.setAttribute("class", "w3-button w3-round w3-small");
                                 btn.innerHTML = m;
                                 btn.onclick = function () { previewCastling(this.id); };
                                 btnContainer.appendChild(btn);
@@ -1009,6 +1143,9 @@ function confirmCastling() {
     previewCastling.rk = undefined;
     previewCastling.rq = undefined;
     RestoreButtons();
+    if (game.lastMove != null) {
+        WMOVE(cescacs.cscnv.otherSide(game.turn), game.topHalfMove - 1, cescacs.csmv.fullMoveNotation(game.lastMove, false));
+    }
     displayMoveStatus();
     saveMoves();
 }
@@ -1022,9 +1159,10 @@ function HideButtons() {
     const buttonShowMoves = document.getElementById("buttonShowMoves");
     const buttonLoadMoves = document.getElementById("buttonLoadMoves");
     const buttonManualMove = document.getElementById("buttonManualMove");
+    const buttonStopEngine = document.getElementById("buttonStopEngine");
     const buttonResign = document.getElementById("buttonResign");
     const buttonDraw = document.getElementById("buttonDraw");
-    const buttonSugestMove = document.getElementById("buttonSugestMove");
+    const buttonSuggestMove = document.getElementById("buttonSuggestMove");
     const buttonHeuristic = document.getElementById("buttonHeuristic");
     const buttonShowThreatened = document.getElementById("buttonShowThreatened");
     const buttonShowThreats = document.getElementById("buttonShowThreats");
@@ -1040,9 +1178,10 @@ function HideButtons() {
     buttonShowMoves.style.display = "none";
     buttonLoadMoves.style.display = "none";
     buttonManualMove.style.display = "none";
+    buttonStopEngine.style.display = "none";
     buttonResign.style.display = "none";
     buttonDraw.style.display = "none";
-    buttonSugestMove.style.display = "none";
+    buttonSuggestMove.style.display = "none";
     buttonHeuristic.style.display = "none";
     buttonShowThreatened.style.display = "none";
     buttonShowThreats.style.display = "none";
@@ -1061,9 +1200,10 @@ function RestoreButtons() {
     const buttonShowMoves = document.getElementById("buttonShowMoves");
     const buttonLoadMoves = document.getElementById("buttonLoadMoves");
     const buttonManualMove = document.getElementById("buttonManualMove");
+    const buttonStopEngine = document.getElementById("buttonStopEngine");
     const buttonResign = document.getElementById("buttonResign");
     const buttonDraw = document.getElementById("buttonDraw");
-    const buttonSugestMove = document.getElementById("buttonSugestMove");
+    const buttonSuggestMove = document.getElementById("buttonSuggestMove");
     const buttonHeuristic = document.getElementById("buttonHeuristic");
     const buttonShowThreatened = document.getElementById("buttonShowThreatened");
     const buttonShowThreats = document.getElementById("buttonShowThreats");
@@ -1087,9 +1227,10 @@ function RestoreButtons() {
     buttonShowMoves.style.display = "block";
     buttonLoadMoves.style.display = "block";
     buttonManualMove.style.display = "block";
+    buttonStopEngine.style.display = "block";
     buttonResign.style.display = "block";
     buttonDraw.style.display = "block";
-    buttonSugestMove.style.display = "block";
+    buttonSuggestMove.style.display = "block";
     buttonHeuristic.style.display = "block";
     buttonShowThreatened.style.display = "block";
     buttonShowThreats.style.display = "block";

@@ -1,8 +1,35 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.csMoves = void 0;
+exports.csMoves = exports.undoStatusArrayEquals = exports.undoStatusEquals = exports.isUndoStatus = void 0;
 const cescacs_types_1 = require("./cescacs.types");
 const cescacs_positionHelper_1 = require("./cescacs.positionHelper");
+function isUndoStatus(st) {
+    return st.n !== undefined && typeof st.n == 'number'
+        && st.turn !== undefined && cescacs_types_1.csTypes.isTurn(st.turn)
+        && st.move !== undefined && (st.move == '\u2026' || csMoves.isMoveInfo(st.move)
+        || csMoves.isCastlingInfo(st.move) || csMoves.isPromotionInfo(st.move))
+        && (st.initHalfMoveClock === undefined || st.initHalfMoveClock == '1')
+        && (st.castlingStatus === undefined || cescacs_types_1.csTypes.isCastlingStatus(st.castlingStatus))
+        && (st.specialPawnCapture === undefined
+            || (typeof st.specialPawnCapture == 'string' && st.specialPawnCapture.indexOf('@') > 0))
+        && (st.fixedNumbering === undefined || st.fixedNumbering == '?');
+}
+exports.isUndoStatus = isUndoStatus;
+function undoStatusEquals(a, b) {
+    return a.n == b.n && a.turn == b.turn
+        && ((a.move == '\u2026' && b.move == '\u2026')
+            || (a.move != '\u2026' && b.move != '\u2026' && csMoves.equals(a.move, b.move)))
+        && a.initHalfMoveClock == b.initHalfMoveClock
+        && a.castlingStatus == b.castlingStatus
+        && a.specialPawnCapture == b.specialPawnCapture
+        && a.fixedNumbering == b.fixedNumbering
+        && a.end == b.end && a.check == b.check;
+}
+exports.undoStatusEquals = undoStatusEquals;
+function undoStatusArrayEquals(a, b) {
+    return a.every((val, index) => undoStatusEquals(val, b[index]));
+}
+exports.undoStatusArrayEquals = undoStatusArrayEquals;
 var csMoves;
 (function (csMoves) {
     function promoteUndoStatus(value, end, check) {
@@ -110,4 +137,25 @@ var csMoves;
         }
     }
     csMoves.moveNotation = moveNotation;
+    function equals(a, b) {
+        if (isMoveInfo(a) && isMoveInfo(b)) {
+            return a.piece == b.piece
+                && cescacs_positionHelper_1.PositionHelper.equals(a.pos, b.pos)
+                && cescacs_positionHelper_1.PositionHelper.equals(a.moveTo, b.moveTo);
+        }
+        else if (isPromotionInfo(a) && isPromotionInfo(b)) {
+            return a.piece == b.piece
+                && a.promoted == b.promoted
+                && cescacs_positionHelper_1.PositionHelper.equals(a.prPos, b.prPos);
+        }
+        else if (isCastlingInfo(a) && isCastlingInfo(b)) {
+            return a.side == b.side
+                && a.col == b.col
+                && cescacs_positionHelper_1.PositionHelper.equals(a.rPos, b.rPos)
+                && a.kRook == b.kRook && a.qRook == b.qRook;
+        }
+        else
+            return false;
+    }
+    csMoves.equals = equals;
 })(csMoves = exports.csMoves || (exports.csMoves = {}));

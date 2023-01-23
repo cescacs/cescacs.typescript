@@ -9,6 +9,9 @@ class PositionHelper {
     static toString(pos) {
         return cescacs_types_1.csConvert.columnFromIndex(pos[0]) + pos[1].toString();
     }
+    static compactPosToString(cpos) {
+        return cescacs_types_1.csConvert.getColumnFromCompact(cpos) + cescacs_types_1.csConvert.getLineFromCompact(cpos).toString();
+    }
     static positionKey(k) {
         return k[0].toString() + "-" + k[1].toString(); // k.toString();
     }
@@ -116,12 +119,12 @@ class PositionHelper {
                 return null;
         }
     }
-    static isDiagonally(from, to) {
+    static isDiagonally(from, to, avoidTransversal = false) {
         const dif = [to[0] - from[0], to[1] - from[1]];
         if (dif[1] == 0) {
             if (dif[0] == 0)
                 return null;
-            else if (dif[0] % 2 == 0)
+            else if (!avoidTransversal && dif[0] % 2 == 0)
                 return dif[0] > 0 ? "TransversalLineInc" : "TransversalLineDec";
             else
                 return null;

@@ -25,6 +25,32 @@ export interface UndoStatusWhithCheckInfo extends UndoStatus {
     readonly check?: CheckNotation;
 }
 
+export function isUndoStatus(st: any): st is UndoStatus {
+    return st.n !== undefined && typeof st.n == 'number'
+    && st.turn !== undefined && csty.isTurn(st.turn)
+    && st.move !== undefined && (st.move == '\u2026' || csMoves.isMoveInfo(st.move) 
+        || csMoves.isCastlingInfo(st.move) || csMoves.isPromotionInfo(st.move))
+    && (st.initHalfMoveClock === undefined || st.initHalfMoveClock == '1')
+    && (st.castlingStatus === undefined || csty.isCastlingStatus(st.castlingStatus))
+    && (st.specialPawnCapture === undefined 
+        || (typeof st.specialPawnCapture == 'string' && st.specialPawnCapture.indexOf('@') > 0))
+    && (st.fixedNumbering === undefined || st.fixedNumbering == '?')
+}
+
+export function undoStatusEquals(a: UndoStatusWhithCheckInfo, b: UndoStatusWhithCheckInfo): boolean {
+    return a.n == b.n && a.turn == b.turn
+        && ((a.move == '\u2026' && b.move == '\u2026')
+            || (a.move != '\u2026' && b.move != '\u2026' && csMoves.equals(a.move, b.move)))
+        && a.initHalfMoveClock == b.initHalfMoveClock
+        && a.castlingStatus == b.castlingStatus
+        && a.specialPawnCapture == b.specialPawnCapture
+        && a.fixedNumbering == b.fixedNumbering
+        && a.end == b.end && a.check == b.check;
+}
+
+export function undoStatusArrayEquals(a: UndoStatusWhithCheckInfo[], b: UndoStatusWhithCheckInfo[]): boolean {
+    return a.every((val, index) => undoStatusEquals(val, b[index]));
+}
 
 export namespace csMoves {
 
@@ -147,6 +173,24 @@ export namespace csMoves {
         } else {
             throw new TypeError("must be a move notation");
         }
+    }
+
+    export function equals(a: MoveInfo, b: MoveInfo): boolean {
+        if (isMoveInfo(a) && isMoveInfo(b)) {
+            return a.piece == b.piece
+                && PositionHelper.equals(a.pos, b.pos)
+                && PositionHelper.equals(a.moveTo, b.moveTo);
+        } else if (isPromotionInfo(a) && isPromotionInfo(b)) {
+            return a.piece == b.piece
+                && a.promoted == b.promoted
+                && PositionHelper.equals(a.prPos, b.prPos);
+        } else if (isCastlingInfo(a) && isCastlingInfo(b)) {
+            return a.side == b.side
+                && a.col == b.col
+                && PositionHelper.equals(a.rPos, b.rPos)
+                && a.kRook == b.kRook && a.qRook == b.qRook;
+        } else return false;
+
     }
 
 }

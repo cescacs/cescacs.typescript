@@ -26,6 +26,7 @@ export type Column = (typeof _column)[number];
 export type ColumnIndex = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14;
 export type Line = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28;
 export type Position = [ColumnIndex, Line];
+export type CompactPosition = number;
 export type OrthogonalDirection = (typeof _orthogonalDirection)[number];
 export type DiagonalDirection = (typeof _diagonalDirection)[number];
 export type KnightDirection = (typeof _knightDirection)[number];
@@ -59,6 +60,7 @@ export namespace csTypes {
     export const isColumnIndex = (x: any): x is ColumnIndex => isNumber(x) && Number.isInteger(x) && x >= 0 && x <= 14;
     export const isLine = (x: any): x is Line => isNumber(x) && Number.isInteger(x) && x >= 0 && x <= 28;
     export const isPosition = (x: any): x is Position => Array.isArray(x) && x.length == 2 && isColumnIndex(x[0]) && isLine(x[1]);
+    export const isCompactPosition = (x : any): x is CompactPosition => typeof x === "number" && isColumnIndex(x >> 5) && isLine(x & 0b000011111);
     export const isOrthogonalDirection = (x: any): x is OrthogonalDirection => _orthogonalDirection.includes(x);
     export const isDiagonalDirection = (x: any): x is DiagonalDirection => _diagonalDirection.includes(x);
     export const isKnightDirection = (x: any): x is KnightDirection => _knightDirection.includes(x);
@@ -93,6 +95,12 @@ export namespace csTypes {
 export namespace csConvert {
     export const columnFromIndex = (i: ColumnIndex): Column => _column[i];
     export const toColumnIndex = (column: Column): ColumnIndex => _column.indexOf(column) as ColumnIndex;
+    export const toCompactPosition = (c: ColumnIndex, line: Line) => c << 5 + line;
+    export const toCompactFromPosition = (pos: Position): CompactPosition => toCompactPosition(pos[0], pos[1]);
+    export const toPositionFromCompact = (x: CompactPosition) => [x >> 5, x & 0b000011111];
+    export const getColumnFromCompact = (x: CompactPosition) => _column[x >> 5];
+    export const getColumnIndexFromCompact = (x: CompactPosition) => x >> 5;
+    export const getLineFromCompact = (x: CompactPosition) => x & 0b000011111;
     export const toOrthogonalDirectionIndex = (direction: OrthogonalDirection): DirectionMoveRange => _orthogonalDirection.indexOf(direction) as DirectionMoveRange;
     export const orthogonalDirectionFromIndex = (i: DirectionMoveRange): OrthogonalDirection => _orthogonalDirection[i];
     export const toDiagonalDirectionIndex = (direction: DiagonalDirection): DirectionMoveRange => _diagonalDirection.indexOf(direction) as DirectionMoveRange;
@@ -127,6 +135,7 @@ export namespace csConvert {
             }
         }
     }
+    export function otherSide(turn: Turn): Turn { return turn == 'w' ? 'b' : 'w'; }
     export function getPieceKeyColor(key: PieceKey): PieceColor {
         assertCondition(csTypes.isTurn(key[0]), `key 1st char must have piece color`)
         return key[0];

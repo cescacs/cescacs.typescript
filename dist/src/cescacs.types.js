@@ -27,6 +27,7 @@ var csTypes;
     csTypes.isColumnIndex = (x) => csTypes.isNumber(x) && Number.isInteger(x) && x >= 0 && x <= 14;
     csTypes.isLine = (x) => csTypes.isNumber(x) && Number.isInteger(x) && x >= 0 && x <= 28;
     csTypes.isPosition = (x) => Array.isArray(x) && x.length == 2 && csTypes.isColumnIndex(x[0]) && csTypes.isLine(x[1]);
+    csTypes.isCompactPosition = (x) => typeof x === "number" && csTypes.isColumnIndex(x >> 5) && csTypes.isLine(x & 0b000011111);
     csTypes.isOrthogonalDirection = (x) => _orthogonalDirection.includes(x);
     csTypes.isDiagonalDirection = (x) => _diagonalDirection.includes(x);
     csTypes.isKnightDirection = (x) => _knightDirection.includes(x);
@@ -58,6 +59,12 @@ var csConvert;
 (function (csConvert) {
     csConvert.columnFromIndex = (i) => _column[i];
     csConvert.toColumnIndex = (column) => _column.indexOf(column);
+    csConvert.toCompactPosition = (c, line) => c << 5 + line;
+    csConvert.toCompactFromPosition = (pos) => csConvert.toCompactPosition(pos[0], pos[1]);
+    csConvert.toPositionFromCompact = (x) => [x >> 5, x & 0b000011111];
+    csConvert.getColumnFromCompact = (x) => _column[x >> 5];
+    csConvert.getColumnIndexFromCompact = (x) => x >> 5;
+    csConvert.getLineFromCompact = (x) => x & 0b000011111;
     csConvert.toOrthogonalDirectionIndex = (direction) => _orthogonalDirection.indexOf(direction);
     csConvert.orthogonalDirectionFromIndex = (i) => _orthogonalDirection[i];
     csConvert.toDiagonalDirectionIndex = (direction) => _diagonalDirection.indexOf(direction);
@@ -94,6 +101,8 @@ var csConvert;
         }
     }
     csConvert.getDiagonalOrientation = getDiagonalOrientation;
+    function otherSide(turn) { return turn == 'w' ? 'b' : 'w'; }
+    csConvert.otherSide = otherSide;
     function getPieceKeyColor(key) {
         (0, ts_general_1.assertCondition)(csTypes.isTurn(key[0]), `key 1st char must have piece color`);
         return key[0];

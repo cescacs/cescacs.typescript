@@ -1,9 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Game = exports.Board = exports.EnPassantCapturable = exports.ScornfulCapturable = exports.PawnSpecialCaptureStatus = exports.round2hundredths = exports.csmv = exports.cspty = exports.PositionHelper = void 0;
+exports.Game = exports.Board = exports.EnPassantCapturable = exports.ScornfulCapturable = exports.PawnSpecialCaptureStatus = exports.round2hundredths = exports.csmv = exports.cspty = exports.cscnv = exports.PositionHelper = void 0;
 const ts_general_1 = require("./ts.general");
 Object.defineProperty(exports, "round2hundredths", { enumerable: true, get: function () { return ts_general_1.round2hundredths; } });
 const cescacs_types_1 = require("./cescacs.types");
+Object.defineProperty(exports, "cscnv", { enumerable: true, get: function () { return cescacs_types_1.csConvert; } });
 const cescacs_piece_1 = require("./cescacs.piece");
 Object.defineProperty(exports, "cspty", { enumerable: true, get: function () { return cescacs_piece_1.csPieceTypes; } });
 const cescacs_positionHelper_1 = require("./cescacs.positionHelper");
@@ -14,13 +15,6 @@ Object.defineProperty(exports, "csmv", { enumerable: true, get: function () { re
 //#region PawnSpecialCapture classes
 /** register a pawn special capture state */
 class PawnSpecialCaptureStatus {
-    /**
-     * @constructor
-     * @param  {Piece} capturablePawn
-     */
-    constructor(capturablePawn) {
-        this._capturablePiece = capturablePawn;
-    }
     /**
      * @param  {IBoard} board - callback reference
      * @param  {Nullable<string>} value
@@ -48,8 +42,8 @@ class PawnSpecialCaptureStatus {
                                         }
                                         else
                                             throw new TypeError("Invalid en passant capture line value");
-                                        return new EnPassantCapturable(piece, captureTo);
                                     }
+                                    return new EnPassantCapturable(piece, captureTo);
                                 }
                                 else
                                     throw new TypeError("Missing or invalid en passant capture positions");
@@ -101,16 +95,35 @@ class PawnSpecialCaptureStatus {
     /**
      * In initial constructor, the pawn which made a special move;
      * afterwards, cause of promotion, it could be any piece. Use capturablePiece to query for it.
-     * @returns {Pawn}
+     * @returns {Nullable<Pawn>}
      */
     get capturablePawn() {
-        (0, ts_general_1.assertCondition)(cescacs_piece_1.csPieceTypes.isPawn(this._capturablePiece));
-        return this._capturablePiece;
+        if (cescacs_piece_1.csPieceTypes.isPawn(this._capturablePiece))
+            return this._capturablePiece;
+        else
+            return null;
+    }
+    /**
+     * @constructor
+     * @param  {Piece} capturablePawn
+     */
+    constructor(capturablePawn) {
+        this._capturablePiece = capturablePawn;
     }
 }
 exports.PawnSpecialCaptureStatus = PawnSpecialCaptureStatus;
 /** register a pawn special capture state: Scornful case */
 class ScornfulCapturable extends PawnSpecialCaptureStatus {
+    /**
+     * After the promotion, a promoting panw as the new piece regained must update the special capture register,
+     * if it were just created in the movement because of a scornful move
+     * @param  {ScornfulCapturable} scorfulCapturable - the instance to upgrade
+     * @param  {Piece} capturablePiece - the piece which the pawn promoted to
+     * @returns {ScornfulCapturable} - the instance upgraded
+     */
+    static promoteCapturablePawn(scorfulCapturable, capturablePiece) {
+        return new ScornfulCapturable(capturablePiece, scorfulCapturable._capturerPawnPos);
+    }
     /**
      * Available capture of a scornful pawn (which could've been promoted), which must be done from a pawn position
      * @constructor
@@ -121,16 +134,6 @@ class ScornfulCapturable extends PawnSpecialCaptureStatus {
         super(capturablePawn);
         this.specialCaptureType = 'scornful';
         this._capturerPawnPos = scornedPawnPos;
-    }
-    /**
-     * After the promotion, a promoting panw as the new piece regained must update the special capture register,
-     * if it were just created in the movement because of a scornful move
-     * @param  {ScornfulCapturable} scorfulCapturable - the instance to upgrade
-     * @param  {Piece} capturablePiece - the piece which the pawn promoted to
-     * @returns {ScornfulCapturable} - the instance upgraded
-     */
-    static promoteCapturablePawn(scorfulCapturable, capturablePiece) {
-        return new ScornfulCapturable(capturablePiece, scorfulCapturable._capturerPawnPos);
     }
     isScorned(pawn, pos) {
         const result = pawn.position != null && cescacs_positionHelper_1.PositionHelper.equals(pawn.position, this._capturerPawnPos);
@@ -166,16 +169,6 @@ exports.ScornfulCapturable = ScornfulCapturable;
 /** register a pawn special capture state: En passant case */
 class EnPassantCapturable extends PawnSpecialCaptureStatus {
     /**
-     * @constructor
-     * @param  {Piece} capturablePawn
-     * @param  {Position[]} captureTo
-     */
-    constructor(capturablePawn, captureTo) {
-        super(capturablePawn);
-        this.specialCaptureType = 'enPassant';
-        this._captureTo = captureTo;
-    }
-    /**
      * After the promotion, a promoting panw as the new piece regained must update the special capture register,
      * if it were just created in the movement because of double stepping
      * @param  {EnPassantCapturable} enpassantCapturable - the instance to upgrade
@@ -184,6 +177,16 @@ class EnPassantCapturable extends PawnSpecialCaptureStatus {
      */
     static promoteCapturablePawn(enpassantCapturable, capturablePiece) {
         return new EnPassantCapturable(capturablePiece, enpassantCapturable._captureTo);
+    }
+    /**
+     * @constructor
+     * @param  {Piece} capturablePawn
+     * @param  {Position[]} captureTo
+     */
+    constructor(capturablePawn, captureTo) {
+        super(capturablePawn);
+        this.specialCaptureType = 'enPassant';
+        this._captureTo = captureTo;
     }
     isEnPassantCapture(pos, capturerPawn) {
         const isEnPassantCapturePos = this._captureTo.some(x => cescacs_positionHelper_1.PositionHelper.equals(x, pos));
@@ -202,7 +205,7 @@ class EnPassantCapturable extends PawnSpecialCaptureStatus {
                     return false;
             }
             else
-                return cescacs_positionHelper_1.PositionHelper.isDiagonally(pos, capturerPos) != null;
+                return cescacs_positionHelper_1.PositionHelper.isDiagonally(pos, capturerPos, cescacs_piece_1.csPieceTypes.isElephant(capturerPawn)) != null;
         }
         else
             return false;
@@ -223,32 +226,6 @@ class EnPassantCapturable extends PawnSpecialCaptureStatus {
 exports.EnPassantCapturable = EnPassantCapturable;
 //#endregion
 class Board {
-    /**
-     * Creates an instance of Board.
-     * @param {boolean} isGrand
-     * @param {Turn} [turn='w']
-     * @memberof Board
-     */
-    constructor(isGrand, turn = 'w') {
-        this.isGrand = isGrand;
-        this.wPositions = [0, 0, 0, 0, 0, 0, 0, 0];
-        this.bPositions = [0, 0, 0, 0, 0, 0, 0, 0];
-        this.wThreats = [0, 0, 0, 0, 0, 0, 0, 0];
-        this.bThreats = [0, 0, 0, 0, 0, 0, 0, 0];
-        this.pieces = new Map();
-        this.wPieces = new Map();
-        this.bPieces = new Map();
-        this._regainablePieces = [];
-        this.wKing = new cescacs_piece_2.King('w');
-        this.bKing = new cescacs_piece_2.King('b');
-        this._specialPawnCapture = null;
-        this._currentHeuristic = Board.newHeuristic();
-        this._wAwaitingPromotion = false;
-        this._bAwaitingPromotion = false;
-        this._turn = turn ?? 'w';
-        this.pieces.set(this.wKing.key, this.wKing);
-        this.pieces.set(this.bKing.key, this.bKing);
-    }
     static newHeuristic() {
         return { pieces: [0, 0], space: [0, 0], positioning: 0, mobility: 0, king: 0 };
     }
@@ -280,6 +257,32 @@ class Board {
             return ["RKR", "RKR"];
     }
     static lineMask(l) { return 1 << l; }
+    /**
+     * Creates an instance of Board.
+     * @param {boolean} isGrand
+     * @param {Turn} [turn='w']
+     * @memberof Board
+     */
+    constructor(isGrand, turn = 'w') {
+        this.isGrand = isGrand;
+        this.wPositions = [0, 0, 0, 0, 0, 0, 0, 0];
+        this.bPositions = [0, 0, 0, 0, 0, 0, 0, 0];
+        this.wThreats = [0, 0, 0, 0, 0, 0, 0, 0];
+        this.bThreats = [0, 0, 0, 0, 0, 0, 0, 0];
+        this.pieces = new Map();
+        this.wPieces = new Map();
+        this.bPieces = new Map();
+        this._regainablePieces = [];
+        this.wKing = new cescacs_piece_2.King('w');
+        this.bKing = new cescacs_piece_2.King('b');
+        this._specialPawnCapture = null;
+        this._currentHeuristic = Board.newHeuristic();
+        this._wAwaitingPromotion = false;
+        this._bAwaitingPromotion = false;
+        this._turn = turn ?? 'w';
+        this.pieces.set(this.wKing.key, this.wKing);
+        this.pieces.set(this.bKing.key, this.bKing);
+    }
     /**
      *
      *
@@ -646,35 +649,45 @@ class Board {
                     this._bAwaitingPromotion = true;
             }
         }
+        else if (cescacs_piece_1.csPieceTypes.isElephant(piece)) {
+            if (piece.position[0] == toColumnIndex && Math.abs(toLine - piece.position[1]) > 2) {
+                const captureLine = (toLine > piece.position[1] ? (piece.position[1] + 2) : (piece.position[1] - 2));
+                const captureTo = [[toColumnIndex, captureLine]];
+                this._specialPawnCapture = new EnPassantCapturable(piece, captureTo);
+            }
+            else {
+                this._specialPawnCapture = null;
+            }
+        }
         else if (cescacs_piece_1.csPieceTypes.isAlmogaver(piece)) {
             const dirMove = cescacs_positionHelper_1.PositionHelper.isOrthogonally(piecePos, [toColumnIndex, toLine]);
             if (dirMove != null) {
-                const multipleStep = [];
+                const captureTo = [];
                 switch (dirMove) {
                     case "ColumnUp":
-                        multipleStep.push([piecePos[0], piecePos[1] + 2]);
+                        captureTo.push([piecePos[0], piecePos[1] + 2]);
                         break;
                     case "ColumnDown":
-                        multipleStep.push([piecePos[0], piecePos[1] - 2]);
+                        captureTo.push([piecePos[0], piecePos[1] - 2]);
                         break;
                     case "FileUp":
-                        multipleStep.push([piecePos[0] + 1, piecePos[1] + 1]);
+                        captureTo.push([piecePos[0] + 1, piecePos[1] + 1]);
                         break;
                     case "FileDown":
-                        multipleStep.push([piecePos[0] + 1, piecePos[1] - 1]);
+                        captureTo.push([piecePos[0] + 1, piecePos[1] - 1]);
                         break;
                     case "FileInvUp":
-                        multipleStep.push([piecePos[0] - 1, piecePos[1] + 1]);
+                        captureTo.push([piecePos[0] - 1, piecePos[1] + 1]);
                         break;
                     case "FileInvDown":
-                        multipleStep.push([piecePos[0] - 1, piecePos[1] - 1]);
+                        captureTo.push([piecePos[0] - 1, piecePos[1] - 1]);
                         break;
                     default: {
                         const exhaustiveCheck = dirMove;
                         throw new Error(exhaustiveCheck);
                     }
                 }
-                this._specialPawnCapture = new EnPassantCapturable(piece, multipleStep);
+                this._specialPawnCapture = new EnPassantCapturable(piece, captureTo);
             }
             else {
                 this._specialPawnCapture = null;
@@ -757,6 +770,42 @@ class Board {
         piece.captured();
         this._regainablePieces.push(piece);
         pieces.set(cescacs_positionHelper_1.PositionHelper.positionKey(pawn.position), pawn);
+    }
+    insuficientMaterial() {
+        const hasPawns = (values) => { for (const p of values)
+            if (cescacs_piece_1.csPieceTypes.isPawn(p))
+                return true; return false; };
+        const hasMajorPieces = (values) => { for (const p of values)
+            if (cescacs_piece_1.csPieceTypes.isMajorPiece(p))
+                return true; return false; };
+        const hasMinorPieces = (values) => { for (const p of values)
+            if (cescacs_piece_1.csPieceTypes.isMinorPiece(p))
+                return true; return false; };
+        const mediumPieceCount = (values) => {
+            let n = 0;
+            for (const p of values)
+                if (cescacs_piece_1.csPieceTypes.isMediumPiece(p))
+                    n++;
+            return n;
+        };
+        if (this.wPieces.size <= 3 && this.bPieces.size <= 3
+            && !hasPawns(this.wPieces.values()) && !hasPawns(this.bPieces.values())) {
+            if (hasMajorPieces(this.wPieces.values()) || hasMajorPieces(this.bPieces.values()))
+                return false;
+            else {
+                const wG = mediumPieceCount(this.wPieces.values());
+                if (wG == 2)
+                    return false;
+                else if (wG == 1 && hasMinorPieces(this.wPieces.values()))
+                    return false;
+                const bG = mediumPieceCount(this.bPieces.values());
+                if (bG == 2)
+                    return false;
+                else if (bG == 1 && hasMinorPieces(this.bPieces.values()))
+                    return false;
+                return true;
+            }
+        }
     }
     nextTurn() {
         this._turn = this._turn === 'w' ? 'b' : 'w';
@@ -1122,47 +1171,25 @@ class Board {
 }
 exports.Board = Board;
 class Game extends Board {
-    constructor(grand = false, restoreStatusTLPD) {
-        const restoreStatus = restoreStatusTLPD?.split(" ");
-        const turn = restoreStatus?.[1] != null && (restoreStatus[1] == 'w' || restoreStatus[1] == 'b') ? restoreStatus[1] : 'w';
-        super(grand, turn);
-        //#endregion
-        this._moves = [];
-        this._top = -1;
-        this.fixedNumbering = true;
-        this._mate = false;
-        this._stalemate = false;
-        this._draw = false;
-        this._resigned = false;
-        this._enpassantCaptureCoordString = null;
-        if (restoreStatusTLPD === undefined) {
-            this.fillDefaultPositions();
-            this.halfmoveClock = 0;
-            this._moveNumber = 1;
-            this.fixedNumbering = true;
-        }
-        else if (restoreStatus != null && restoreStatus.length >= 2 && cescacs_types_1.csTypes.isTurn(restoreStatus[1])) {
-            const [wCastlingStatus, bCastlingStatus] = Board.splitCastlingStatus(restoreStatus[2]);
-            this.restoreTLPDPositions(restoreStatus[0], wCastlingStatus, bCastlingStatus);
-            this.halfmoveClock = cescacs_types_1.csTypes.isNumber(Number(restoreStatus[4])) ? Number(restoreStatus[4]) : 0;
-            if (isNaN(Number(restoreStatus[4]))) {
-                if (restoreStatus[4] != null && restoreStatus[4] !== "-")
-                    throw new TypeError("Invalid halfmove clock value");
-            }
-            this._moveNumber = cescacs_types_1.csTypes.isNumber(Number(restoreStatus[5])) ? Number(restoreStatus[5]) : 1;
-            if (isNaN(Number(restoreStatus[5]))) {
-                if (restoreStatus[5] == null || restoreStatus[5] == "-")
-                    this.fixedNumbering = false;
-                else
-                    throw new TypeError("Invalid move number");
+    static movesToString(moves) {
+        let result = [];
+        if (moves.length > 0) {
+            let ini;
+            if (moves[0].turn == 'b') {
+                result.push(moves[0].n + ". \u2026, " + cescacs_moves_1.csMoves.fullMoveNotation(moves[0]));
+                ini = 1;
             }
             else
-                this.fixedNumbering = true;
-            super.specialPawnCapture = PawnSpecialCaptureStatus.parse(this, restoreStatus[3]);
+                ini = 0;
+            for (let i = ini; i < moves.length; i += 2) {
+                let move = cescacs_moves_1.csMoves.fullMoveNotation(moves[i]);
+                if (i + 1 < moves.length) {
+                    move += ", " + cescacs_moves_1.csMoves.fullMoveNotation(moves[i + 1]);
+                }
+                result.push(move);
+            }
         }
-        else
-            throw new Error("Piece positions and turn are mandatory parts of the TLPD string");
-        this.initGame();
+        return result.join("\n");
     }
     static kingCastlingPosition(color, column) {
         const kingPosition = (color == 'w' ? cescacs_positionHelper_1.PositionHelper.whiteKingInitPosition : cescacs_positionHelper_1.PositionHelper.blackKingInitPosition);
@@ -1205,6 +1232,48 @@ class Game extends Board {
                 return color == 'w' ? "FileUp" : "FileDown";
         }
     }
+    constructor(grand = false, restoreStatusTLPD) {
+        const restoreStatus = restoreStatusTLPD?.split(" ");
+        const turn = restoreStatus?.[1] != null && (restoreStatus[1] == 'w' || restoreStatus[1] == 'b') ? restoreStatus[1] : 'w';
+        super(grand, turn);
+        //#endregion
+        this._moves = [];
+        this._top = -1;
+        this.fixedNumbering = true;
+        this._mate = false;
+        this._stalemate = false;
+        this._draw = false;
+        this._resigned = false;
+        this._enpassantCaptureCoordString = null;
+        if (restoreStatusTLPD === undefined) {
+            this.fillDefaultPositions();
+            this.halfmoveClock = 0;
+            this._moveNumber = 1;
+            this.fixedNumbering = true;
+        }
+        else if (restoreStatus != null && restoreStatus.length >= 2 && cescacs_types_1.csTypes.isTurn(restoreStatus[1])) {
+            const [wCastlingStatus, bCastlingStatus] = Board.splitCastlingStatus(restoreStatus[2]);
+            this.restoreTLPDPositions(restoreStatus[0], wCastlingStatus, bCastlingStatus);
+            this.halfmoveClock = cescacs_types_1.csTypes.isNumber(Number(restoreStatus[4])) ? Number(restoreStatus[4]) : 0;
+            if (isNaN(Number(restoreStatus[4]))) {
+                if (restoreStatus[4] != null && restoreStatus[4] !== "-")
+                    throw new TypeError("Invalid halfmove clock value");
+            }
+            this._moveNumber = cescacs_types_1.csTypes.isNumber(Number(restoreStatus[5])) ? Number(restoreStatus[5]) : 1;
+            if (isNaN(Number(restoreStatus[5]))) {
+                if (restoreStatus[5] == null || restoreStatus[5] == "-")
+                    this.fixedNumbering = false;
+                else
+                    throw new TypeError("Invalid move number");
+            }
+            else
+                this.fixedNumbering = true;
+            super.specialPawnCapture = PawnSpecialCaptureStatus.parse(this, restoreStatus[3]);
+        }
+        else
+            throw new Error("Piece positions and turn are mandatory parts of the TLPD string");
+        this.initGame();
+    }
     get moveNumber() { return this._moveNumber; }
     get gameEnd() { return this._mate || this._stalemate || this._draw || this._resigned; }
     get mate() { return this._mate; }
@@ -1221,6 +1290,12 @@ class Game extends Board {
             return this.getPiece(p);
     }
     get lastMove() {
+        if (this._moves.length > 0)
+            return this._moves[this._moves.length - 1];
+        else
+            return null;
+    }
+    get strLastMove() {
         if (this._top >= 0)
             return cescacs_moves_1.csMoves.fullMoveNotation(this._moves[this._top], false);
         else
@@ -1357,7 +1432,8 @@ class Game extends Board {
                 move.special = isScornfulCapture ? moveTo : undefined;
                 this._enpassantCaptureCoordString = null;
             }
-            else if (this.specialPawnCapture != null && (cescacs_piece_1.csPieceTypes.isPawn(piece) || cescacs_piece_1.csPieceTypes.isAlmogaver(piece))
+            else if (this.specialPawnCapture != null
+                && (cescacs_piece_1.csPieceTypes.isPawn(piece) || cescacs_piece_1.csPieceTypes.isElephant(piece) || cescacs_piece_1.csPieceTypes.isAlmogaver(piece))
                 && this.specialPawnCapture.isEnPassantCapturable()
                 && this.specialPawnCapture.isEnPassantCapture(moveTo, piece)) {
                 const enPassantCapture = this.specialPawnCapture.capturablePiece;
@@ -1680,27 +1756,9 @@ class Game extends Board {
     }
     //#endregion
     //#region STORED MOVES
+    get topHalfMove() { return this._top; }
     moves(fromMove) { return Object.freeze(this._moves.slice(fromMove)); }
-    strMoves() {
-        let result = [];
-        if (this._moves.length > 0) {
-            let ini;
-            if (this._moves[0].turn == 'b') {
-                result.push(this._moves[0].n + ". \u2026, " + cescacs_moves_1.csMoves.fullMoveNotation(this._moves[0]));
-                ini = 1;
-            }
-            else
-                ini = 0;
-            for (let i = ini; i <= this._top; i += 2) {
-                let move = cescacs_moves_1.csMoves.fullMoveNotation(this._moves[i]);
-                if (i < this._top) {
-                    move += ", " + cescacs_moves_1.csMoves.fullMoveNotation(this._moves[i + 1]);
-                }
-                result.push(move);
-            }
-        }
-        return result.join("\n");
-    }
+    strMoves() { return Game.movesToString(this._moves); }
     moveBottom() {
         while (this._top > 1 || this._top == 1 && this._moves[0].move != '\u2026') {
             const moveInfo = this._moves[this._top--];
@@ -1723,7 +1781,6 @@ class Game extends Board {
         }
     }
     moveTop() {
-        debugger;
         while (this._top < this._moves.length - 1) {
             const moveInfo = this._moves[++this._top];
             (0, ts_general_1.assertCondition)(moveInfo.move != '\u2026');
@@ -1738,9 +1795,15 @@ class Game extends Board {
     }
     restoreMovesJSON(moves) {
         const tmpMoves = JSON.parse(moves);
-        while (tmpMoves.length > 0)
-            this._moves.push(tmpMoves.shift());
-        this.moveTop();
+        this.restoreMoves(tmpMoves);
+    }
+    restoreMoves(moves) {
+        while (moves.length > 0) {
+            const moveInfo = moves.shift();
+            (0, ts_general_1.assertCondition)(moveInfo.move != '\u2026');
+            this.pushMove(moveInfo.move);
+        }
+        this.initGame();
     }
     //#endregion
     //#region TLPD
@@ -2128,7 +2191,7 @@ class Game extends Board {
                 endGame = "stalemate";
             }
         }
-        else if (this.halfmoveClock >= 200) {
+        else if (this.halfmoveClock >= 200 || super.insuficientMaterial()) {
             this._draw = true;
             endGame = "draw";
         }
@@ -2336,7 +2399,7 @@ class Game extends Board {
             else
                 this._stalemate = true;
         }
-        else if (this.halfmoveClock >= 100)
+        else if (this.halfmoveClock >= 200)
             this._draw = true;
         super.computeHeuristic(this.turn, this._moveNumber, anyMove, this.currentHeuristic);
     }
