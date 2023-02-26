@@ -5,21 +5,279 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>C'escacs game!</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Tangerine">
     <link rel="stylesheet" type="text/css" href="../w3.css">
     <link rel="stylesheet" type="text/css" href="../w3-colors-win8.css">
     <link rel="stylesheet" type="text/css" href="../cescacs.css">
     <link rel="stylesheet" type="text/css" href="./cescacs.game.css">
-    <script src="./dist/bundle.js"></script>
-    <script src="./cescacs.game.js"></script>
+    <script type="module" src="./dist/cescacs.js"></script> 
+    <script type="module" src="./cescacs.game.js"></script>
+    <style>
+body{
+    background: #333;
+    height: 100vh;
+    width: 100vw;
+}
+.svg-content { 
+            display: inline-block;
+            position: relative;
+            width: 100%;
+            /* padding-bottom: 100%; */
+            margin: 0px; padding: 0px;
+            vertical-align: middle; 
+            overflow: hidden; 
+        }       
+
+
+#toggler{
+  /* ALWAYS KEEPING THE TOGGLER OR THE CHECKBOX ON TOP OF EVERYTHING :  */
+    z-index:10;
+    position: absolute;
+    top: 0;
+    right: 0;
+    height: 50px;
+    width: 50px;
+    cursor: pointer;
+    opacity: 0;
+}
+.hamburger{
+    z-index:9;
+    position: absolute;
+    top: 0;
+    right: 0;
+    height: 40px;
+    width: 40px;
+    padding: 0.6rem;
+  
+  /* FOR DISPLAYING EVERY ELEMENT IN THE CENTER : */
+  
+    /* display: flex; depending on screen */
+    align-items: center;
+    justify-content: center;
+}
+/* CREATING THE MIDDLE LINE OF THE HAMBURGER : */
+
+.hamburger > div{
+    position: relative;
+    top: 0;
+    left: 0;
+    background: wheat;
+    pointer-events: none;
+    height: 2px;
+    width: 60%;
+    transition: all 0.4s ease;
+}
+
+/* CREATING THE TOP AND BOTTOM LINES : 
+TOP AT -10PX ABOVE THE MIDDLE ONE AND BOTTOM ONE IS 10PX BELOW THE MIDDLE: */
+
+.hamburger > div::before,
+.hamburger > div::after{
+    content: '';
+    position: absolute;
+    background: wheat;
+    width: 100%;
+    height: 2px;
+    transition: all  0.4s ease;
+}
+
+.hamburger > div::before{
+    top: -10px;
+}
+
+.hamburger > div::after{
+    top: 10px;
+}
+
+/* IF THE TOGGLER IS IN ITS CHECKED STATE, THEN SETTING THE BACKGROUND OF THE MIDDLE LAYER TO COMPLETE BLACK AND OPAQUE :  */
+
+#toggler:checked + .hamburger > div{
+    background: rgba(0,0,0,0);
+}
+
+#toggler:checked + .hamburger > div::before{
+    top: 0;
+    transform: rotate(45deg);
+    background: black;
+}
+
+/* AND ROTATING THE TOP AND BOTTOM LINES :  */
+
+#toggler:checked + .hamburger > div::after{
+    top: 0;
+    transform: rotate(135deg);
+    background: black;
+}
+
+
+
+
+
+        @media screen and (orientation: portrait) and (max-width: 1024px) {
+            /* TODO 
+            ROTACIO DE TAULER
+            https://alvarotrigo.com/blog/hamburger-menu-css/
+            https://codepen.io/alvarotrigo/pen/PoJGObg
+            W3Schools: Howto -> Mobile Menu
+            */
+            .svg-canvas {
+                width:100%; max-width:115vh; 
+            } 
+            body {
+                display: none;
+            }
+        }
+
+        @media screen and (orientation: landscape),
+                screen and (orientation: portrait) and (min-width: 1025px) {
+            #gameTitle {
+                position: absolute;
+                z-index:1;
+                display: block !important;
+                text-align: center;
+                font-family: 'Tangerine', serif;
+                margin: auto 0 auto 0.5em;
+            }
+            .board-messages {
+                position: absolute; 
+                z-index:1;
+                text-align: right;
+                font-size: 2vw;
+                color:wheat;
+                width: 14vw;
+            }
+            #messagesContainer {
+                top: 1em;
+            }
+            #heuristicContainer {
+                top: 12vw;
+            }
+
+            @media screen and (max-width: 1024px) {
+                @media screen and (max-width:115vh) {
+                    #gameTitle {
+                        font-size: 4.5vw;
+                    }
+                }
+                @media screen and (min-width:115vh) {
+                    #gameTitle {
+                        font-size: 4.5vh;
+                    }
+                }
+                .svg-canvas {
+                    width:100%; max-width:115vh; 
+                } 
+                #messagesContainer {
+                    right: 50px;
+                }
+                #heuristicContainer {
+                    right: 1em;
+                }
+                #toggler {
+                    display: block;
+                }
+                .hamburger {
+                    display: flex;
+                }
+                /* MAIN MENU WITH THE WHITE BACKGROUND AND THE TEXT :  */
+                .menu{
+                    background: wheat;
+                    width: 0%;
+                    display: block;
+                    position: absolute;
+                    z-index: 5;
+                    right: 0px;                    
+                    height: auto; /* 100vh; */
+                
+                    /* APPLYING TRANSITION TO THE MENU :  */
+                    transition: all 0.4s ease;
+                }
+
+                /* IF THE TOGGLER IS CHECKED, THEN INCREASE THE WIDTH OF THE MENU TO 30% , CREATING A SMOOTH EFFECT :  */
+
+                #toggler:checked ~ div.w3-row .menu{
+                    width: 14em;
+                }
+                div.w3-row .menu >  div.btn-group {
+                    display: block;
+                    /* flex-direction: column; */
+                    top: 70px;
+                
+                    /* HIDDEN INITIALLY  :  */
+                
+                    visibility: hidden;
+                }
+
+                #toggler:checked ~ div.w3-row .menu > div.btn-group {
+                    transition: visibility 0.4s ease;
+                    transition-delay: 0.1s;
+                    visibility: visible;
+                }
+
+            }
+            @media screen and (min-width: 1025px) {
+                .svg-canvas {
+                    width:80%; max-width:115vh; 
+                } 
+                #gameTitle {
+                    font-size: 4vh;
+                    text-shadow: 1px 1px 1px #aaa;
+                }
+                #messagesContainer, #heuristicContainer {
+                    right: 25vw;
+                }
+                .menu {
+                    display: block;
+                    width:auto;
+                }
+                #toggler {
+                    display: none;
+                }
+                .hamburger {
+                    display: none;
+                }
+            }
+        }
+    </style>
 </head>
 
-<body onload="init()">
-
+<body>
+    <h1 id="gameTitle" class="cescacs-title w3-text-green">C'escacs</h1>
+    <div id="messagesContainer" class="board-messages w3-right">
+        <div class="w3-bar">
+            <label class="w3-text-purple"
+                style="display:block; width:100%; height:3ex; text-align:right; overflow:hidden;"><b id="gameStatus">Game ready!</b></label>
+        </div>
+        <div class="w3-bar">
+            <label class="w3-text-purple"
+                style="display:block; width:100%; height:3ex; text-align:right; overflow:hidden;"><b id="resultString"></b></label>
+        </div>
+    </div>
+    <div id="heuristicContainer" class="board-messages w3-right"
+        title="Heuristics are computed after each move. Δ refers to increment from last turn">
+        <div style="margin:0; padding: 0;">
+            <small>W:&nbsp;</small><small id="HeuristicLabel1" style="display: inline-block; min-width:1.75em;"></small>
+            <small id="whiteTurn"></small>
+        </div>
+        <div style="margin:0; padding: 0;">
+            <small>B:&nbsp;</small><small id="HeuristicLabel2" style="display: inline-block; min-width:1.75em;"></small>
+            <small id="blackTurn"></small>
+        </div>
+    </div>
+    <input id="toggler" type="checkbox" class="toggler">
+    <div class="hamburger hamenu">
+        <div></div>
+    </div>
     <div class="w3-row">
-        <div class="w3-content w3-left" style="max-width:1170px; position:relative">
-            <h1 id="gameTitle" class="board-title cescacs-title w3-text-green">C'escacs</h1>
-            <svg  width="1170" height="1013" style="margin-top: 1.5ex;" viewBox='0 0 5630 6500' xmlns='http://www.w3.org/2000/svg'>
-                <title>Hexagonal board</title>
+        <!--  class="w3-content w3-left"  style="max-width:1170px; position:relative" -->
+        <div class="w3-col w3-left svg-canvas">
+            <!-- width="1170" height="1013" viewBox='0 0 5630 6500 -->
+            <!--  style="margin-top: 1.5ex;" -->
+            <svg viewBox='0 0 6500 5630' 
+                preserveAspectRatio="xMinYMin meet" 
+                class="svg-content"
+                xmlns='http://www.w3.org/2000/svg'>
+                <!-- <title>Hexagonal board</title> -->
                 <style>
                     @namespace svg url(http://www.w3.org/2000/svg);
                     #frame{fill:#D4D404; stroke-width:1; stroke:#D7D700;}
@@ -354,102 +612,74 @@
             <text x='6230' y='2485' transform='rotate(60,6230,2485)' style='text-anchor:end' class='signature'>C'escacs</text>
             </g>
             </svg>
-                    </div>
-        <div class="w3-rest w3-right">
-            <div class="w3-container">
-                <div class="btn-group w3-right">
-                    <div class="w3-bar" style="width: 14em;">
-                        <label class="w3-text-purple"
-                            style="font-size:1.5em; display:block; width:100%; height:3ex; text-align:right; overflow:hidden;"><b id="gameStatus">Game ready!</b></label>
-                    </div>
-                    <div class="w3-bar">
-                        <label class="w3-text-purple"
-                            style="font-size:1.5em; display:block; width:100%; height:3ex; text-align:right; overflow:hidden;"><b id="resultString"></b></label>
-                    </div>
-                    <div id="sepGameStatus" class="w3-bar w3-amber w3-center"
-                        style="height: 3ex; width: 14em; border: 1px solid green;"><span>Game status</span>
-                    </div>
-                    <div class="btn-subgroup">
-                        <button id="buttonTLPD" class="w3-button w3-black halfbutton stacked"
-                            onclick="TLPDString()">Get</button>
-                        <button id="buttonLoad" class="w3-button w3-black halfbutton stacked"
-                            onclick="LoadTLPD()">Load new</button>
-                    </div>
-                    <button id="buttonNew" class="w3-button w3-black fullbutton stacked" onclick="LoadNewGame()">New
-                        game</button>
-                    <div class="btn-subgroup">
-                        <button id="buttonResign" class="w3-button w3-black halfbutton"
-                            onclick="Resign()">Resign</button>
-                        <button id="buttonDraw" class="w3-button w3-black halfbutton" onclick="Draw()">Draw</button>
-                    </div>
-                    <div id="sepMoves" class="w3-bar w3-amber w3-center"
-                        style="height: 3ex; width: 14em; border: 1px solid green;"><span>Moves</span>
-                    </div>
-                    <div class="btn-subgroup">
-                        <button id="buttonShowMoves" class="w3-button w3-black halfbutton stacked"
-                            onclick="ShowMoves()">Show mvs</button>
-                        <button id="buttonLoadMoves" class="w3-button w3-black halfbutton stacked"
-                            onclick="LoadMoves()">Load mvs</button>
-                    </div>
-                    <div class="btn-subgroup">
-                        <button id="buttonManualMove" class="w3-button w3-black halfbutton stacked"
-                            onclick="ManualMove()">Manual</button>
-                        <button id="buttonStopEngine" class="w3-button w3-black halfbutton stacked"
-                            onclick="StopEngine()" disabled>Stop Engine</button>
-                    </div>
-                    <div id="confirmationArea" style="display:none;">
-                        <div class="w3-bar w3-black w3-text-amber" style="border-bottom: green;">
-                            <div><label id="confirmLblPrevi"></label></div>
-                            <label id="confirmationLabel"></label>
-                        </div>
-                        <div class="btn-subgroup">
-                            <button class="w3-button w3-black halfbutton" onclick="ConfirmAction()">Confirm</button>
-                            <button class="w3-button w3-black halfbutton" onclick="CancelAction()">Cancel</button>
-                        </div>
-                        <div id="grandCescacs" class="btn-group" style="display:none">
-                            <div class="w3-bar w3-black w3-text-amber" style="border-bottom: green;">
-                                <label class="w3-black w3-text-amber">&nbsp;Do you prefer to</label>
-                            </div>
-                            <button class="w3-button w3-black fullbutton" onclick="GrandCescacs()">start Grand C'escacs
-                                ?</button>
-                        </div>
-                    </div>
-                    <div id="sepInfo" class="w3-bar w3-amber w3-center"
-                        style="height: 3ex; width: 14em; border: 1px solid green;"><span>Information</span>
-                    </div>
-                    <div class="btn-subgroup">
-                        <button id="buttonShowThreatened" class="w3-button w3-black halfbutton stacked"
-                            onclick="ShowThreatened()">Threatened</button>
-                        <button id="buttonShowThreats" class="w3-button w3-black halfbutton stacked"
-                            onclick="ShowThreats()">Threats</button>
-                    </div>
-                    <div class="btn-subgroup">
-                        <button id="buttonHeuristic" class="w3-button w3-black halfbutton stacked"
-                            onclick="ShowHeuristic()">Heuristic</button>
-                        <button id="buttonSuggestMove" class="w3-button w3-black halfbutton stacked"
-                            onclick="SuggestMove()" disabled>Suggest mv</button>
-                    </div>
-                    <div id="sepCastling" class="w3-bar w3-amber w3-center"
-                        style="height: 3ex; width: 14em; border: 1px solid green;"><span>Castling</span>
-                    </div>
-                    <button id="buttonCastling" class="w3-button w3-black fullbutton" onclick="Castling()">Do
-                        Castling</button>
+        </div>
+        <!--  class="w3-rest w3-right" -->
+        <div class="menu w3-col w3-right w3-rest">
+            <div class="btn-group w3-right">
+                <div id="sepGameStatus" class="w3-bar w3-amber w3-center"
+                    style="height: 4ex; width: 14em; border: 1px solid green;"><span>Game status</span>
                 </div>
-                <div class="w3-tiny w3-bar w3-amber" style="clear:both;">&nbsp;</div>
-                <div class="w3-right">
-                    <textarea id="TLPD" name="TLPD" readonly cols="40" rows="8"
-                        placeholder="Enter TLPD string, empty to cancel" style="display:none; resize:none"></textarea>
-                    <label id="TLPDStringLabel" for="TLPD" class="w3-amber w3-bar w3-center" style="display:none;">
-                        &nbsp; TLPD string copied into the clipboard
-                    </label>
-                    <label id="loadTLPDLabel" for="TLPD" class="w3-amber w3-bar w3-center" style="display:none;">
-                        &nbsp; Enter TLPD string, and press again the button<br>
-                        &nbsp; <small>To load correctly you first start new to choose as normal or Grand &nbsp;</small>
-                    </label>
+                <div class="btn-subgroup">
+                    <button id="buttonTLPD" class="w3-button w3-black halfbutton stacked">Get</button>
+                    <button id="buttonLoad" class="w3-button w3-black halfbutton stacked">Load new</button>
                 </div>
-                <div id="loadMovesPanel" style="width: 14em; display: none" class="w3-right">
-                    <textarea id="lMovesArea" cols="22" rows="20" class="w3-large"
-                        placeholder="Enter moves, empty to cancel" style="font-family:'Courier New', Courier, monospace; resize:vertical"></textarea>
+                <button id="buttonNew" class="w3-button w3-black fullbutton stacked">New game</button>
+                <div class="btn-subgroup">
+                    <button id="buttonResign" class="w3-button w3-black halfbutton">Resign</button>
+                    <button id="buttonDraw" class="w3-button w3-black halfbutton">Draw</button>
+                </div>
+                <div id="sepMoves" class="w3-bar w3-amber w3-center"
+                    style="height: 3ex; width: 14em; border: 1px solid green;"><span>Moves</span>
+                </div>
+                <div class="btn-subgroup">
+                    <button id="buttonShowMoves"
+                        class="w3-button w3-black halfbutton stacked">Show mvs</button>
+                    <button id="buttonLoadMoves"
+                        class="w3-button w3-black halfbutton stacked">Load mvs</button>
+                </div>
+                <div class="btn-subgroup">
+                    <button id="buttonManualMove"
+                        class="w3-button w3-black halfbutton stacked">Manual</button>
+                    <button id="buttonStopEngine"
+                        class="w3-button w3-black halfbutton stacked" disabled>&nbsp;</button>
+                </div>
+                <div id="sepInfo" class="w3-bar w3-amber w3-center"
+                    style="height: 3ex; width: 14em; border: 1px solid green;"><span>Information</span>
+                </div>
+                <div class="btn-subgroup">
+                    <button id="buttonShowThreatened"
+                        class="w3-button w3-black halfbutton stacked">Threatened</button>
+                    <button id="buttonShowThreats"
+                        class="w3-button w3-black halfbutton stacked">Threats</button>
+                </div>
+                <div class="btn-subgroup">
+                    <button id="buttonHeuristic"
+                        class="w3-button w3-black halfbutton stacked">Heuristic</button>
+                    <button id="buttonSuggestMove"
+                        class="w3-button w3-black halfbutton stacked" disabled>&nbsp;</button>
+                </div>
+                <div id="sepCastling" class="w3-bar w3-amber w3-center"
+                    style="height: 3ex; width: 14em; border: 1px solid green;"><span>Castling</span>
+                </div>
+                <button id="buttonCastling"
+                    class="w3-button w3-black fullbutton">Do Castling</button>
+            </div>            
+            <!-- <div class="w3-tiny w3-bar w3-amber" style="clear:both;">&nbsp;</div> -->
+            <div style="clear:both; height:0px;"></div>
+            <div class="w3-right" style="width: 14em;">
+                <textarea id="TLPD" name="TLPD" cols="20" rows="10" readonly 
+                    placeholder="Enter TLPD string, empty to cancel" style="display:none; resize:none; font-size:12pt;"></textarea>
+                <label id="TLPDStringLabel" for="TLPD" class="w3-amber w3-bar w3-center" style="display:none;">
+                    &nbsp; TLPD string copied into the clipboard
+                </label>
+                <label id="loadTLPDLabel" for="TLPD" class="w3-amber w3-bar w3-center" style="display:none;">
+                    &nbsp; Enter TLPD string, and press again the button<br>
+                    &nbsp; <small>To load correctly you first start new to choose as normal or Grand &nbsp;</small>
+                </label>
+            </div>
+            <div id="loadMovesPanel" style="width: 14em; display: none" class="w3-right">
+                    <textarea id="lMovesArea" cols="22" rows="15" class="w3-large"
+                        placeholder="Enter moves to apply, empty to cancel" style="font-family:'Courier New', Courier, monospace; resize:vertical"></textarea>
                     <label id="lMovesAreaLbl" for="lMovesArea" class="w3-amber w3-bar w3-center" style="display:block">
                         &nbsp; Moves must be consistent
                     </label>
@@ -459,116 +689,155 @@
                     <label id="lMovesAreaLbl3" for="lMovesArea" class="w3-amber w3-bar w3-center" style="display:block">
                         <small>a previosly loaded board status</small>
                     </label>
-                </div>
-                <div id="movesPanel" style="width: 18em; display: none" class="w3-right">
-                    <div id="movesPanelTgl1" style="width:100%; display:block;">
-                        <div id="movesGrid" class="grid2xContainer w3-large" style="width:100%">
-                        </div>
-                        <div class="w3-bar w3-blue w3-border" style="display: flex; justify-content: space-between;">
-                            <div id="buttonFirst" title="first" class="w3-button w3-bar-item" onclick="showFirst()">
-                                <svg style="width: 1.5em; height: 1.5em; vertical-align: middle;"
-                                    viewBox='0 0 1024 1024' xmlns='http://www.w3.org/2000/svg'>
-                                    <path
-                                        d="M839.792 130.112 356.88 439.888c-61.808 39.664-61.808 104.544 0 144.192l482.928 309.792c61.808 39.664 112.384 12.016 112.384-61.424L952.192 191.552C952.192 118.112 901.616 90.464 839.792 130.112zM111.808 112c-22.096 0-40 17.904-40 40l0 720c0 22.096 17.904 40 40 40s40-17.904 40-40l0-720C151.808 129.904 133.904 112 111.808 112z" />
-                                </svg>
-                            </div>
-                            <div id="buttonPrevious" title="previous" class="w3-button w3-bar-item" onclick="showPrevious()">
-                                <svg style="width: 1.5em; height: 1.5em; vertical-align: middle;"
-                                    viewBox='0 0 1024 1024' xmlns='http://www.w3.org/2000/svg'>
-                                    <path
-                                        d="M779.704065 146.115845c0.082888-12.881378-1.100054-22.822798-9.91993-31.327496-1.528819-1.482771-3.160993-2.758834-4.880147-3.923356-5.882987-4.114714-13.130042-6.578836-20.979824-6.578836-10.750855 0-16.845667 4.072759-26.91193 11.800767L254.198469 458.492342c-7.198959 6.944156-10.700713 16.087397-10.559497 25.195845-0.14224 9.108448 3.360538 18.252713 10.559497 25.195845l464.578967 343.721389c17.667382 13.287631 36.927027 13.623275 51.006697 0 8.819876-8.516977 10.214642-19.716041 9.91993-31.331589L779.704065 146.115845z" />
-                                </svg>
-                            </div>
-                            <div id="buttonNext" title="next" class="w3-button w3-bar-item" onclick="showNext()">
-                                <svg style="width: 1.5em; height: 1.5em; vertical-align: middle;"
-                                    viewBox='0 0 1024 1024' xmlns='http://www.w3.org/2000/svg'>
-                                    <path d="M262.3386 62.3677 762.3127 512.3492 262.3386 962.3255Z" />
-                                </svg>
-                            </div>
-                            <div id="buttonLast" title="last" class="w3-button w3-bar-item" onclick="showLast()">
-                                <svg style="width: 1.5em; height: 1.5em; vertical-align: middle;"
-                                    viewBox='0 0 1024 1024' xmlns='http://www.w3.org/2000/svg'>
-                                    <path
-                                        d="M184.208 893.888l482.928-309.776c61.808-39.664 61.808-104.544 0-144.192L184.208 130.128c-61.808-39.664-112.384-12.016-112.384 61.424l0 640.912C71.808 905.888 122.384 933.536 184.208 893.888zM912.192 912c22.096 0 40-17.904 40-40l0-720c0-22.096-17.904-40-40-40s-40 17.904-40 40l0 720C872.192 894.096 890.096 912 912.192 912z" />
-                                </svg>
-                            </div>
-                        </div>
-                    </div>
-                    <div id="movesPanelTgl2" style="width:100%; display:none;">
-                        <textarea id="movesArea" cols="26" rows="20" class="w3-large" readonly
-                            style="resize: vertical"></textarea>
-                    </div>
-                    <div class="w3-tiny w3-bar w3-amber" style="clear:both;">&nbsp;</div>
-                    <div class="btn-group">
-                        <button id="buttonUndo" class="w3-button w3-black w3-block stacked" onclick="UndoMove()">Undo last move</button>
-                        <button id="buttonMoves" class="w3-button w3-black w3-block" onclick="GetMoves()">Copy
-                            moves</button>
-                    </div>
-                </div>
-                <div id="suggestMoveContainer" class="w3-container w3-topbar w3-bottombar w3-leftbar w3-rightbar w3-border-amber"
-                    style="display:none; width:16em;text-align:center;">
-                    <figure id="suggestMoveWaiting">
-                        <img src="../img/Chariot_run.gif" alt="" style="width:100%">
-                        <figcaption>
-                            <small style="font-size:xx-small;"><a
-                                    href="https://upload.wikimedia.org/wikipedia/commons/f/fa/Chariot_run.gif">Ashsssss5, CC
-                                    BY-SA</a></small>
-                        </figcaption>
-                    </figure>
-                    <div id="suggestMoveResult">
+            </div>
+            <div id="suggestMoveContainer" class="w3-container w3-topbar w3-bottombar w3-leftbar w3-rightbar w3-border-amber"
+                style="display:none; width:16em;text-align:center;">
+                <!--
+                <figure id="suggestMoveWaiting">
+                    <img src="../img/Chariot_run.gif" alt="" style="width:100%">
+                    <figcaption>
+                        <small style="font-size:xx-small;"><a
+                                href="https://upload.wikimedia.org/wikipedia/commons/f/fa/Chariot_run.gif">Ashsssss5, CC
+                                BY-SA</a></small>
+                    </figcaption>
+                </figure>
+                -->
+                <div id="suggestMoveResult">
 
+                </div>
+            </div>
+            <div id="castlingContainer" class="w3-container w3-topbar w3-bottombar w3-leftbar w3-rightbar w3-border-amber"
+                style="display:none; width:14em;text-align:center; background-color: wheat;">
+                <div style="margin-bottom: 2ex; display: flex; justify-content: space-between;">
+                    <div style="position: relative;">
+                    <!-- 
+↳
+U+21B3
+↲
+U+21B2
+↰
+U+21B0
+↱
+U+21B1
+↵
+U+21B5
+↴
+U+21B4
+☇
+                    -->
+                        <span style="position:absolute; top:0px;left:0px;">🡱</span>
+                        <input type="radio" name="castlingContainerPosition"
+                         style="position:absolute; top:0px;left:0px; opacity: 0; z-index: 10; cursor: pointer;">
+                    </div>
+                    <label>Castling status: <strong id="castlingStatusLbl"></strong></label>
+                    <div style="position: relative;">
+                        <span style="position:absolute; top:0px;left:0px;">🡺</span>
+                        <input type="radio" name="castlingContainerPosition"
+                        style="position:absolute; top:0px;left:0px; opacity: 0; z-index: 10; cursor: pointer;">
                     </div>
                 </div>
-                <div id="castlingContainer" class="w3-container w3-topbar w3-bottombar w3-leftbar w3-rightbar w3-border-amber"
-                    style="display:none; width:16em;text-align:center;">
-                    <div style="margin-bottom: 2ex;">
-                        <label>Castling status: <strong id="castlingStatusLbl"></strong></label>
+                <div id="castlingContainerContent" style="display: none">
+                    <div
+                        style="display: flex; flex-flow: row wrap; justify-content: space-between; margin-bottom: 1ex;">
+                        <label><strong id="castlingILbl"></strong></label>&nbsp;
+                        <span style="font-weight: lighter; display:contents;" id="castlingIBtns"></span>
                     </div>
-                    <div id="castlingContainerContent" style="display: none">
-                        <div
-                            style="display: flex; flex-flow: row wrap; justify-content: space-between; margin-bottom: 1ex;">
-                            <label><strong id="castlingILbl"></strong></label>&nbsp;
-                            <span style="font-weight: lighter; display:contents;" id="castlingIBtns"></span>
-                        </div>
-                        <div
-                            style="display: flex; flex-flow: row wrap; justify-content: space-between; margin-bottom: 1ex;">
-                            <label><strong id="castlingHLbl"></strong></label>&nbsp;
-                            <span style="font-weight: lighter; display:contents;" id="castlingHBtns"></span>
-                        </div>
-                        <div
-                            style="display: flex; flex-flow: row wrap; justify-content: space-between; margin-bottom: 1ex;">
-                            <label><strong id="castlingFLbl"></strong></label>&nbsp;
-                            <span style="font-weight: lighter; display:contents;" id="castlingFBtns"></span>
-                        </div>
-                        <div
-                            style="display: flex; flex-flow: row wrap; justify-content: space-between; margin-bottom: 1ex;">
-                            <label><strong id="castlingELbl"></strong></label>&nbsp;
-                            <span style="font-weight: lighter; display:contents;" id="castlingEBtns"></span>
-                        </div>
-                        <div
-                            style="display: flex; flex-flow: row wrap; justify-content: space-between; margin-bottom: 1ex;">
-                            <label><strong id="castlingDLbl"></strong></label>&nbsp;
-                            <span style="font-weight: lighter; display:contents;" id="castlingDBtns"></span>
-                        </div>
-                        <div class="btn-group" style="margin-top: 2ex;">
-                            <button id="confirmCastling" class="w3-button w3-black w3-block" disabled
-                                onclick="confirmCastling()">Confirm</button>
-                        </div>
+                    <div
+                        style="display: flex; flex-flow: row wrap; justify-content: space-between; margin-bottom: 1ex;">
+                        <label><strong id="castlingHLbl"></strong></label>&nbsp;
+                        <span style="font-weight: lighter; display:contents;" id="castlingHBtns"></span>
+                    </div>
+                    <div
+                        style="display: flex; flex-flow: row wrap; justify-content: space-between; margin-bottom: 1ex;">
+                        <label><strong id="castlingFLbl"></strong></label>&nbsp;
+                        <span style="font-weight: lighter; display:contents;" id="castlingFBtns"></span>
+                    </div>
+                    <div
+                        style="display: flex; flex-flow: row wrap; justify-content: space-between; margin-bottom: 1ex;">
+                        <label><strong id="castlingELbl"></strong></label>&nbsp;
+                        <span style="font-weight: lighter; display:contents;" id="castlingEBtns"></span>
+                    </div>
+                    <div
+                        style="display: flex; flex-flow: row wrap; justify-content: space-between; margin-bottom: 1ex;">
+                        <label><strong id="castlingDLbl"></strong></label>&nbsp;
+                        <span style="font-weight: lighter; display:contents;" id="castlingDBtns"></span>
                     </div>
                 </div>
-                <div id="heuristicContainer" class="w3-container"
-                    title="Heuristics are computed after each move. Δ refers to increment from last turn">
-                    <label><small>WHITE heuristic:&nbsp; </small></label><label><small
-                            id="HeuristicLabel1"></small></label>
-                    <span id="whiteTurn" class="w3-small"></span>
-                    <br>
-                    <label><small>BLACK heuristic:&nbsp; </small></label><label><small
-                            id="HeuristicLabel2"></small></label>
-                    <span id="blackTurn" class="w3-small"></span>
-                    <br>
+                <div class="btn-group w3-row" style="margin-top: 2ex; display: flex;">
+                    <button id="cancelCastling"
+                        class="w3-button w3-black halfbutton">Cancel</button>
+                    <button id="confirmCastling"
+                        class="w3-button w3-black halfbutton" disabled>Confirm</button>
                 </div>
             </div>
         </div>
+        <div id="movesPanel" style="width: 18em; display: none" class="w3-right">
+            <div id="movesPanelTgl1" style="width:100%; display:block;">
+                <div id="movesGrid" class="grid2xContainer w3-large" style="width:100%">
+                </div>
+                <div class="w3-bar w3-blue w3-border" style="display: flex; justify-content: space-between;">
+                    <div id="buttonFirst" title="first" class="w3-button w3-bar-item">
+                        <svg style="width: 1.5em; height: 1.5em; vertical-align: middle;"
+                            viewBox='0 0 1024 1024' xmlns='http://www.w3.org/2000/svg'>
+                            <path
+                                d="M839.792 130.112 356.88 439.888c-61.808 39.664-61.808 104.544 0 144.192l482.928 309.792c61.808 39.664 112.384 12.016 112.384-61.424L952.192 191.552C952.192 118.112 901.616 90.464 839.792 130.112zM111.808 112c-22.096 0-40 17.904-40 40l0 720c0 22.096 17.904 40 40 40s40-17.904 40-40l0-720C151.808 129.904 133.904 112 111.808 112z" />
+                        </svg>
+                    </div>
+                    <div id="buttonPrevious" title="previous" class="w3-button w3-bar-item">
+                        <svg style="width: 1.5em; height: 1.5em; vertical-align: middle;"
+                            viewBox='0 0 1024 1024' xmlns='http://www.w3.org/2000/svg'>
+                            <path
+                                d="M779.704065 146.115845c0.082888-12.881378-1.100054-22.822798-9.91993-31.327496-1.528819-1.482771-3.160993-2.758834-4.880147-3.923356-5.882987-4.114714-13.130042-6.578836-20.979824-6.578836-10.750855 0-16.845667 4.072759-26.91193 11.800767L254.198469 458.492342c-7.198959 6.944156-10.700713 16.087397-10.559497 25.195845-0.14224 9.108448 3.360538 18.252713 10.559497 25.195845l464.578967 343.721389c17.667382 13.287631 36.927027 13.623275 51.006697 0 8.819876-8.516977 10.214642-19.716041 9.91993-31.331589L779.704065 146.115845z" />
+                        </svg>
+                    </div>
+                    <div id="buttonNext" title="next" class="w3-button w3-bar-item">
+                        <svg style="width: 1.5em; height: 1.5em; vertical-align: middle;"
+                            viewBox='0 0 1024 1024' xmlns='http://www.w3.org/2000/svg'>
+                            <path d="M262.3386 62.3677 762.3127 512.3492 262.3386 962.3255Z" />
+                        </svg>
+                    </div>
+                    <div id="buttonLast" title="last" class="w3-button w3-bar-item">
+                        <svg style="width: 1.5em; height: 1.5em; vertical-align: middle;"
+                            viewBox='0 0 1024 1024' xmlns='http://www.w3.org/2000/svg'>
+                            <path
+                                d="M184.208 893.888l482.928-309.776c61.808-39.664 61.808-104.544 0-144.192L184.208 130.128c-61.808-39.664-112.384-12.016-112.384 61.424l0 640.912C71.808 905.888 122.384 933.536 184.208 893.888zM912.192 912c22.096 0 40-17.904 40-40l0-720c0-22.096-17.904-40-40-40s-40 17.904-40 40l0 720C872.192 894.096 890.096 912 912.192 912z" />
+                        </svg>
+                    </div>
+                </div>
+            </div>
+            <div id="movesPanelTgl2" style="width:100%; display:none;">
+                <textarea id="movesArea" cols="26" rows="20" class="w3-large" readonly
+                    style="resize: vertical"></textarea>
+            </div>
+            <div class="w3-tiny w3-bar w3-amber" style="clear:both;">&nbsp;</div>
+            <div class="btn-group">
+                <button id="buttonUndo"
+                    class="w3-button w3-black w3-block stacked">Undo last move</button>
+                <button id="buttonMoves"
+                    class="w3-button w3-black w3-block">Copy moves</button>
+            </div>
+        </div>
+        <dialog id="dialogConfirm" style="background: #333;">
+            <span class="close">&times;</span>
+            <div class="w3-bar w3-text-amber" style="border-bottom: green;">
+                <div><h1 id="confirmLblPrevi"></h1></div>
+                <h1 id="confirmationLabel"></h1>
+            </div>
+            <div class="btn-group w3-right">
+                <button id="confirmAreaConfirm"
+                    class="w3-button w3-black halfbutton">Confirm</button>
+                <button id="confirmAreaCancel"
+                    class="w3-button w3-black halfbutton">Cancel</button>
+            </div>
+            <div id="grandCescacs" class="btn-group" style="display:none">
+                <div class="w3-bar w3-text-amber" style="border-bottom: green;">
+                    <label class="w3-text-amber" for="grandCescacsConfirm" >&nbsp;Do
+                        you prefer to</label>
+                </div>
+                <button id="grandCescacsConfirm"
+                    class="w3-button w3-black fullbutton">start Grand C'escacs?</button>
+            </div>
+        </dialog>
         <dialog id="dialogHeuristic">
             <h1 id="dialogHeuristicTurn" class="w3-left">&nbsp;</h1>
             <span class="close">&times;</span>
@@ -614,7 +883,7 @@
             <div class="w3-container">
                 <label for="promotionRegainableOptions">Choose piece to promote:</label>
                 <select name="promotionRegainableOptions" id="promotionRegainableOptions"
-                    onchange="activateConfirmPromotion()" class="w3-select w3-border" size="8">
+                    class="w3-select w3-border" size="8">
                     <option value="D" disabled style="display:block">&nbsp;&nbsp; &laquo;&nbsp;D&nbsp;&raquo;&nbsp;
                         &nbsp;Queen &mdash; Dama</option>
                     <option value="V" disabled style="display:block">&nbsp;&nbsp; &laquo;&nbsp;V&nbsp;&raquo;&nbsp;
@@ -630,8 +899,8 @@
                 </select>
             </div>
             <div class="btn-group" style="margin-top: 2ex;">
-                <button id="confirmPromotion" class="w3-button w3-black w3-block" disabled
-                    onclick="confirmPromotion()">Confirm</button>
+                <button id="confirmPromotion"
+                    class="w3-button w3-black w3-block" disabled>Confirm</button>
             </div>
         </dialog>
         <dialog id="dialogGrandCescacs">
@@ -662,8 +931,9 @@
             </div>
         </dialog>
     </div>
+    <!--
     <script>
-        const myWorker = undefined; // = new Worker("./dist/bundle-worker.js");
+        //const myWorker = undefined; // = new Worker("./dist/bundle-worker.js");
 
         /* FIXME - Removed code */
         // try {
@@ -715,6 +985,7 @@
         // });
 
         </script>
+    -->
 </body>
 
 </html>

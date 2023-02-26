@@ -51,11 +51,6 @@ dialog::backdrop {
     font-family: 'Brush Script MT', cursive;
 }
 
-.board-title {
-    position: absolute;
-    margin-left: 1em;
-}
-
 .grid2xContainer {
     display: grid;
     background-color: #2196F3;

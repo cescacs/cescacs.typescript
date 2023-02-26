@@ -1,56 +1,188 @@
 'use strict';
+
+import * as cescacs from "./dist/cescacs.js"
+
 const urlParams = new URLSearchParams(window.location.search);
 const grandParam = urlParams.get('grand') != null ||
     typeof (Storage) !== "undefined" && localStorage.getItem("cescacs-grand") == 'grand';
 const game = new cescacs.Game(grandParam);
 
+window.addEventListener("load", (event) => {
+    init();
+});
 
-/* SECTION Worker functions */
-//TODO - Worker
-/* Initialize ! */
-const WINI = function () {
-    if (myWorker !== undefined) {
-        myWorker.postMessage(["INI", [game.isGrand, localStorage.getItem("cescacs")], game.movesJSON]);
-        console.log('Message INI posted to worker');
-    }
-}
-/* Pause the worker ? */
-const WP = function () {
-    if (myWorker !== undefined) {
-        myWorker.postMessage(["P", [game.isGrand, localStorage.getItem("cescacs")]]);
-        console.log('Message P posted to worker');
-    }
-}
-/* Resume the worker ? */
-const WON = function () {
-    if (myWorker !== undefined) {
-        myWorker.postMessage(["ON", [game.isGrand, localStorage.getItem("cescacs")]]);
-        console.log('Message ON posted to worker');
-    }
-}
-/* Inform a move ! */
-const WMOVE = function (turn, halfmoveNumber, move) {
-    if (myWorker !== undefined) {
-        myWorker.postMessage(["M", [game.isGrand, localStorage.getItem("cescacs")], [turn, halfmoveNumber, move]]);
-        console.log('Message M posted to worker');
-    }
-}
-/* Undo move ? */
-const WUNDO = function () {
-    if (myWorker !== undefined) {
-        myWorker.postMessage(["BK", [game.isGrand, localStorage.getItem("cescacs")]]);
-        console.log('Message BK posted to worker');
-    }
-}
-/* Require result ! */
-const WRQ = function () {
-    if (myWorker !== undefined) {
-        myWorker.postMessage(["RQ", [game.isGrand, localStorage.getItem("cescacs")]]);
-        console.log('Message RQ posted to worker');
-    }
+
+/*TODO
+
+1) Threats/Threaded incorrectes per les captures especials.
+    - No es verifica que hagi un peó per fer la captura...
+    - De fet es comprova si és capturable per una peça amiga!!!
+2) COMPTE!!!! Elefants incorporats en captura al pas
+    - Poden ser capturats
+    - Poden fer captures
+    - Cal afegir-ho a les regles ????
+3) Captura scornful incorrecta????
+    - permet captura quan el peó retingut fa una captura
+    - això incorpora moviment de retrocés en el peó
+    - sembla excesiu... sinó, cal afegir a regles.
+
+*/
+
+
+
+//   B U T T O N   E V E N T S
+// Dialogs
+for (const span of document.querySelectorAll("dialog>span.close")) {
+    span.onclick = function () { span.parentElement.close(); }
 }
 
-/* !SECTION Worker functions */
+// ---- Game status
+document.getElementById("buttonTLPD").addEventListener("click", (event) => {
+    TLPDString();
+});
+document.getElementById("buttonLoad").addEventListener("click", (event) => {
+    LoadTLPD();
+});
+document.getElementById("buttonNew").addEventListener("click", (event) => {
+    LoadNewGame();
+});
+document.getElementById("buttonResign").addEventListener("click", (event) => {
+    Resign();
+});
+document.getElementById("buttonDraw").addEventListener("click", (event) => {
+    Draw();
+});
+// ---- Moves
+document.getElementById("buttonShowMoves").addEventListener("click", (event) => {
+    ShowMoves();
+});
+document.getElementById("buttonLoadMoves").addEventListener("click", (event) => {
+    LoadMoves();
+});
+document.getElementById("buttonManualMove").addEventListener("click", (event) => {
+    ManualMove();
+});
+
+// ---- Information
+document.getElementById("buttonShowThreatened").addEventListener("click", (event) => {
+    ShowThreatened();
+});
+document.getElementById("buttonShowThreats").addEventListener("click", (event) => {
+    ShowThreats();
+});
+document.getElementById("buttonHeuristic").addEventListener("click", (event) => {
+    ShowHeuristic();
+});
+// document.getElementById("buttonSuggestMove").addEventListener("click", (event) => {
+//     SuggestMove();
+// });
+
+// ---- Castling
+document.getElementById("buttonCastling").addEventListener("click", (event) => {
+    Castling();
+});
+document.getElementById("cancelCastling").addEventListener("click", (event) => {
+    cancelCastling();
+});
+document.getElementById("confirmCastling").addEventListener("click", (event) => {
+    confirmCastling();
+});
+
+// ----- dialogConfirm
+document.querySelector("#dialogConfirm>span.close").addEventListener("click", () => {
+    CancelAction();    
+});
+document.getElementById("confirmAreaConfirm").addEventListener("click", (event) => {
+    ConfirmAction();
+});
+document.getElementById("confirmAreaCancel").addEventListener("click", (event) => {
+    CancelAction();
+});
+document.getElementById("grandCescacsConfirm").addEventListener("click", (event) => {
+    GrandCescacs();
+});
+
+//dialogPromotion
+document.querySelector("#dialogPromotion>span.close").addEventListener("click", () => {
+    clearClickHex();
+});
+document.getElementById("promotionRegainableOptions").addEventListener("change", (event) => {
+    activateConfirmPromotion();
+});
+document.getElementById("confirmPromotion").addEventListener("click", (event) => {
+    confirmPromotion();
+});
+
+// Moves Panel
+document.getElementById("buttonFirst").addEventListener("click", (event) => {
+    showFirst();
+});
+document.getElementById("buttonPrevious").addEventListener("click", (event) => {
+    showPrevious();
+});
+document.getElementById("buttonNext").addEventListener("click", (event) => {
+    showNext();
+});
+document.getElementById("buttonLast").addEventListener("click", (event) => {
+    showLast();
+});
+document.getElementById("buttonUndo").addEventListener("click", (event) => {
+    UndoMove();
+});
+document.getElementById("buttonMoves").addEventListener("click", (event) => {
+    GetMoves();
+});
+
+
+
+
+/* FIXME - Removed code */
+// /* SECTION Worker functions */
+// //TODO - Worker
+// /* Initialize ! */
+// const WINI = function () {
+//     if (myWorker !== undefined) {
+//         myWorker.postMessage(["INI", [game.isGrand, localStorage.getItem("cescacs")], game.movesJSON]);
+//         console.log('Message INI posted to worker');
+//     }
+// }
+// /* Pause the worker ? */
+// const WP = function () {
+//     if (myWorker !== undefined) {
+//         myWorker.postMessage(["P", [game.isGrand, localStorage.getItem("cescacs")]]);
+//         console.log('Message P posted to worker');
+//     }
+// }
+// /* Resume the worker ? */
+// const WON = function () {
+//     if (myWorker !== undefined) {
+//         myWorker.postMessage(["ON", [game.isGrand, localStorage.getItem("cescacs")]]);
+//         console.log('Message ON posted to worker');
+//     }
+// }
+// /* Inform a move ! */
+// const WMOVE = function (turn, halfmoveNumber, move) {
+//     if (myWorker !== undefined) {
+//         myWorker.postMessage(["M", [game.isGrand, localStorage.getItem("cescacs")], [turn, halfmoveNumber, move]]);
+//         console.log('Message M posted to worker');
+//     }
+// }
+// /* Undo move ? */
+// const WUNDO = function () {
+//     if (myWorker !== undefined) {
+//         myWorker.postMessage(["BK", [game.isGrand, localStorage.getItem("cescacs")]]);
+//         console.log('Message BK posted to worker');
+//     }
+// }
+// /* Require result ! */
+// const WRQ = function () {
+//     if (myWorker !== undefined) {
+//         myWorker.postMessage(["RQ", [game.isGrand, localStorage.getItem("cescacs")]]);
+//         console.log('Message RQ posted to worker');
+//     }
+// }
+
+// /* !SECTION Worker functions */
 
 function init() {
     const rootElement = document.getElementById("HEX");
@@ -64,13 +196,6 @@ function init() {
         }
         rootElement.classList.add('board');
     }
-    //add close function to dialogs
-    for (const span of document.getElementsByClassName("close")) {
-        span.onclick = function () { span.parentElement.close(); }
-    }
-    document.querySelector("#dialogPromotion>span.close").addEventListener("click", () => {
-        clearClickHex();
-    });
     //restore existing game from storage
     if (typeof (Storage) !== "undefined" && localStorage.getItem("cescacs") != null) {
         restoreGame();
@@ -86,7 +211,8 @@ function init() {
     //title
     const gameTitle = document.getElementById("gameTitle");
     if (grandParam) {
-        gameTitle.innerHTML = "Grand C'escacs";
+        const dialogGrandCescacs = document.getElementById("dialogGrandCescacs");
+        gameTitle.innerHTML = "Grand<br>C'escacs";
         dialogGrandCescacs.showModal();
     } else gameTitle.innerHTML = "C'escacs";
     RestoreButtons();
@@ -182,18 +308,18 @@ function clickHex(hexElement) {
                             if (enPassantPos != null) {
                                 removeSymbol(document.getElementById("HEX" + enPassantPos));
                             }
-                            if (game.lastMove != null) {
-                                WMOVE(cescacs.cscnv.otherSide(game.turn), game.topHalfMove - 1, cescacs.csmv.fullMoveNotation(game.lastMove, false));
-                            }
+                            // if (game.lastMove != null) {
+                            //     WMOVE(cescacs.cscnv.otherSide(game.turn), game.topHalfMove - 1, cescacs.csmv.fullMoveNotation(game.lastMove, false));
+                            // }
                             displayMoveStatus();
                             saveMoves();
                         } catch (e) {
                             console.log("doMove: ", e);
-                            document.getElementById("gameStatus").innerHTML = (e instanceof Error ? e.message : "");
-                            document.getElementById("resultString").innerHTML = 'ERROR';
+                            document.getElementById("gameStatus").textContent = (e instanceof Error ? e.message : "");
+                            document.getElementById("resultString").textContent = 'ERROR';
                         }
                     }
-                } else gameStatus.innerHTML = dest + ' ERROR!';
+                } else gameStatus.textContent = dest + ' ERROR!';
             }
             else if (hexElement.classList.contains('selected')
                 && lastChild.nodeName == "use"
@@ -208,7 +334,7 @@ function clickHex(hexElement) {
                 if (piece == null) return;
                 else if (piece.color == game.turn) {
                     if (!game.checked && game.isAwaitingPromotion && game.hasAwaitingRegainablePieces()) {
-                        gameStatus.innerHTML = "Promotion rq";
+                        gameStatus.textContent = "Promotion rq";
                         if (cescacs.cspty.isPawn(piece) && piece.awaitingPromotion != null) {
                             hexElement.classList.add('selected');
                             lastChild.classList.add('selected');
@@ -230,7 +356,7 @@ function clickHex(hexElement) {
                         }
                         const src = hexElement.getAttribute("id").slice(3);
                         const symbol = piece.symbol == 'P' ? "" : piece.symbol;
-                        gameStatus.innerHTML = symbol + src;
+                        gameStatus.textContent = symbol + src;
                         selecting = true;
                     }
                 }
@@ -281,15 +407,15 @@ function confirmPromotion() {
         placeSymbol(dest, game.turn == 'w' ? pieceSymbol : pieceSymbol.toLowerCase());
         try {
             game.doPromotePawn(src, dest, pieceSymbol);
-            if (game.lastMove != null) {
-                WMOVE(cescacs.cscnv.otherSide(game.turn), game.topHalfMove - 1, cescacs.csmv.fullMoveNotation(game.lastMove, false));
-            }
+            // if (game.lastMove != null) {
+            //     WMOVE(cescacs.cscnv.otherSide(game.turn), game.topHalfMove - 1, cescacs.csmv.fullMoveNotation(game.lastMove, false));
+            // }
             displayMoveStatus();
             saveMoves();
         } catch (e) {
             console.log("doPromotePawn: ", e);
-            document.getElementById("gameStatus").innerHTML = (e instanceof Error ? e.message : "");
-            document.getElementById("resultString").innerHTML = 'ERROR';
+            document.getElementById("gameStatus").textContent = (e instanceof Error ? e.message : "");
+            document.getElementById("resultString").textContent = 'ERROR';
         }
         dialog.close();
     }
@@ -336,14 +462,14 @@ function displayMoveStatus() {
         const buttonDraw = document.getElementById("buttonDraw");
         const buttonLoadMoves = document.getElementById("buttonLoadMoves");
         const buttonManualMove = document.getElementById("buttonManualMove");
-        const buttonStopEngine = document.getElementById("buttonStopEngine");
+        //const buttonStopEngine = document.getElementById("buttonStopEngine");
         const buttonSuggestMove = document.getElementById("buttonSuggestMove");
         const buttonCastling = document.getElementById("buttonCastling");
         buttonResign.disabled = true;
         buttonDraw.disabled = true;
         buttonLoadMoves.disabled = true;
         buttonManualMove.disabled = true;
-        buttonStopEngine.disabled = true;
+        //buttonStopEngine.disabled = true;
         buttonSuggestMove.disabled = true;
         buttonCastling.disabled = true;
         if (moveText == null) moveText = '\xa0';
@@ -351,8 +477,8 @@ function displayMoveStatus() {
         if (moveText == null) moveText = "Ready " + (game.turn == "w" ? "whites" : "blacks");
         buttonCastling.disabled = game.checked;
     }
-    document.getElementById("gameStatus").innerHTML = moveText;
-    document.getElementById("resultString").innerHTML = game.resultString ?? '\xa0';
+    document.getElementById("gameStatus").textContent = moveText;
+    document.getElementById("resultString").textContent = game.resultString ?? '\xa0';
     displayHeuristic();
 }
 /**
@@ -364,9 +490,9 @@ function displayHeuristic() {
     const lblHeuristic = document.getElementById(turn == 'w' ? "HeuristicLabel1" : "HeuristicLabel2");
     const lblTurn = document.getElementById(turn == 'w' ? "whiteTurn" : "blackTurn");
     let heuristic = game.getHeuristicValue(game.currentHeuristic);
-    let previousHeuristic = Number.parseFloat(lblHeuristic.innerHTML);
-    lblHeuristic.innerHTML = heuristic.toString();
-    lblTurn.innerHTML = isNaN(previousHeuristic) ? "" : " Δ: " + cescacs.round2hundredths(heuristic - previousHeuristic).toString();
+    let previousHeuristic = Number.parseFloat(lblHeuristic.textContent);
+    lblHeuristic.textContent = heuristic.toString();
+    lblTurn.textContent = isNaN(previousHeuristic) ? "" : " Δ: " + cescacs.round2hundredths(heuristic - previousHeuristic).toString();
 }
 /**
  * Show pieces on board (repaint)
@@ -390,8 +516,8 @@ function saveGame() {
         else localStorage.removeItem("cescacs-end");
     } catch (e) {
         console.log("saveGame: ", e);
-        document.getElementById("gameStatus").innerHTML = (e instanceof Error ? e.message : "");
-        document.getElementById("resultString").innerHTML = 'ERROR';
+        document.getElementById("gameStatus").textContent = (e instanceof Error ? e.message : "");
+        document.getElementById("resultString").textContent = 'ERROR';
     }
 }
 
@@ -406,16 +532,19 @@ function restoreGame() {
     if (game.isGrand == isGrandStored) {
         const movesGrid = document.getElementById("movesGrid");
         movesGrid.innerHTML = "";
+        const statusTLPD = localStorage.getItem("cescacs");
         try {
-            game.loadTLPD(localStorage.getItem("cescacs"));
-            if (localStorage.getItem("cescacs-mv") != null) {
-                game.restoreMovesJSON(localStorage.getItem("cescacs-mv"));
+            if (statusTLPD && (statusTLPD.trim().length > 12)) {
+                game.loadTLPD(localStorage.getItem("cescacs"));
+                if (localStorage.getItem("cescacs-mv") != null) {
+                    game.restoreMovesJSON(localStorage.getItem("cescacs-mv"));
+                }
+                game.resultString = localStorage.getItem("cescacs-end");
             }
-            game.resultString = localStorage.getItem("cescacs-end");
         } catch (e) {
             console.log("restoreGame: ", e);
-            document.getElementById("gameStatus").innerHTML = (e instanceof Error ? e.message : "");
-            document.getElementById("resultString").innerHTML = 'ERROR';
+            document.getElementById("gameStatus").textContent = (e instanceof Error ? e.message : "");
+            document.getElementById("resultString").textContent = 'ERROR';
         }
     } else { //Never happens                
         const parser = new URL(window.location);
@@ -442,7 +571,7 @@ function TLPDString() {
         sepGameStatus.style.display = "block";
         buttonTLPD.classList.remove("halfbutton");
         buttonTLPD.classList.add("fullbutton");
-        buttonTLPD.innerHTML = "Got";
+        buttonTLPD.textContent = "Got";
         buttonTLPD.style.display = "block";
         x.style.display = "block";
         l.style.display = "block";
@@ -456,7 +585,7 @@ function TLPDString() {
         l.style.display = "none";
         RestoreButtons();
         const buttonTLPD = document.getElementById("buttonTLPD");
-        buttonTLPD.innerHTML = "Get";
+        buttonTLPD.textContent = "Get";
         buttonTLPD.classList.remove("fullbutton");
         buttonTLPD.classList.add("halfbutton");
         boardTLPDStatus = false;
@@ -504,8 +633,8 @@ function LoadTLPD() {
                 } catch (e) {
                     console.log("LoadTLPD: ", x.value, e);
                     x.value = ("LoadTLPD: " + e instanceof Error ? e.toString() : String(e)) + "\n\n" + x.value;
-                    document.getElementById("gameStatus").innerHTML = (e instanceof Error ? e.message : "");
-                    document.getElementById("resultString").innerHTML = 'ERROR';
+                    document.getElementById("gameStatus").textContent = (e instanceof Error ? e.message : "");
+                    document.getElementById("resultString").textContent = 'ERROR';
                 }
             }
         }
@@ -516,37 +645,38 @@ var loadNewGame = false;
 var endingGameResign = false;
 var endingGameDraw = false;
 function LoadNewGame() {
+    const confirmDialog = document.getElementById("dialogConfirm");
     const confirmLbl = document.getElementById("confirmationLabel");
-    const confirm = document.getElementById("confirmationArea");
     const grandCescacs = document.getElementById("grandCescacs");
     clearClickHex();
     HideButtons();
-    confirmLbl.innerHTML = "\u00A0Start a new game?";
-    confirm.style.display = "block";
+    confirmLbl.textContent = "\u00A0Start a new game?";
     grandCescacs.style.display = "block";
     loadNewGame = true;
+    confirmDialog.showModal();
 }
 function Resign() {
+    const confirmDialog = document.getElementById("dialogConfirm");
     const confirmLbl = document.getElementById("confirmationLabel");
-    const confirm = document.getElementById("confirmationArea");
     clearClickHex();
     HideButtons();
-    confirmLbl.innerHTML = "\u00A0Do you give up?";
-    confirm.style.display = "block";
+    confirmLbl.textContent = "\u00A0Do you give up?";
     endingGameResign = true;
+    confirmDialog.showModal();
 }
 function Draw() {
+    const confirmDialog = document.getElementById("dialogConfirm");
     const confirmLblPrevi = document.getElementById("confirmLblPrevi");
     const confirmLbl = document.getElementById("confirmationLabel");
-    const confirm = document.getElementById("confirmationArea");
     clearClickHex();
     HideButtons();
-    confirmLblPrevi.innerHTML = `\u00A0Has ${game.turn == 'w' ? 'Black' : 'White'} asked for a draw,`;
-    confirmLbl.innerHTML = "\u00A0and you accept?";
-    confirm.style.display = "block";
+    confirmLblPrevi.textContent = `\u00A0Has ${game.turn == 'w' ? 'Black' : 'White'} asked for a draw,`;
+    confirmLbl.textContent = "\u00A0and you accept?";
     endingGameDraw = true;
+    confirmDialog.showModal();
 }
 function ConfirmAction() {
+    document.getElementById("dialogConfirm").close();
     RestoreButtons();
     if (loadNewGame) {
         loadNewGame = false;
@@ -571,12 +701,15 @@ function ConfirmAction() {
 }
 
 function CancelAction() {
+    document.getElementById("dialogConfirm").close();
     RestoreButtons();
     loadNewGame = false;
     endingGameResign = false;
     endingGameDraw = false;
 }
 function GrandCescacs() {
+    document.getElementById("dialogConfirm").close();
+    RestoreButtons();
     loadNewGame = false;
     localStorage.removeItem("cescacs");
     localStorage.removeItem("cescacs-mv");
@@ -598,12 +731,12 @@ function ShowMoves() {
         sepMoves.style.display = "block";
         buttonShowMoves.classList.remove("halfbutton");
         buttonShowMoves.classList.add("fullbutton");
-        buttonShowMoves.innerHTML = "Go on"
+        buttonShowMoves.textContent = "Go on"
         buttonShowMoves.style.display = "block";
         const n = movesGrid.childElementCount;
         for (const mv of game.moves(n)) {
             const newdiv = document.createElement('div');
-            newdiv.innerHTML = cescacs.csmv.fullMoveNotation(mv);
+            newdiv.textContent = cescacs.csmv.fullMoveNotation(mv);
             if (cescacs.csmv.undoStatusId(mv) != "") {
                 newdiv.setAttribute("id", cescacs.csmv.undoStatusId(mv));
                 newdiv.onclick = function () { showId(this, this.getAttribute("id")); }
@@ -624,7 +757,7 @@ function ShowMoves() {
         game.moveTop();
         restoreBoard();
         RestoreButtons();
-        buttonShowMoves.innerHTML = "Show mvs"
+        buttonShowMoves.textContent = "Show mvs"
         buttonShowMoves.classList.remove("fullbutton");
         buttonShowMoves.classList.add("halfbutton");
         displayMoveStatus();
@@ -657,8 +790,8 @@ function showId(element, id) {
         }
         element.classList.add("selected");
         buttonUndo.disabled = element.nextElementSibling != null;
-        document.getElementById("gameStatus").innerHTML = game.strLastMove ?? '\xa0';
-        document.getElementById("resultString").innerHTML = game.resultString ?? '\xa0';
+        document.getElementById("gameStatus").textContent = game.strLastMove ?? '\xa0';
+        document.getElementById("resultString").textContent = game.resultString ?? '\xa0';
     }
 }
 
@@ -668,14 +801,14 @@ function showFirst() {
     try {
         game.moveBottom();
         restoreBoard();
-        document.getElementById("gameStatus").innerHTML = game.strLastMove ?? '\xa0';
-        document.getElementById("resultString").innerHTML = game.resultString ?? '\xa0';
+        document.getElementById("gameStatus").textContent = game.strLastMove ?? '\xa0';
+        document.getElementById("resultString").textContent = game.resultString ?? '\xa0';
         posGridMoves(movesGrid);
         movesGrid.scrollTop = 0;
     } catch (e) {
         console.log("showFirst: ", e);
-        document.getElementById("gameStatus").innerHTML = (e instanceof Error ? e.message : "");
-        document.getElementById("resultString").innerHTML = 'ERROR';
+        document.getElementById("gameStatus").textContent = (e instanceof Error ? e.message : "");
+        document.getElementById("resultString").textContent = 'ERROR';
     }
 }
 
@@ -686,13 +819,13 @@ function showPrevious() {
     try {
         game.moveBackward();
         restoreBoard();
-        document.getElementById("gameStatus").innerHTML = game.strLastMove ?? '\xa0';
-        document.getElementById("resultString").innerHTML = game.resultString ?? '\xa0';
+        document.getElementById("gameStatus").textContent = game.strLastMove ?? '\xa0';
+        document.getElementById("resultString").textContent = game.resultString ?? '\xa0';
         posGridMoves(movesGrid);
     } catch (e) {
         console.log("showFirst: ", e);
-        document.getElementById("gameStatus").innerHTML = (e instanceof Error ? e.message : "");
-        document.getElementById("resultString").innerHTML = 'ERROR';
+        document.getElementById("gameStatus").textContent = (e instanceof Error ? e.message : "");
+        document.getElementById("resultString").textContent = 'ERROR';
     }
 }
 
@@ -702,13 +835,13 @@ function showNext() {
     try {
         game.moveForward();
         restoreBoard();
-        document.getElementById("gameStatus").innerHTML = game.strLastMove ?? '\xa0';
-        document.getElementById("resultString").innerHTML = game.resultString ?? '\xa0';
+        document.getElementById("gameStatus").textContent = game.strLastMove ?? '\xa0';
+        document.getElementById("resultString").textContent = game.resultString ?? '\xa0';
         posGridMoves(movesGrid);
     } catch (e) {
         console.log("showFirst: ", e);
-        document.getElementById("gameStatus").innerHTML = (e instanceof Error ? e.message : "");
-        document.getElementById("resultString").innerHTML = 'ERROR';
+        document.getElementById("gameStatus").textContent = (e instanceof Error ? e.message : "");
+        document.getElementById("resultString").textContent = 'ERROR';
     }
 }
 
@@ -718,14 +851,14 @@ function showLast() {
     try {
         game.moveTop();
         restoreBoard();
-        document.getElementById("gameStatus").innerHTML = game.strLastMove ?? '\xa0';
-        document.getElementById("resultString").innerHTML = game.resultString ?? '\xa0';
+        document.getElementById("gameStatus").textContent = game.strLastMove ?? '\xa0';
+        document.getElementById("resultString").textContent = game.resultString ?? '\xa0';
         posGridMoves(movesGrid);
         movesGrid.scrollTop = 10000;
     } catch (e) {
         console.log("showFirst: ", e);
-        document.getElementById("gameStatus").innerHTML = (e instanceof Error ? e.message : "");
-        document.getElementById("resultString").innerHTML = 'ERROR';
+        document.getElementById("gameStatus").textContent = (e instanceof Error ? e.message : "");
+        document.getElementById("resultString").textContent = 'ERROR';
     }
 }
 
@@ -752,14 +885,14 @@ function GetMoves() {
     const movesPanelTgl1 = document.getElementById("movesPanelTgl1");
     const movesPanelTgl2 = document.getElementById("movesPanelTgl2");
     if (movesPanelTgl1.style.display == 'none') {
-        buttonMoves.innerHTML = "Copy moves";
+        buttonMoves.textContent = "Copy moves";
         buttonShowMoves.style.display = 'block';
         buttonUndo.style.display = 'block';
         movesPanelTgl1.style.display = 'block';
         movesPanelTgl2.style.display = 'none';
     } else {
         const movesArea = document.getElementById("movesArea");
-        buttonMoves.innerHTML = "Got";
+        buttonMoves.textContent = "Got";
         buttonShowMoves.style.display = 'none';
         buttonUndo.style.display = 'none';
         movesPanelTgl1.style.display = 'none';
@@ -787,7 +920,7 @@ function LoadMoves() {
         sepMoves.style.display = "block";
         buttonLoadMoves.classList.remove("halfbutton");
         buttonLoadMoves.classList.add("fullbutton");
-        buttonLoadMoves.innerHTML = "Apply";
+        buttonLoadMoves.textContent = "Apply";
         buttonLoadMoves.style.display = "block";
         loadMovesPanel.style.display = "block";
     } else {
@@ -795,7 +928,7 @@ function LoadMoves() {
         if (text.length == 0) {
             loadMovesPanel.style.display = "none";
             RestoreButtons();
-            buttonLoadMoves.innerHTML = "Load mvs";
+            buttonLoadMoves.textContent = "Load mvs";
             buttonLoadMoves.classList.remove("fullbutton");
             buttonLoadMoves.classList.add("halfbutton");
         } else if (text.length >= 6) {
@@ -803,7 +936,7 @@ function LoadMoves() {
                 game.applyMoveSq(text);
                 loadMovesPanel.style.display = "none";
                 RestoreButtons();
-                buttonLoadMoves.innerHTML = "Load mvs";
+                buttonLoadMoves.textContent = "Load mvs";
                 buttonLoadMoves.classList.remove("fullbutton");
                 buttonLoadMoves.classList.add("halfbutton");
                 restoreBoard();
@@ -812,8 +945,8 @@ function LoadMoves() {
             } catch (e) {
                 console.log("LoadMoves: ", e);
                 lMovesArea.value = ("LoadMoves: " + e instanceof Error ? e.toString() : String(e)) + "\n\n" + text;
-                document.getElementById("gameStatus").innerHTML = (e instanceof Error ? e.message : "");
-                document.getElementById("resultString").innerHTML = 'ERROR';
+                document.getElementById("gameStatus").textContent = (e instanceof Error ? e.message : "");
+                document.getElementById("resultString").textContent = 'ERROR';
             }
         }
     }
@@ -827,23 +960,23 @@ function ManualMove() {
     let move = window.prompt("Next move?");
     if (move != null && move.length >= 2) {
         game.applyStringMove(move);
-        if (game.lastMove != null) {
-            WMOVE(cescacs.cscnv.otherSide(game.turn), game.topHalfMove - 1, cescacs.csmv.fullMoveNotation(game.lastMove, false));
-        }
+        // if (game.lastMove != null) {
+        //     WMOVE(cescacs.cscnv.otherSide(game.turn), game.topHalfMove - 1, cescacs.csmv.fullMoveNotation(game.lastMove, false));
+        // }
         restoreBoard();
         saveMoves();
     }
 }
 
-//TODO: Stop Engine
-function StopEngine() {
-    const buttonStopEngine = document.getElementById("buttonStopEngine");
-    if (buttonStopEngine.classList.contains("w3-red")) {
-        WON();
-    } else {
-        WP();
-    }
-}
+// //TODO: Stop Engine
+// function StopEngine() {
+//     const buttonStopEngine = document.getElementById("buttonStopEngine");
+//     if (buttonStopEngine.classList.contains("w3-red")) {
+//         WON();
+//     } else {
+//         WP();
+//     }
+// }
 
 var showingThreatened = false;
 var showingThreats = false;
@@ -857,11 +990,12 @@ function ShowThreatened() {
             e.classList.remove('highlight');
         }
         RestoreButtons();
-        buttonShowThreatened.classList.add('halfbutton');
         buttonShowThreatened.classList.add('w3-black');
-        buttonShowThreatened.classList.remove('fullbutton');
         buttonShowThreatened.classList.remove('w3-red');
-        displayMoveStatus();
+        buttonShowThreatened.textContent = "Threatened";
+        buttonShowThreatened.textContent = "Threatened"
+        buttonShowThreatened.style.position = 'static';
+        buttonShowThreatened.style.removeProperty("visibility");
         showingThreatened = false;
     } else {
         clearClickHex();
@@ -873,14 +1007,17 @@ function ShowThreatened() {
             n++;
         }
         HideButtons();
-        const sepInfo = document.getElementById("sepInfo");
-        sepInfo.style.display = 'block';
         buttonShowThreatened.classList.add('w3-red');
-        buttonShowThreatened.classList.add("fullbutton");
         buttonShowThreatened.classList.remove('w3-black');
-        buttonShowThreatened.classList.remove("halfbutton");
-        buttonShowThreatened.style.display = 'block';
-        if (n == 0 && !game.gameEnd) document.getElementById("gameStatus").innerHTML = "None's threatened";
+        buttonShowThreatened.style.setProperty("display", "block", "important");
+        buttonShowThreatened.style.setProperty("position", "fixed", "important");
+        buttonShowThreatened.style.setProperty("visibility","visible", "important");
+        buttonShowThreatened.style.top = 0;
+        buttonShowThreatened.style.right = 0;
+        if (n==0) {
+            buttonShowThreatened.style.fontSize = "";
+            buttonShowThreatened.innerHTML = "<span style='font-size:x-small'>None's threatened</span>";
+        }
         showingThreatened = true;
     }
 }
@@ -894,11 +1031,11 @@ function ShowThreats() {
             e.classList.remove('highlight');
         }
         RestoreButtons();
-        buttonShowThreats.classList.add('halfbutton');
         buttonShowThreats.classList.add('w3-black');
-        buttonShowThreats.classList.remove('fullbutton');
         buttonShowThreats.classList.remove('w3-red');
-        displayMoveStatus();
+        buttonShowThreats.textContent = "Threats";
+        buttonShowThreats.style.position = 'static';
+        buttonShowThreats.style.removeProperty("visibility");
         showingThreats = false;
     } else {
         clearClickHex();
@@ -910,14 +1047,14 @@ function ShowThreats() {
             n++;
         }
         HideButtons();
-        const sepInfo = document.getElementById("sepInfo");
-        sepInfo.style.display = 'block';
         buttonShowThreats.classList.add('w3-red');
-        buttonShowThreats.classList.add("fullbutton");
         buttonShowThreats.classList.remove('w3-black');
-        buttonShowThreats.classList.remove("halfbutton");
-        buttonShowThreats.style.display = 'block';
-        if (n == 0 && !game.gameEnd) document.getElementById("gameStatus").innerHTML = "No threats";
+        buttonShowThreats.style.setProperty("display", "block", "important");
+        buttonShowThreats.style.setProperty("position", "fixed", "important");
+        buttonShowThreats.style.setProperty("visibility","visible", "important");
+        buttonShowThreats.style.top = 0;
+        buttonShowThreats.style.right = 0;
+        if (n==0) buttonShowThreats.textContent = "No threats";
         showingThreats = true;
     }
 }
@@ -926,7 +1063,7 @@ function ShowHeuristic() {
     clearClickHex();
     const dialog = document.getElementById("dialogHeuristic");
     const title = document.getElementById("dialogHeuristicTurn");
-    title.innerHTML = game.turn == 'w' ? 'White' : 'Black'
+    title.textContent = game.turn == 'w' ? 'White' : 'Black'
     const h = game.preMoveHeuristic;
     {
         const hPieces0 = document.getElementById("hPieces0");
@@ -936,13 +1073,13 @@ function ShowHeuristic() {
         const hPositioning = document.getElementById("hPositioning");
         const hMobility = document.getElementById("hMobility");
         const hKing = document.getElementById("hKing");
-        hPieces0.innerHTML = cescacs.round2hundredths(h.pieces[0]);
-        hPieces1.innerHTML = cescacs.round2hundredths(h.pieces[1]);
-        hSpace0.innerHTML = cescacs.round2hundredths(h.space[0]);
-        hSpace1.innerHTML = cescacs.round2hundredths(h.space[1]);
-        hPositioning.innerHTML = cescacs.round2hundredths(h.positioning);
-        hMobility.innerHTML = cescacs.round2hundredths(h.mobility);
-        hKing.innerHTML = cescacs.round2hundredths(h.king);
+        hPieces0.textContent = cescacs.round2hundredths(h.pieces[0]);
+        hPieces1.textContent = cescacs.round2hundredths(h.pieces[1]);
+        hSpace0.textContent = cescacs.round2hundredths(h.space[0]);
+        hSpace1.textContent = cescacs.round2hundredths(h.space[1]);
+        hPositioning.textContent = cescacs.round2hundredths(h.positioning);
+        hMobility.textContent = cescacs.round2hundredths(h.mobility);
+        hKing.textContent = cescacs.round2hundredths(h.king);
     }
     dialog.showModal();
 }
@@ -982,22 +1119,21 @@ function SuggestMove() {
 function Castling() {
     if (!game.checked) {
         const currentColor = game.turn;
-        const buttonCastling = document.getElementById("buttonCastling");
         const castlingContainer = document.getElementById("castlingContainer");
-        const castlingStatusLbl = document.getElementById("castlingStatusLbl");
         if (castlingContainer.style.display == 'none') {
+            const castlingContainerContent = document.getElementById("castlingContainerContent");
+            const castlingStatusLbl = document.getElementById("castlingStatusLbl");
             clearClickHex();
             HideButtons();
-            buttonCastling.innerHTML = "Cancel";
-            buttonCastling.style.display = "block";
+            document.getElementById("confirmCastling").disabled = true;
             const playerCastlingStatus = game.playerCastlingStatus();
-            castlingStatusLbl.innerHTML = playerCastlingStatus;
+            castlingStatusLbl.textContent = playerCastlingStatus;
             if (playerCastlingStatus.length > 1) {
                 for (const col of ['I', 'H', 'F', 'E', 'D']) {
                     const lbl = eval("castling" + col + "Lbl");
                     const btnContainer = eval("castling" + col + "Btns");
                     const [pos, status] = game.playerCastlingPositionStatus(col);
-                    lbl.innerHTML = cescacs.PositionHelper.toString(pos) + ':';
+                    lbl.textContent = cescacs.PositionHelper.toString(pos) + ':';
                     if (status == '') {
                         const kmove = game.castlingKingPosition(col);
                         if (kmove != null) {
@@ -1006,29 +1142,41 @@ function Castling() {
                                 btn.setAttribute("id", m);
                                 btn.setAttribute("title", m);
                                 btn.setAttribute("class", "w3-button w3-round w3-small");
-                                btn.innerHTML = m;
+                                btn.textContent = m;
                                 btn.onclick = function () { previewCastling(this.id); };
                                 btnContainer.appendChild(btn);
                             }
                         }
-                    } else lbl.innerHTML += ' ' + status;
+                    } else lbl.textContent += ' ' + status;
                 }
                 castlingContainerContent.style.display = "block";
             } else castlingContainerContent.style.display = "none";
             castlingContainer.style.display = "block";
-        } else {
-            previewCastling(); //clean when call without parameter
-            castlingStatusLbl.innerHTML = "";
-            castlingContainer.style.display = "none";
-            for (const col of ['I', 'H', 'F', 'E', 'D']) {
-                const lbl = eval("castling" + col + "Lbl");
-                const btnContainer = eval("castling" + col + "Btns");
-                lbl.innerHTML = "";
-                btnContainer.innerHTML = "";
+            if (currentColor == 'w') {
+                castlingContainer.style.position = "static";
+            } else {
+                castlingContainer.style.position = "fixed";
+                castlingContainer.style.bottom = "0px";
+                castlingContainer.style.left = "0px";
             }
-            buttonCastling.innerHTML = "Castling";
-            RestoreButtons();
         }
+    }
+}
+
+function cancelCastling() {
+    const castlingStatusLbl = document.getElementById("castlingStatusLbl");
+    const castlingContainer = document.getElementById("castlingContainer");
+    if (castlingContainer.style.display != 'none') {
+        previewCastling(); //clean when call without parameter
+        castlingStatusLbl.textContent = "";
+        castlingContainer.style.display = "none";
+        for (const col of ['I', 'H', 'F', 'E', 'D']) {
+            const lbl = eval("castling" + col + "Lbl");
+            const btnContainer = eval("castling" + col + "Btns");
+            lbl.textContent = "";
+            btnContainer.textContent = "";
+        }
+        RestoreButtons();
     }
 }
 
@@ -1128,24 +1276,23 @@ function confirmCastling() {
     const buttonCastling = document.getElementById("buttonCastling");
     const castlingContainer = document.getElementById("castlingContainer");
     const castlingStatusLbl = document.getElementById("castlingStatusLbl");
-    castlingStatusLbl.innerHTML = "";
+    castlingStatusLbl.textContent = "";
     castlingContainer.style.display = "none";
     for (const col of ['I', 'H', 'F', 'E', 'D']) {
         const lbl = eval("castling" + col + "Lbl");
         const btnContainer = eval("castling" + col + "Btns");
-        lbl.innerHTML = "";
-        btnContainer.innerHTML = "";
+        lbl.textContent = "";
+        btnContainer.textContent = "";
     }
-    buttonCastling.innerHTML = "Castling";
     game.doCastling(previewCastling.move);
     previewCastling.move = undefined;
     previewCastling.k = undefined;
     previewCastling.rk = undefined;
     previewCastling.rq = undefined;
     RestoreButtons();
-    if (game.lastMove != null) {
-        WMOVE(cescacs.cscnv.otherSide(game.turn), game.topHalfMove - 1, cescacs.csmv.fullMoveNotation(game.lastMove, false));
-    }
+    // if (game.lastMove != null) {
+    //     WMOVE(cescacs.cscnv.otherSide(game.turn), game.topHalfMove - 1, cescacs.csmv.fullMoveNotation(game.lastMove, false));
+    // }
     displayMoveStatus();
     saveMoves();
 }
@@ -1171,7 +1318,14 @@ function HideButtons() {
     const sepMoves = document.getElementById("sepMoves");
     const sepInfo = document.getElementById("sepInfo");
     const sepCastling = document.getElementById("sepCastling");
+    const messagesContainer = document.getElementById("messagesContainer");
     const heuristicContainer = document.getElementById("heuristicContainer");
+    {
+        const toggler = document.getElementById("toggler")
+        toggler.classList.add("disabled");
+        toggler.style.pointerEvents = "none";
+    }
+    document.querySelector("div.hamenu").classList.remove("hamburger");
     buttonTLPD.style.display = "none";
     buttonLoad.style.display = "none";
     buttonNew.style.display = "none";
@@ -1190,6 +1344,7 @@ function HideButtons() {
     sepMoves.style.display = "none";
     sepInfo.style.display = "none";
     sepCastling.style.display = "none";
+    messagesContainer.style.display = "none";
     heuristicContainer.style.display = "none";
 }
 
@@ -1212,15 +1367,14 @@ function RestoreButtons() {
     const sepMoves = document.getElementById("sepMoves");
     const sepInfo = document.getElementById("sepInfo");
     const sepCastling = document.getElementById("sepCastling");
-    const confirm = document.getElementById("confirmationArea");
     const confirmLblPrevi = document.getElementById("confirmLblPrevi");
     const confirmLbl = document.getElementById("confirmationLabel");
     const grandCescacs = document.getElementById("grandCescacs");
+    const messagesContainer = document.getElementById("messagesContainer");
     const heuristicContainer = document.getElementById("heuristicContainer");
     grandCescacs.style.display = "none";
-    confirm.style.display = "none";
-    confirmLblPrevi.innerHTML = "";
-    confirmLbl.innerHTML = "";
+    confirmLblPrevi.textContent = "";
+    confirmLbl.textContent = "";
     buttonTLPD.style.display = "block";
     buttonLoad.style.display = "block";
     buttonNew.style.display = "block";
@@ -1239,5 +1393,13 @@ function RestoreButtons() {
     sepMoves.style.display = "block";
     sepInfo.style.display = "block";
     sepCastling.style.display = "block";
+    messagesContainer.style.display = "block";
     heuristicContainer.style.display = "block";
+    document.querySelector("div.hamenu").classList.add("hamburger");
+    {
+        const toggler = document.getElementById("toggler");
+        toggler.classList.remove("disabled");
+        toggler.style.pointerEvents = "auto";
+        if (toggler.checked) toggler.checked = false;
+    }
 }
