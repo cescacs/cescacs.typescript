@@ -1166,8 +1166,8 @@ function Castling() {
                         element.checked = true;
                     }
                 });
-                castlingRight.style.display = "inline-block";
-                castlingDown.style.display = "none";
+                castlingRight.style.display = "none";
+                castlingDown.style.display = "inline-block";
             } else {
                 castlingContainer.style.position = "fixed";
                 castlingContainer.style.bottom = "0px";
@@ -1177,8 +1177,8 @@ function Castling() {
                         element.checked = true;
                     }
                 });
-                castlingRight.style.display = "none";
-                castlingDown.style.display = "inline-block";
+                castlingRight.style.display = "inline-block";
+                castlingDown.style.display = "none";
             }
         }
     }
@@ -1190,14 +1190,14 @@ function castlingContainerPositionChange(radio) {
         const castlingRight = document.getElementById("castlingRight");
         if (radio.value == "left") {
             castlingContainer.style.position = "static";
-            castlingRight.style.display = "inline-block";
-            castlingDown.style.display = "none";
+            castlingRight.style.display = "none";
+            castlingDown.style.display = "inline-block";
         } else if (radio.value == "up") {
             castlingContainer.style.position = "fixed";
             castlingContainer.style.bottom = "0px";
             castlingContainer.style.left = "0px";
-            castlingRight.style.display = "none";
-            castlingDown.style.display = "inline-block";
+            castlingRight.style.display = "inline-block";
+            castlingDown.style.display = "none";
         }
     }
 }
