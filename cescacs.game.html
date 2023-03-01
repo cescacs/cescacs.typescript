@@ -681,8 +681,8 @@ TOP AT -10PX ABOVE THE MIDDLE ONE AND BOTTOM ONE IS 10PX BELOW THE MIDDLE: */
                     &nbsp; Enter TLPD string, and press again the button<br>
                     &nbsp; <small>To load correctly you first start new to choose as normal or Grand &nbsp;</small>
                 </label>
-            </div>
-            <div id="loadMovesPanel" style="width: 14em; display: none" class="w3-right">
+                </div>
+                <div id="loadMovesPanel" style="width: 14em; display: none" class="w3-right">
                     <textarea id="lMovesArea" cols="22" rows="15" class="w3-large"
                         placeholder="Enter moves to apply, empty to cancel" style="font-family:'Courier New', Courier, monospace; resize:vertical"></textarea>
                     <label id="lMovesAreaLbl" for="lMovesArea" class="w3-amber w3-bar w3-center" style="display:block">
@@ -695,7 +695,14 @@ TOP AT -10PX ABOVE THE MIDDLE ONE AND BOTTOM ONE IS 10PX BELOW THE MIDDLE: */
                         <small>a previosly loaded board status</small>
                     </label>
                 </div>
-                <div id="movesPanel" style="width: 14em; display: none" class="w3-right">
+                <div id="movesPanel" style="width: 18em; display: none" class="w3-right">
+                    <div id="sepMoves2" class="w3-bar w3-amber w3-center"
+                        style="height: 3ex; width: 14em; border: 1px solid green;"><span>Moves</span>
+                    </div>
+                    <div class="btn-group">
+                        <button id="buttonGoOn"
+                            class="w3-button w3-black w3-block">Go on</button>
+                    </div>
                     <div id="movesPanelTgl1" style="width:100%; display:block;">
                         <div id="movesGrid" class="grid2xContainer w3-large" style="width:100%">
                         </div>

@@ -56,6 +56,9 @@ document.getElementById("buttonDraw").addEventListener("click", (event) => {
 document.getElementById("buttonShowMoves").addEventListener("click", (event) => {
     ShowMoves();
 });
+document.getElementById("buttonGoOn").addEventListener("click", (event) => {
+    ShowMoves();
+});
 document.getElementById("buttonLoadMoves").addEventListener("click", (event) => {
     LoadMoves();
 });
@@ -730,18 +733,11 @@ function GrandCescacs() {
 }
 
 function ShowMoves() {
-    const buttonShowMoves = document.getElementById("buttonShowMoves");
     const movesPanel = document.getElementById("movesPanel");
     if (movesPanel.style.display == "none") {
-        const sepMoves = document.getElementById("sepMoves");
         const movesGrid = document.getElementById("movesGrid");
         clearClickHex();
         HideButtons();
-        sepMoves.style.display = "block";
-        buttonShowMoves.classList.remove("halfbutton");
-        buttonShowMoves.classList.add("fullbutton");
-        buttonShowMoves.textContent = "Go on"
-        buttonShowMoves.style.display = "block";
         const n = movesGrid.childElementCount;
         for (const mv of game.moves(n)) {
             const newdiv = document.createElement('div');
@@ -766,9 +762,6 @@ function ShowMoves() {
         game.moveTop();
         restoreBoard();
         RestoreButtons();
-        buttonShowMoves.textContent = "Show mvs"
-        buttonShowMoves.classList.remove("fullbutton");
-        buttonShowMoves.classList.add("halfbutton");
         displayMoveStatus();
     }
 }
