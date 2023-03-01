@@ -694,8 +694,54 @@ TOP AT -10PX ABOVE THE MIDDLE ONE AND BOTTOM ONE IS 10PX BELOW THE MIDDLE: */
                     <label id="lMovesAreaLbl3" for="lMovesArea" class="w3-amber w3-bar w3-center" style="display:block">
                         <small>a previosly loaded board status</small>
                     </label>
-            </div>
-            <div id="suggestMoveContainer" class="w3-container w3-topbar w3-bottombar w3-leftbar w3-rightbar w3-border-amber"
+                </div>
+                <div id="movesPanel" style="width: 14em; display: none" class="w3-right">
+                    <div id="movesPanelTgl1" style="width:100%; display:block;">
+                        <div id="movesGrid" class="grid2xContainer w3-large" style="width:100%">
+                        </div>
+                        <div class="w3-bar w3-blue w3-border" style="display: flex; justify-content: space-between;">
+                            <div id="buttonFirst" title="first" class="w3-button w3-bar-item">
+                                <svg style="width: 1.5em; height: 1.5em; vertical-align: middle;"
+                                    viewBox='0 0 1024 1024' xmlns='http://www.w3.org/2000/svg'>
+                                    <path
+                                        d="M839.792 130.112 356.88 439.888c-61.808 39.664-61.808 104.544 0 144.192l482.928 309.792c61.808 39.664 112.384 12.016 112.384-61.424L952.192 191.552C952.192 118.112 901.616 90.464 839.792 130.112zM111.808 112c-22.096 0-40 17.904-40 40l0 720c0 22.096 17.904 40 40 40s40-17.904 40-40l0-720C151.808 129.904 133.904 112 111.808 112z" />
+                                </svg>
+                            </div>
+                            <div id="buttonPrevious" title="previous" class="w3-button w3-bar-item">
+                                <svg style="width: 1.5em; height: 1.5em; vertical-align: middle;"
+                                    viewBox='0 0 1024 1024' xmlns='http://www.w3.org/2000/svg'>
+                                    <path
+                                        d="M779.704065 146.115845c0.082888-12.881378-1.100054-22.822798-9.91993-31.327496-1.528819-1.482771-3.160993-2.758834-4.880147-3.923356-5.882987-4.114714-13.130042-6.578836-20.979824-6.578836-10.750855 0-16.845667 4.072759-26.91193 11.800767L254.198469 458.492342c-7.198959 6.944156-10.700713 16.087397-10.559497 25.195845-0.14224 9.108448 3.360538 18.252713 10.559497 25.195845l464.578967 343.721389c17.667382 13.287631 36.927027 13.623275 51.006697 0 8.819876-8.516977 10.214642-19.716041 9.91993-31.331589L779.704065 146.115845z" />
+                                </svg>
+                            </div>
+                            <div id="buttonNext" title="next" class="w3-button w3-bar-item">
+                                <svg style="width: 1.5em; height: 1.5em; vertical-align: middle;"
+                                    viewBox='0 0 1024 1024' xmlns='http://www.w3.org/2000/svg'>
+                                    <path d="M262.3386 62.3677 762.3127 512.3492 262.3386 962.3255Z" />
+                                </svg>
+                            </div>
+                            <div id="buttonLast" title="last" class="w3-button w3-bar-item">
+                                <svg style="width: 1.5em; height: 1.5em; vertical-align: middle;"
+                                    viewBox='0 0 1024 1024' xmlns='http://www.w3.org/2000/svg'>
+                                    <path
+                                        d="M184.208 893.888l482.928-309.776c61.808-39.664 61.808-104.544 0-144.192L184.208 130.128c-61.808-39.664-112.384-12.016-112.384 61.424l0 640.912C71.808 905.888 122.384 933.536 184.208 893.888zM912.192 912c22.096 0 40-17.904 40-40l0-720c0-22.096-17.904-40-40-40s-40 17.904-40 40l0 720C872.192 894.096 890.096 912 912.192 912z" />
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="movesPanelTgl2" style="width:100%; display:none;">
+                        <textarea id="movesArea" cols="26" rows="20" class="w3-large" readonly
+                            style="resize: vertical"></textarea>
+                    </div>
+                    <div class="w3-tiny w3-bar w3-amber" style="clear:both;">&nbsp;</div>
+                    <div class="btn-group">
+                        <button id="buttonUndo"
+                            class="w3-button w3-black w3-block stacked">Undo last move</button>
+                        <button id="buttonMoves"
+                            class="w3-button w3-black w3-block">Copy moves</button>
+                    </div>
+                </div>
+                <div id="suggestMoveContainer" class="w3-container w3-topbar w3-bottombar w3-leftbar w3-rightbar w3-border-amber"
                 style="display:none; width:16em;text-align:center;">
                 <!--
                 <figure id="suggestMoveWaiting">
@@ -774,52 +820,6 @@ TOP AT -10PX ABOVE THE MIDDLE ONE AND BOTTOM ONE IS 10PX BELOW THE MIDDLE: */
                     <button id="confirmCastling"
                         class="w3-button w3-black halfbutton" disabled>Confirm</button>
                 </div>
-            </div>
-        </div>
-        <div id="movesPanel" style="width: 18em; display: none" class="w3-right">
-            <div id="movesPanelTgl1" style="width:100%; display:block;">
-                <div id="movesGrid" class="grid2xContainer w3-large" style="width:100%">
-                </div>
-                <div class="w3-bar w3-blue w3-border" style="display: flex; justify-content: space-between;">
-                    <div id="buttonFirst" title="first" class="w3-button w3-bar-item">
-                        <svg style="width: 1.5em; height: 1.5em; vertical-align: middle;"
-                            viewBox='0 0 1024 1024' xmlns='http://www.w3.org/2000/svg'>
-                            <path
-                                d="M839.792 130.112 356.88 439.888c-61.808 39.664-61.808 104.544 0 144.192l482.928 309.792c61.808 39.664 112.384 12.016 112.384-61.424L952.192 191.552C952.192 118.112 901.616 90.464 839.792 130.112zM111.808 112c-22.096 0-40 17.904-40 40l0 720c0 22.096 17.904 40 40 40s40-17.904 40-40l0-720C151.808 129.904 133.904 112 111.808 112z" />
-                        </svg>
-                    </div>
-                    <div id="buttonPrevious" title="previous" class="w3-button w3-bar-item">
-                        <svg style="width: 1.5em; height: 1.5em; vertical-align: middle;"
-                            viewBox='0 0 1024 1024' xmlns='http://www.w3.org/2000/svg'>
-                            <path
-                                d="M779.704065 146.115845c0.082888-12.881378-1.100054-22.822798-9.91993-31.327496-1.528819-1.482771-3.160993-2.758834-4.880147-3.923356-5.882987-4.114714-13.130042-6.578836-20.979824-6.578836-10.750855 0-16.845667 4.072759-26.91193 11.800767L254.198469 458.492342c-7.198959 6.944156-10.700713 16.087397-10.559497 25.195845-0.14224 9.108448 3.360538 18.252713 10.559497 25.195845l464.578967 343.721389c17.667382 13.287631 36.927027 13.623275 51.006697 0 8.819876-8.516977 10.214642-19.716041 9.91993-31.331589L779.704065 146.115845z" />
-                        </svg>
-                    </div>
-                    <div id="buttonNext" title="next" class="w3-button w3-bar-item">
-                        <svg style="width: 1.5em; height: 1.5em; vertical-align: middle;"
-                            viewBox='0 0 1024 1024' xmlns='http://www.w3.org/2000/svg'>
-                            <path d="M262.3386 62.3677 762.3127 512.3492 262.3386 962.3255Z" />
-                        </svg>
-                    </div>
-                    <div id="buttonLast" title="last" class="w3-button w3-bar-item">
-                        <svg style="width: 1.5em; height: 1.5em; vertical-align: middle;"
-                            viewBox='0 0 1024 1024' xmlns='http://www.w3.org/2000/svg'>
-                            <path
-                                d="M184.208 893.888l482.928-309.776c61.808-39.664 61.808-104.544 0-144.192L184.208 130.128c-61.808-39.664-112.384-12.016-112.384 61.424l0 640.912C71.808 905.888 122.384 933.536 184.208 893.888zM912.192 912c22.096 0 40-17.904 40-40l0-720c0-22.096-17.904-40-40-40s-40 17.904-40 40l0 720C872.192 894.096 890.096 912 912.192 912z" />
-                        </svg>
-                    </div>
-                </div>
-            </div>
-            <div id="movesPanelTgl2" style="width:100%; display:none;">
-                <textarea id="movesArea" cols="26" rows="20" class="w3-large" readonly
-                    style="resize: vertical"></textarea>
-            </div>
-            <div class="w3-tiny w3-bar w3-amber" style="clear:both;">&nbsp;</div>
-            <div class="btn-group">
-                <button id="buttonUndo"
-                    class="w3-button w3-black w3-block stacked">Undo last move</button>
-                <button id="buttonMoves"
-                    class="w3-button w3-black w3-block">Copy moves</button>
             </div>
         </div>
         <dialog id="dialogConfirm" style="background: #333;">
