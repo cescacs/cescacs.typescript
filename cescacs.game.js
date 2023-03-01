@@ -83,7 +83,7 @@ document.getElementById("buttonCastling").addEventListener("click", (event) => {
 });
 document.querySelectorAll('input[type=radio][name="castlingContainerPosition"]').
     forEach(radio => radio.addEventListener('change', () => { 
-        alert(radio.value); 
+        castlingContainerPositionChange(radio); 
 }));
 document.getElementById("cancelCastling").addEventListener("click", (event) => {
     cancelCastling();
@@ -1156,13 +1156,36 @@ function Castling() {
                 castlingContainerContent.style.display = "block";
             } else castlingContainerContent.style.display = "none";
             castlingContainer.style.display = "block";
+            const castlingContainerPositionItems = document.querySelectorAll(`input[name="castlingContainerPosition"]`);
             if (currentColor == 'w') {
                 castlingContainer.style.position = "static";
+                castlingContainerPositionItems.forEach(element => {
+                    if(element.value === "down") {
+                        element.checked = true;
+                    }
+                });
             } else {
                 castlingContainer.style.position = "fixed";
                 castlingContainer.style.bottom = "0px";
                 castlingContainer.style.left = "0px";
+                castlingContainerPositionItems.forEach(element => {
+                    if(element.value === "right") {
+                        element.checked = true;
+                    }
+                });
             }
+        }
+    }
+}
+
+function castlingContainerPositionChange(radio) {
+    if(radio) {
+        if (radio.value == "down") {
+            castlingContainer.style.position = "static";
+        } else if (radio.value == "right") {
+            castlingContainer.style.position = "fixed";
+            castlingContainer.style.bottom = "0px";
+            castlingContainer.style.left = "0px";
         }
     }
 }
