@@ -1160,7 +1160,7 @@ function Castling() {
             if (currentColor == 'w') {
                 castlingContainer.style.position = "static";
                 castlingContainerPositionItems.forEach(element => {
-                    if(element.value === "down") {
+                    if(element.value === "left") {
                         element.checked = true;
                     }
                 });
@@ -1169,7 +1169,7 @@ function Castling() {
                 castlingContainer.style.bottom = "0px";
                 castlingContainer.style.left = "0px";
                 castlingContainerPositionItems.forEach(element => {
-                    if(element.value === "right") {
+                    if(element.value === "up") {
                         element.checked = true;
                     }
                 });
@@ -1180,9 +1180,9 @@ function Castling() {
 
 function castlingContainerPositionChange(radio) {
     if(radio) {
-        if (radio.value == "down") {
+        if (radio.value == "left") {
             castlingContainer.style.position = "static";
-        } else if (radio.value == "right") {
+        } else if (radio.value == "up") {
             castlingContainer.style.position = "fixed";
             castlingContainer.style.bottom = "0px";
             castlingContainer.style.left = "0px";
