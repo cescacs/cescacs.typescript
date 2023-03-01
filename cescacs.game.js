@@ -1156,7 +1156,9 @@ function Castling() {
                 castlingContainerContent.style.display = "block";
             } else castlingContainerContent.style.display = "none";
             castlingContainer.style.display = "block";
-            const castlingContainerPositionItems = document.querySelectorAll(`input[name="castlingContainerPosition"]`);
+            const castlingDown = document.getElementById("castlingDown");
+            const castlingRight = document.getElementById("castlingRight");
+                const castlingContainerPositionItems = document.querySelectorAll(`input[name="castlingContainerPosition"]`);
             if (currentColor == 'w') {
                 castlingContainer.style.position = "static";
                 castlingContainerPositionItems.forEach(element => {
@@ -1164,6 +1166,8 @@ function Castling() {
                         element.checked = true;
                     }
                 });
+                castlingRight.style.display = "inline-block";
+                castlingDown.style.display = "none";
             } else {
                 castlingContainer.style.position = "fixed";
                 castlingContainer.style.bottom = "0px";
@@ -1173,6 +1177,8 @@ function Castling() {
                         element.checked = true;
                     }
                 });
+                castlingRight.style.display = "none";
+                castlingDown.style.display = "inline-block";
             }
         }
     }
@@ -1180,12 +1186,18 @@ function Castling() {
 
 function castlingContainerPositionChange(radio) {
     if(radio) {
+        const castlingDown = document.getElementById("castlingDown");
+        const castlingRight = document.getElementById("castlingRight");
         if (radio.value == "left") {
             castlingContainer.style.position = "static";
+            castlingRight.style.display = "inline-block";
+            castlingDown.style.display = "none";
         } else if (radio.value == "up") {
             castlingContainer.style.position = "fixed";
             castlingContainer.style.bottom = "0px";
             castlingContainer.style.left = "0px";
+            castlingRight.style.display = "none";
+            castlingDown.style.display = "inline-block";
         }
     }
 }
