@@ -1165,7 +1165,7 @@ function Castling() {
             const castlingDown = document.getElementById("castlingDown");
             const castlingRight = document.getElementById("castlingRight");
             const toggler = document.getElementById("toggler");
-            if (toggler.style.display == 'none') {
+            if (!toggler.style.display || toggler.style.display == 'none') {
                 castlingContainer.style.position = "static";
                 castlingRight.style.display = "none";
                 castlingDown.style.display = "none";
