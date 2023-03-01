@@ -81,6 +81,8 @@ document.getElementById("buttonHeuristic").addEventListener("click", (event) => 
 document.getElementById("buttonCastling").addEventListener("click", (event) => {
     Castling();
 });
+document.querySelectorAll('input[type=radio][name="contact"]').
+    forEach(radio => radio.addEventListener('change', () => alert(radio.value)));
 document.getElementById("cancelCastling").addEventListener("click", (event) => {
     cancelCastling();
 });
@@ -456,6 +458,7 @@ function isExecutingAction() {
  *
  */
 function displayMoveStatus() {
+    const buttonCastling = document.getElementById("buttonCastling");
     let moveText = game.strLastMove;
     if (game.gameEnd) {
         const buttonResign = document.getElementById("buttonResign");
@@ -464,7 +467,6 @@ function displayMoveStatus() {
         const buttonManualMove = document.getElementById("buttonManualMove");
         //const buttonStopEngine = document.getElementById("buttonStopEngine");
         const buttonSuggestMove = document.getElementById("buttonSuggestMove");
-        const buttonCastling = document.getElementById("buttonCastling");
         buttonResign.disabled = true;
         buttonDraw.disabled = true;
         buttonLoadMoves.disabled = true;

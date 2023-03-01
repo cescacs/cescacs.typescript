@@ -716,29 +716,29 @@ TOP AT -10PX ABOVE THE MIDDLE ONE AND BOTTOM ONE IS 10PX BELOW THE MIDDLE: */
                 <div style="margin-bottom: 2ex; display: flex; justify-content: space-between;">
                     <div style="position: relative;">
                     <!-- 
-↳
-U+21B3
-↲
-U+21B2
-↰
-U+21B0
-↱
-U+21B1
-↵
-U+21B5
-↴
-U+21B4
-☇
+                            ↳
+                            U+21B3
+                            ↲
+                            U+21B2
+                            ↰
+                            U+21B0
+                            ↱
+                            U+21B1
+                            ↵
+                            U+21B5
+                            ↴
+                            U+21B4
+                            ☇
                     -->
-                        <span style="position:absolute; top:0px;left:0px;">🡱</span>
-                        <input type="radio" name="castlingContainerPosition"
-                         style="position:absolute; top:0px;left:0px; opacity: 0; z-index: 10; cursor: pointer;">
+                        <span id="castlingDown" style="position:absolute; top:0px;left:0px;">🡳</span>
+                        <input type="radio" name="castlingContainerPosition" value="down"
+                         style="position:absolute; top:0px;left:0px; opacity:0; z-index:10; font-size:larger; cursor:pointer;">
                     </div>
                     <label>Castling status: <strong id="castlingStatusLbl"></strong></label>
                     <div style="position: relative;">
-                        <span style="position:absolute; top:0px;left:0px;">🡺</span>
-                        <input type="radio" name="castlingContainerPosition"
-                        style="position:absolute; top:0px;left:0px; opacity: 0; z-index: 10; cursor: pointer;">
+                        <span id="castlingRight" style="position:absolute; top:0px;left:0px;">🡺</span>
+                        <input type="radio" name="castlingContainerPosition" value="right"
+                        style="position:absolute; top:0px;left:0px; opacity:0; z-index:10; font-size:larger; cursor:pointer;">
                     </div>
                 </div>
                 <div id="castlingContainerContent" style="display: none">
