@@ -81,12 +81,11 @@ document.getElementById("buttonHeuristic").addEventListener("click", (event) => 
 document.getElementById("buttonCastling").addEventListener("click", (event) => {
     Castling();
 });
-document.getElementById("castlingContainer").addEventListener("move", (event) => {
-    if (castlingContainer.style.display != "none"
-        && toggler.style.display != "none") {
-            alert("MOVE!")
+window.addEventListener("resize", (event) => {
+    if (castlingContainer.style.display != "none")
+        cancelCastling();
     }
-});
+);
 document.querySelectorAll('input[type=radio][name="castlingContainerPosition"]').
     forEach(radio => radio.addEventListener('change', () => { 
         castlingContainerPositionChange(radio); 
@@ -1164,8 +1163,7 @@ function Castling() {
             castlingContainer.style.display = "block";
             const castlingDown = document.getElementById("castlingDown");
             const castlingRight = document.getElementById("castlingRight");
-            const toggler = document.getElementById("toggler");
-            if (!toggler.style.display || toggler.style.display == 'none') {
+            if (window.outerWidth > 1024) {
                 castlingContainer.style.position = "static";
                 castlingRight.style.display = "none";
                 castlingDown.style.display = "none";
