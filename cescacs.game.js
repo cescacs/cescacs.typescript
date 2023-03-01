@@ -82,7 +82,9 @@ document.getElementById("buttonCastling").addEventListener("click", (event) => {
     Castling();
 });
 document.querySelectorAll('input[type=radio][name="contact"]').
-    forEach(radio => radio.addEventListener('change', () => alert(radio.value)));
+    forEach(radio => radio.addEventListener('change', () => { 
+        alert(radio.value); 
+}));
 document.getElementById("cancelCastling").addEventListener("click", (event) => {
     cancelCastling();
 });
