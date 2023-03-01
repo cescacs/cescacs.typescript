@@ -81,7 +81,7 @@ document.getElementById("buttonHeuristic").addEventListener("click", (event) => 
 document.getElementById("buttonCastling").addEventListener("click", (event) => {
     Castling();
 });
-document.querySelectorAll('input[type=radio][name="contact"]').
+document.querySelectorAll('input[type=radio][name="castlingContainerPosition"]').
     forEach(radio => radio.addEventListener('change', () => { 
         alert(radio.value); 
 }));
