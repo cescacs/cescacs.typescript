@@ -81,6 +81,12 @@ document.getElementById("buttonHeuristic").addEventListener("click", (event) => 
 document.getElementById("buttonCastling").addEventListener("click", (event) => {
     Castling();
 });
+document.getElementById("castlingContainer").addEventListener("move", (event) => {
+    if (castlingContainer.style.display != "none"
+        && toggler.style.display != "none") {
+            alert("MOVE!")
+    }
+});
 document.querySelectorAll('input[type=radio][name="castlingContainerPosition"]').
     forEach(radio => radio.addEventListener('change', () => { 
         castlingContainerPositionChange(radio); 
@@ -1158,27 +1164,34 @@ function Castling() {
             castlingContainer.style.display = "block";
             const castlingDown = document.getElementById("castlingDown");
             const castlingRight = document.getElementById("castlingRight");
-                const castlingContainerPositionItems = document.querySelectorAll(`input[name="castlingContainerPosition"]`);
-            if (currentColor == 'w') {
+            const toggler = document.getElementById("toggler");
+            if (toggler.style.display == 'none') {
                 castlingContainer.style.position = "static";
-                castlingContainerPositionItems.forEach(element => {
-                    if(element.value === "left") {
-                        element.checked = true;
-                    }
-                });
                 castlingRight.style.display = "none";
-                castlingDown.style.display = "inline-block";
-            } else {
-                castlingContainer.style.position = "fixed";
-                castlingContainer.style.bottom = "0px";
-                castlingContainer.style.left = "0px";
-                castlingContainerPositionItems.forEach(element => {
-                    if(element.value === "up") {
-                        element.checked = true;
-                    }
-                });
-                castlingRight.style.display = "inline-block";
                 castlingDown.style.display = "none";
+            } else {
+                const castlingContainerPositionItems = document.querySelectorAll(`input[name="castlingContainerPosition"]`);
+                if (currentColor == 'w') {
+                    castlingContainer.style.position = "static";
+                    castlingContainerPositionItems.forEach(element => {
+                        if(element.value === "left") {
+                            element.checked = true;
+                        }
+                    });
+                    castlingRight.style.display = "none";
+                    castlingDown.style.display = "inline-block";
+                } else {
+                    castlingContainer.style.position = "fixed";
+                    castlingContainer.style.bottom = "0px";
+                    castlingContainer.style.left = "0px";
+                    castlingContainerPositionItems.forEach(element => {
+                        if(element.value === "up") {
+                            element.checked = true;
+                        }
+                    });
+                    castlingRight.style.display = "inline-block";
+                    castlingDown.style.display = "none";
+                }
             }
         }
     }
