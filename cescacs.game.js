@@ -760,6 +760,14 @@ function ShowMoves() {
             document.getElementById("buttonUndo").disabled = true;
         }
         movesPanel.style.display = "block";
+        movesPanel.style.position = "fixed";
+        movesPanel.style.top = "0px";
+        movesPanel.style.right = "0px";
+        //movesPanel.style.bottom = "0px";
+        //movesPanel.style.left = "0px";
+        //castlingRight.style.display = "inline-block";
+        //castlingDown.style.display = "none";
+
         movesGrid.scrollTop = 10000;
     } else {
         movesPanel.style.display = "none";
