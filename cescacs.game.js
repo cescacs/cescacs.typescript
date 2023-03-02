@@ -29,6 +29,16 @@ window.addEventListener("load", (event) => {
 */
 
 
+// W I N D O W    R E S I Z E
+//
+window.addEventListener("resize", (event) => {
+    if (castlingContainer.style.display != "none")
+        cancelCastling();
+    else if (movesPanel.style.display != "none")
+        ShowMoves();
+    }
+);
+
 
 //   B U T T O N   E V E N T S
 // Dialogs
@@ -84,11 +94,6 @@ document.getElementById("buttonHeuristic").addEventListener("click", (event) => 
 document.getElementById("buttonCastling").addEventListener("click", (event) => {
     Castling();
 });
-window.addEventListener("resize", (event) => {
-    if (castlingContainer.style.display != "none")
-        cancelCastling();
-    }
-);
 document.querySelectorAll('input[type=radio][name="castlingContainerPosition"]').
     forEach(radio => radio.addEventListener('change', () => { 
         castlingContainerPositionChange(radio); 
