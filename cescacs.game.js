@@ -788,6 +788,8 @@ function showMovesPanelPositionChange(radio) {
         const showMovesLeft = document.getElementById("showMovesLeft");
         const showMovesRight = document.getElementById("showMovesRight");
         if (radio.value == "left") {
+            movesPanel.style.top = "initial";
+            movesPanel.style.right = "initial";
             movesPanel.style.bottom = "0px";
             movesPanel.style.left = "0px";
             showMovesLeft.style.display = "none";
@@ -795,6 +797,8 @@ function showMovesPanelPositionChange(radio) {
 
         } else if (radio.value == "right") {
             castlingContainer.style.position = "fixed";
+            movesPanel.style.bottom = "initial";
+            movesPanel.style.left = "initial";
             movesPanel.style.top = "0px";
             movesPanel.style.right = "0px";
             showMovesLeft.style.display = "inline-block";
