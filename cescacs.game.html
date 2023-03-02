@@ -696,12 +696,37 @@ TOP AT -10PX ABOVE THE MIDDLE ONE AND BOTTOM ONE IS 10PX BELOW THE MIDDLE: */
                     </label>
                 </div>
                 <div id="movesPanel" style="width: 18em; display: none" class="w3-right">
-                    <div id="sepMoves2" class="w3-bar w3-amber w3-center"
-                        style="height: 3ex; width: 14em; border: 1px solid green;"><span>Moves</span>
+                    <div style="margin-bottom: 2ex; display: flex; justify-content: space-between;
+                                height: 3ex; width: 18em; border: 1px solid green;">
+                        <div style="position: relative;">
+                        <!-- 
+                                ↳
+                                U+21B3
+                                ↲
+                                U+21B2
+                                ↰
+                                U+21B0
+                                ↱
+                                U+21B1
+                                ↵
+                                U+21B5
+                                ↴
+                                U+21B4
+                                ☇
+                        -->
+                            <span id="showMovesDown" style="position:absolute; top:0px;left:0px;">🡳</span>
+                            <input type="radio" name="castlingContainerPosition" value="up" checked
+                             style="position:absolute; top:0px;left:0px; opacity:0; z-index:10; font-size:larger; cursor:pointer;">
+                        </div>
+                        <span>Moves</span>
+                        <div style="position: relative;">
+                            <span id="showMovesRight" style="position:absolute; top:0px;left:0px;">🡺</span>
+                            <input type="radio" name="castlingContainerPosition" value="left"
+                            style="position:absolute; top:0px;left:0px; opacity:0; z-index:10; font-size:larger; cursor:pointer;">
+                        </div>
                     </div>
                     <div class="btn-group">
-                        <button id="buttonGoOn"
-                            class="w3-button w3-black w3-block">Go on</button>
+                        <button id="buttonGoOn" class="w3-button w3-black w3-block">Go on</button>
                     </div>
                     <div id="movesPanelTgl1" style="width:100%; display:block;">
                         <div id="movesGrid" class="grid2xContainer w3-large" style="width:100%">
