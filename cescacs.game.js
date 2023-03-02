@@ -769,8 +769,12 @@ function ShowMoves() {
         movesPanel.style.right = "0px";
         const showMovesLeft = document.getElementById("showMovesLeft");
         const showMovesRight = document.getElementById("showMovesRight");
-        showMovesLeft.style.display = "inline-block";
         showMovesRight.style.display = "none";
+        if (window.outerWidth <= 1024) {
+            showMovesLeft.style.display = "inline-block";
+        } else {
+            showMovesLeft.style.display = "none"; 
+        }
         movesGrid.scrollTop = 10000;
     } else {
         movesPanel.style.display = "none";
@@ -783,7 +787,7 @@ function ShowMoves() {
 }
 
 function showMovesPanelPositionChange(radio) {
-    if(radio) {
+    if(radio && window.outerWidth <= 1024) {
         const movesPanel = document.getElementById("movesPanel");
         const showMovesLeft = document.getElementById("showMovesLeft");
         const showMovesRight = document.getElementById("showMovesRight");
@@ -1230,7 +1234,7 @@ function Castling() {
 }
 
 function castlingContainerPositionChange(radio) {
-    if(radio) {
+    if(radio && window.outerWidth <= 1024) {
         const castlingDown = document.getElementById("castlingDown");
         const castlingRight = document.getElementById("castlingRight");
         if (radio.value == "left") {
