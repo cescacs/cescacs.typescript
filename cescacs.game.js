@@ -69,6 +69,10 @@ document.getElementById("buttonShowMoves").addEventListener("click", (event) => 
 document.getElementById("buttonGoOn").addEventListener("click", (event) => {
     ShowMoves();
 });
+document.querySelectorAll('input[type=radio][name="showMovesPanelPosition"]').
+    forEach(radio => radio.addEventListener('change', () => { 
+        showMovesPanelPositionChange(radio); 
+}));
 document.getElementById("buttonLoadMoves").addEventListener("click", (event) => {
     LoadMoves();
 });
@@ -763,11 +767,10 @@ function ShowMoves() {
         movesPanel.style.position = "fixed";
         movesPanel.style.top = "0px";
         movesPanel.style.right = "0px";
-        //movesPanel.style.bottom = "0px";
-        //movesPanel.style.left = "0px";
-        //castlingRight.style.display = "inline-block";
-        //castlingDown.style.display = "none";
-
+        const showMovesLeft = document.getElementById("showMovesLeft");
+        const showMovesRight = document.getElementById("showMovesRight");
+        showMovesLeft.style.display = "inline-block";
+        showMovesRight.style.display = "none";
         movesGrid.scrollTop = 10000;
     } else {
         movesPanel.style.display = "none";
@@ -776,6 +779,27 @@ function ShowMoves() {
         restoreBoard();
         RestoreButtons();
         displayMoveStatus();
+    }
+}
+
+function showMovesPanelPositionChange(radio) {
+    if(radio) {
+        const movesPanel = document.getElementById("movesPanel");
+        const showMovesLeft = document.getElementById("showMovesLeft");
+        const showMovesRight = document.getElementById("showMovesRight");
+        if (radio.value == "left") {
+            movesPanel.style.bottom = "0px";
+            movesPanel.style.left = "0px";
+            showMovesLeft.style.display = "none";
+            showMovesRight.style.display = "inline-block";
+
+        } else if (radio.value == "right") {
+            castlingContainer.style.position = "fixed";
+            movesPanel.style.top = "0px";
+            movesPanel.style.right = "0px";
+            showMovesLeft.style.display = "inline-block";
+            showMovesRight.style.display = "none";
+        }
     }
 }
 
