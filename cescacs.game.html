@@ -696,34 +696,22 @@ TOP AT -10PX ABOVE THE MIDDLE ONE AND BOTTOM ONE IS 10PX BELOW THE MIDDLE: */
                     </label>
                 </div>
                 <div id="movesPanel" style="width: 18em; display: none" class="w3-right">
-                    <div class="w3-amber"
+                    <div id="movesPanelHeader" class="w3-amber"
                          style="display: flex; justify-content: space-between;
                                 height: 3ex; width: 18em; border: 1px solid green;">
                         <div style="position: relative; width:1em; margin-left: 1em;">
-                        <!-- 
-                                ↳
-                                U+21B3
-                                ↲
-                                U+21B2
-                                ↰
-                                U+21B0
-                                ↱
-                                U+21B1
-                                ↵
-                                U+21B5
-                                ↴
-                                U+21B4
-                                ☇
-                        -->
                             <span id="showMovesLeft" style="position:absolute; top:0px;left:0px;">🡸</span>
                             <input type="radio" name="showMovesPanelPosition" value="left" 
-                             style="position:absolute; top:0px;left:0px; opacity:0; z-index:10; font-size:larger; cursor:pointer;">
+                             style="position:absolute; top:0px;left:0px; opacity:0; z-index:10; font-size:large; cursor:pointer;">
+                            <span id="showMovesDown" style="position:absolute; top:0px;left:2em;">🡻</span>
+                            <input type="radio" name="showMovesPanelVPosition" value="bottom" 
+                             style="position:absolute; top:0px;left:2em; opacity:0; z-index:10; font-size:large; cursor:pointer;">
                         </div>
                         <span>Moves</span>
                         <div style="position: relative; width:1em; margin-right: 1em;">
                             <span id="showMovesRight" style="position:absolute; top:0px;left:0px;">🡺</span>
-                            <input type="radio" name="showMovesPanelPosition" value="right" checked
-                            style="position:absolute; top:0px;left:0px; opacity:0; z-index:10; font-size:larger; cursor:pointer;">
+                            <input type="radio" id="showMovesPanelRight" name="showMovesPanelPosition" value="right" checked
+                            style="position:absolute; top:0px;left:0px; opacity:0; z-index:10; font-size:large; cursor:pointer;">
                         </div>
                     </div>
                     <div class="btn-group">
@@ -773,6 +761,24 @@ TOP AT -10PX ABOVE THE MIDDLE ONE AND BOTTOM ONE IS 10PX BELOW THE MIDDLE: */
                         <button id="buttonMoves"
                             class="w3-button w3-black w3-block">Copy moves</button>
                     </div>
+                    <div id="movesPanelFooter" class="w3-amber"
+                         style="display: flex; justify-content: space-between;
+                                height: 3ex; width: 18em; border: 1px solid green;">
+                        <div style="position: relative; width:1em; margin-left: 1em;">
+                            <span id="showMovesFooterLeft" style="position:absolute; top:0px;left:0px;">🡸</span>
+                            <input type="radio" name="showMovesPanelPosition" value="left" 
+                             style="position:absolute; top:0px;left:0px; opacity:0; z-index:10; font-size:large; cursor:pointer;">
+                            <span id="showMovesUp" style="position:absolute; top:0px;left:2em;">🡹</span>
+                            <input type="radio" id="showMovesPanelVUp" name="showMovesPanelVPosition" value="top" checked
+                             style="position:absolute; top:0px;left:2em; opacity:0; z-index:10; font-size:large; cursor:pointer;">
+                        </div>
+                        <span>Moves</span>
+                        <div style="position: relative; width:1em; margin-right: 1em;">
+                            <span id="showMovesFooterRight" style="position:absolute; top:0px;left:0px;">🡺</span>
+                            <input type="radio" name="showMovesPanelPosition" value="right" checked
+                            style="position:absolute; top:0px;left:0px; opacity:0; z-index:10; font-size:large; cursor:pointer;">
+                        </div>
+                    </div>
                 </div>
                 <div id="suggestMoveContainer" class="w3-container w3-topbar w3-bottombar w3-leftbar w3-rightbar w3-border-amber"
                 style="display:none; width:16em;text-align:center;">
@@ -794,21 +800,6 @@ TOP AT -10PX ABOVE THE MIDDLE ONE AND BOTTOM ONE IS 10PX BELOW THE MIDDLE: */
                 style="display:none; width:14em;text-align:center; background-color: wheat;">
                 <div style="margin-bottom: 2ex; display: flex; justify-content: space-between;">
                     <div style="position: relative;">
-                    <!-- 
-                            ↳
-                            U+21B3
-                            ↲
-                            U+21B2
-                            ↰
-                            U+21B0
-                            ↱
-                            U+21B1
-                            ↵
-                            U+21B5
-                            ↴
-                            U+21B4
-                            ☇
-                    -->
                         <span id="castlingDown" style="position:absolute; top:0px;left:0px;">🡳</span>
                         <input type="radio" name="castlingContainerPosition" value="up" checked
                          style="position:absolute; top:0px;left:0px; opacity:0; z-index:10; font-size:larger; cursor:pointer;">
