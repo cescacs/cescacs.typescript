@@ -861,8 +861,8 @@ function showMovesPanelVPositionChange(radio) {
             movesPanel.style.bottom = "initial";
             movesPanel.style.top = "0px";
         } else if (radio.value == "bottom") {
-            movesPanel.style.left = "initial";
-            movesPanel.style.right = "0px";
+            movesPanel.style.top = "initial";
+            movesPanel.style.bottom = "0px";
         }
     }
 }
