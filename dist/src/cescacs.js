@@ -2100,8 +2100,7 @@ export class Game extends Board {
             }
         }
         catch (e) {
-            if (e instanceof Error && e.name == 'Error')
-                e.name = 'Move seq';
+            //if (e instanceof Error && e.name == 'Error') e.name = 'Move seq';
             throw e;
         }
     }
