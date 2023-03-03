@@ -1752,7 +1752,7 @@ export class Game extends Board {
 
     public restoreMovesJSON(moves: string): void {
         //version name changes (to remove after some time)
-        const strMv = moves.replace(/"initHalfMoveClock":/g, '"iHMClock:"')
+        const strMv = moves.replace(/"initHalfMoveClock":/g, '"iHMClock":')
         const tmpMoves: UndoStatusWhithCheckInfo[] =
             JSON.parse(strMv) as UndoStatusWhithCheckInfo[];
         this.restoreMoves(tmpMoves);
