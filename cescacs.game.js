@@ -73,6 +73,10 @@ document.querySelectorAll('input[type=radio][name="showMovesPanelPosition"]').
     forEach(radio => radio.addEventListener('change', () => { 
         showMovesPanelPositionChange(radio); 
 }));
+document.querySelectorAll('input[type=radio][name="showMovesPanelVPosition"]').
+    forEach(radio => radio.addEventListener('change', () => { 
+        showMovesPanelVPositionChange(radio); 
+}));
 document.getElementById("buttonLoadMoves").addEventListener("click", (event) => {
     LoadMoves();
 });
@@ -796,21 +800,23 @@ function ShowMoves() {
 function showMovesPanelPositionChange(radio) {
     if(radio && window.outerWidth <= 1024) {
         const movesPanel = document.getElementById("movesPanel");
+        // {
+        //     const vPosition = document.querySelector('input[name="showMovesPanelVPosition"]:checked').value;
+        //     if (vPosition == "top") {
+        //         movesPanel.style.bottom = "initial";
+        //         movesPanel.style.top = "0px";
+        //     } else if (vPosition == "bottom") {
+        //         movesPanel.style.top = "initial";
+        //         movesPanel.style.bottom = "0px";
+        //     }
+        // }
         const showMovesLeft = document.getElementById("showMovesLeft");
         const showMovesFooterLeft = document.getElementById("showMovesFooterLeft");
         const showMovesRight = document.getElementById("showMovesRight");
         const showMovesFooterRight = document.getElementById("showMovesFooterRight");
-        const vPosition = document.querySelector('input[name="showMovesPanelVPosition"]:checked').value;
         if (radio.value == "left") {
             movesPanel.style.right = "initial";
             movesPanel.style.left = "0px";
-            if (vPosition == "top") {
-                movesPanel.style.bottom = "initial";
-                movesPanel.style.top = "0px";
-            } else if (vPosition == "bottom") {
-                movesPanel.style.top = "initial";
-                movesPanel.style.bottom = "0px";
-            }
             showMovesLeft.style.display = "none";
             showMovesFooterLeft.style.display = "none";
             showMovesRight.style.display = "inline-block";
@@ -818,17 +824,45 @@ function showMovesPanelPositionChange(radio) {
         } else if (radio.value == "right") {
             movesPanel.style.left = "initial";
             movesPanel.style.right = "0px";
-            if (vPosition == "top") {
-                movesPanel.style.bottom = "initial";
-                movesPanel.style.top = "0px";
-            } else if (vPosition == "bottom") {
-                movesPanel.style.top = "initial";
-                movesPanel.style.bottom = "0px";
-            }
             showMovesLeft.style.display = "inline-block";
             showMovesFooterLeft.style.display = "inline-block";
             showMovesRight.style.display = "none";
             showMovesFooterRight.style.display = "none";
+        }
+    }
+}
+
+function showMovesPanelVPositionChange(radio) {
+    if(radio && window.outerWidth <= 640) {
+        const movesPanel = document.getElementById("movesPanel");
+        // {
+        //     const hPosition = document.querySelector('input[name="showMovesPanelPosition"]:checked').value;
+        //     const showMovesLeft = document.getElementById("showMovesLeft");
+        //     const showMovesFooterLeft = document.getElementById("showMovesFooterLeft");
+        //     const showMovesRight = document.getElementById("showMovesRight");
+        //     const showMovesFooterRight = document.getElementById("showMovesFooterRight");
+        //     if (hPosition == "left") {
+        //         movesPanel.style.right = "initial";
+        //         movesPanel.style.left = "0px";
+        //         showMovesLeft.style.display = "none";
+        //         showMovesFooterLeft.style.display = "none";
+        //         showMovesRight.style.display = "inline-block";
+        //         showMovesFooterRight.style.display = "inline-block";
+        //     } else if (hPosition == "right") {
+        //         movesPanel.style.left = "initial";
+        //         movesPanel.style.right = "0px";
+        //         showMovesLeft.style.display = "inline-block";
+        //         showMovesFooterLeft.style.display = "inline-block";
+        //         showMovesRight.style.display = "none";
+        //         showMovesFooterRight.style.display = "none";
+        //     }
+        // }
+        if (radio.value == "top") {
+            movesPanel.style.bottom = "initial";
+            movesPanel.style.top = "0px";
+        } else if (radio.value == "bottom") {
+            movesPanel.style.left = "initial";
+            movesPanel.style.right = "0px";
         }
     }
 }
