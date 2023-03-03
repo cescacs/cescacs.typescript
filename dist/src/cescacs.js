@@ -1623,7 +1623,7 @@ export class Game extends Board {
             }
             if (this.turn === 'b')
                 this._moveNumber--;
-            if (turnInfo.initHalfMoveClock === undefined)
+            if (turnInfo.iHMClock === undefined)
                 this.halfmoveClock--;
             else
                 this.halfmoveClock = 0;
@@ -1809,7 +1809,9 @@ export class Game extends Board {
         return JSON.stringify(this._moves);
     }
     restoreMovesJSON(moves) {
-        const tmpMoves = JSON.parse(moves);
+        //version name changes (to remove after some time)
+        const strMv = moves.replace(/"initHalfMoveClock":/g, '"iHMClock:"');
+        const tmpMoves = JSON.parse(strMv);
         this.restoreMoves(tmpMoves);
     }
     restoreMoves(moves) {
@@ -2177,7 +2179,7 @@ export class Game extends Board {
             turn: this.turn,
             move: move,
             fixedNumbering: this._moveNumber == 1 && !this.fixedNumbering ? '?' : undefined,
-            initHalfMoveClock: this.halfmoveClock == 0 ? '1' : undefined,
+            iHMClock: this.halfmoveClock == 0 ? '1' : undefined,
             specialPawnCapture: this.specialPawnCapture == null ? undefined : this.specialPawnCapture.toString(),
             castlingStatus: (csmv.isMoveInfo(move) && ['K', 'R'].indexOf(cscnv.getPieceKeyName(move.piece)) >= 0) ?
                 this.playerCastlingStatus() : undefined
