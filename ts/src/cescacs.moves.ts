@@ -163,9 +163,10 @@ export namespace csMoves {
                     sep = PositionHelper.equals(info.moveTo, info.special)
                         || Math.abs(info.special[1] - info.moveTo[1]) <= 2 ? "@" : "@@";
                 } else {
-                    const capSymbol = cscnv.getPieceKeyName(info.captured);
-                    sep = capSymbol == 'P' ? "\u00D7" : "\u00D7" + capSymbol;
+                    sep = "\u00D7";
                 }
+                const capSymbol = cscnv.getPieceKeyName(info.captured);
+                if (capSymbol != 'P') sep += capSymbol;
             } else sep = "-";
             return pre + sep + PositionHelper.toString(info.moveTo) + post;
         } else if (csMoves.isPromotionInfo(info)) {
