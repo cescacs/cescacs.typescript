@@ -17,7 +17,7 @@ export function undoStatusEquals(a, b) {
             || (a.move != '\u2026' && b.move != '\u2026' && csMoves.equals(a.move, b.move)))
         && a.iHMClock == b.iHMClock
         && a.castlingStatus == b.castlingStatus
-        && a.specialPawnCapture == b.specialPawnCapture
+        && a.specialCapture == b.specialCapture
         && a.fixedNumbering == b.fixedNumbering
         && a.end == b.end && a.check == b.check;
 }

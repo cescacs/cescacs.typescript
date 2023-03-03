@@ -1554,8 +1554,8 @@ export class Game extends Board {
                     }
                 }
             }
-            if (turnInfo.specialPawnCapture === undefined) this.specialPawnCapture = null;
-            else this.specialPawnCapture = PawnSpecialCaptureStatus.parse(this, turnInfo.specialPawnCapture);
+            if (turnInfo.specialCapture === undefined) this.specialPawnCapture = null;
+            else this.specialPawnCapture = PawnSpecialCaptureStatus.parse(this, turnInfo.specialCapture);
             if (this.isAwaitingPromotion) {
                 if (csmv.isMoveInfo(turnInfo.move) && cscnv.getPieceKeyName(turnInfo.move.piece) == 'P'
                     || csmv.isPromotionInfo(turnInfo.move)) {
@@ -1752,7 +1752,9 @@ export class Game extends Board {
 
     public restoreMovesJSON(moves: string): void {
         //version name changes (to remove after some time)
-        const strMv = moves.replace(/"initHalfMoveClock":/g, '"iHMClock":')
+        const strMv = moves
+            .replace(/"initHalfMoveClock":/g, '"iHMClock":')
+            .replace(/"specialPawnCapture":/g,'"specialCapture":');
         const tmpMoves: UndoStatusWhithCheckInfo[] =
             JSON.parse(strMv) as UndoStatusWhithCheckInfo[];
         this.restoreMoves(tmpMoves);
@@ -2086,7 +2088,7 @@ export class Game extends Board {
             move: move,
             fixedNumbering: this._moveNumber == 1 && !this.fixedNumbering ? '?' : undefined,
             iHMClock: this.halfmoveClock == 0 ? '1' : undefined,
-            specialPawnCapture: this.specialPawnCapture == null ? undefined : this.specialPawnCapture.toString(),
+            specialCapture: this.specialPawnCapture == null ? undefined : this.specialPawnCapture.toString(),
             castlingStatus: (csmv.isMoveInfo(move) && ['K', 'R'].indexOf(cscnv.getPieceKeyName(move.piece)) >= 0) ?
                 this.playerCastlingStatus() : undefined
         };

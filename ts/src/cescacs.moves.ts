@@ -16,7 +16,7 @@ export interface UndoStatus {
     readonly move: MoveInfo | '\u2026';
     readonly iHMClock?: '1'; /* initHalfMoveClock */
     readonly castlingStatus?: CastlingStatus;
-    readonly specialPawnCapture?: string;
+    readonly specialCapture?: string; /* specialPawnCapture */
     readonly fixedNumbering?: '?';
 }
 
@@ -43,7 +43,7 @@ export function undoStatusEquals(a: UndoStatusWhithCheckInfo, b: UndoStatusWhith
             || (a.move != '\u2026' && b.move != '\u2026' && csMoves.equals(a.move, b.move)))
         && a.iHMClock == b.iHMClock
         && a.castlingStatus == b.castlingStatus
-        && a.specialPawnCapture == b.specialPawnCapture
+        && a.specialCapture == b.specialCapture
         && a.fixedNumbering == b.fixedNumbering
         && a.end == b.end && a.check == b.check;
 }

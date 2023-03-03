@@ -508,7 +508,7 @@ class Minimax {
                 n: 1, //node.moveNumber,
                 turn: node.turn,
                 move: move,
-                specialPawnCapture: node.specialPawnCapture == null ? undefined : node.specialPawnCapture.toString(),
+                specialCapture: node.specialPawnCapture == null ? undefined : node.specialPawnCapture.toString(),
                 castlingStatus: (csmv.isMoveInfo(move) && ['K', 'R'].indexOf(cscnv.getPieceKeyName(move.piece)) >= 0) ?
                     node.playerCastlingStatus() : undefined
             };
