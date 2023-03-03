@@ -637,7 +637,8 @@ export abstract class Board implements IBoard {
         const fromPosLineMask = Board.lineMask(piecePos[1]);
         const pieces = (piece.color == "w" ? this.wPieces : this.bPieces);
         if (cspty.isPawn(piece)) {
-            if (piece.position[0] != toColumnIndex) {
+            /* ANCHOR: SCORNFUL GRANT MODIFICATION */
+            if (piece.position[0] != toColumnIndex && (this.isGrand || Math.abs(piece.position[1] - toLine) == 1)) {
                 const frontPiece = this.getPiece(
                     [piece.position[0],
                     (toLine > piece.position[1] ? piece.position[1] + 2 : piece.position[1] - 2) as Line]);
