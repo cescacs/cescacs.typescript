@@ -644,16 +644,6 @@ export class Board {
                     this._bAwaitingPromotion = true;
             }
         }
-        else if (cspty.isElephant(piece)) {
-            if (piece.position[0] == toColumnIndex && Math.abs(toLine - piece.position[1]) > 2) {
-                const captureLine = (toLine > piece.position[1] ? (piece.position[1] + 2) : (piece.position[1] - 2));
-                const captureTo = [[toColumnIndex, captureLine]];
-                this._specialPawnCapture = new EnPassantCapturable(piece, captureTo);
-            }
-            else {
-                this._specialPawnCapture = null;
-            }
-        }
         else if (cspty.isAlmogaver(piece)) {
             const dirMove = PositionHelper.isOrthogonally(piecePos, [toColumnIndex, toLine]);
             if (dirMove != null) {
@@ -682,6 +672,17 @@ export class Board {
                         throw new Error(exhaustiveCheck);
                     }
                 }
+                this._specialPawnCapture = new EnPassantCapturable(piece, captureTo);
+            }
+            else {
+                this._specialPawnCapture = null;
+            }
+        }
+        else if (this.isGrand && cspty.isElephant(piece)) {
+            /* ANCHOR: ENPASSANT MODIFICATION (ELEPHANT) */
+            if (piece.position[0] == toColumnIndex && Math.abs(toLine - piece.position[1]) > 2) {
+                const captureLine = (toLine > piece.position[1] ? (piece.position[1] + 2) : (piece.position[1] - 2));
+                const captureTo = [[toColumnIndex, captureLine]];
                 this._specialPawnCapture = new EnPassantCapturable(piece, captureTo);
             }
             else {
@@ -1441,9 +1442,12 @@ export class Game extends Board {
                 move.captured = capturedPiece.key;
                 move.special = isScornfulCapture ? moveTo : undefined;
                 this._enpassantCaptureCoordString = null;
+                /* ANCHOR: ENPASSANT CONDITION MODIFICATION (ELEPHANT) */
             }
             else if (this.specialPawnCapture != null
-                && (cspty.isPawn(piece) || cspty.isElephant(piece) || cspty.isAlmogaver(piece))
+                && (cspty.isPawn(piece)
+                    || cspty.isAlmogaver(piece)
+                    || (this.isGrand && cspty.isElephant(piece)))
                 && this.specialPawnCapture.isEnPassantCapturable()
                 && this.specialPawnCapture.isEnPassantCapture(moveTo, piece)) {
                 const enPassantCapture = this.specialPawnCapture.capturablePiece;
