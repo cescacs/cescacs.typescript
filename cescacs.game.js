@@ -790,6 +790,12 @@ function ShowMoves() {
             showMovesLeft.style.display = "none"; 
             showMovesFooterLeft.style.display = "none"; 
         }
+        const movesPanelFooter = document.getElementById("movesPanelFooter");
+        if (window.innerHeight <= 640) {
+            movesPanelFooter.style.display = "block";
+        } else {
+            movesPanelFooter.style.display = "none";
+        }
         movesGrid.scrollTop = 10000;
     } else {
         movesPanel.style.display = "none";
