@@ -450,7 +450,7 @@ export class Board {
         }
     }
     /**
-     * Is color defended (attacking) in position?
+     * Is color defended in position?
      *
      * @param {Position} pos
      * @param {PieceColor} color
