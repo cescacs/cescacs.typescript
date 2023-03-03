@@ -2101,6 +2101,7 @@ export class Game extends Board {
         }
         catch (e) {
             //if (e instanceof Error && e.name == 'Error') e.name = 'Move seq';
+            console.log(e);
             throw e;
         }
     }
