@@ -1029,7 +1029,7 @@ function LoadMoves() {
                 saveMoves();
             } catch (e) {
                 console.log("LoadMoves: ", e);
-                lMovesArea.value = ("LoadMoves: " + e instanceof Error ? e.toString() : String(e)) + "\n\n" + text;
+                lMovesArea.value = ("LoadMoves: " + e instanceof Error ? e.message /* e.toString() */ : String(e)) + "\n\n" + text;
                 document.getElementById("gameStatus").textContent = (e instanceof Error ? e.message : "");
                 document.getElementById("resultString").textContent = 'ERROR';
             }
