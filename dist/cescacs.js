@@ -1810,7 +1810,7 @@ export class Game extends Board {
     }
     restoreMovesJSON(moves) {
         //version name changes (to remove after some time)
-        const strMv = moves.replace(/"initHalfMoveClock":/g, '"iHMClock:"');
+        const strMv = moves.replace(/"initHalfMoveClock":/g, '"iHMClock":');
         const tmpMoves = JSON.parse(strMv);
         this.restoreMoves(tmpMoves);
     }
