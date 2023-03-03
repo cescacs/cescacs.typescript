@@ -768,7 +768,9 @@ function ShowMoves() {
             document.getElementById("buttonUndo").disabled = true;
         }
         const showMovesLeft = document.getElementById("showMovesLeft");
+        const showMovesFooterLeft = document.getElementById("showMovesFooterLeft");
         const showMovesRight = document.getElementById("showMovesRight");
+        const showMovesFooterRight = document.getElementById("showMovesFooterRight");
         const showMovesPanelVUp = document.getElementById("showMovesPanelVUp");
         const showMovesPanelRight = document.getElementById("showMovesPanelRight");
         movesPanel.style.display = "block";
@@ -778,12 +780,15 @@ function ShowMoves() {
         movesPanel.style.top = "0px";
         movesPanel.style.right = "0px";
         showMovesRight.style.display = "none";
+        showMovesFooterRight.style.display = "none";
         showMovesPanelVUp.checked = true;
         showMovesPanelRight.checked = true;
         if (window.innerWidth <= 1024) {
             showMovesLeft.style.display = "inline-block";
+            showMovesFooterLeft.style.display = "inline-block";
         } else {
             showMovesLeft.style.display = "none"; 
+            showMovesFooterLeft.style.display = "none"; 
         }
         movesGrid.scrollTop = 10000;
     } else {
