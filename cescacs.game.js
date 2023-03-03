@@ -794,10 +794,10 @@ function ShowMoves() {
         const showMovesDown = document.getElementById("showMovesDown")
         if (window.innerHeight <= 640) {
             movesPanelFooter.style.display = "flex";
-            showMovesDown.display = "block";
+            showMovesDown.style.display = "block";
         } else {
             movesPanelFooter.style.display = "none";
-            showMovesDown.display = "none";
+            showMovesDown.style.display = "none";
         }
         movesGrid.scrollTop = 10000;
     } else {
