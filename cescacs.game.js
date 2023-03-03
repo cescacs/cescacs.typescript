@@ -791,10 +791,13 @@ function ShowMoves() {
             showMovesFooterLeft.style.display = "none"; 
         }
         const movesPanelFooter = document.getElementById("movesPanelFooter");
+        const showMovesDown = document.getElementById("showMovesDown")
         if (window.innerHeight <= 640) {
-            movesPanelFooter.style.display = "block";
+            movesPanelFooter.style.display = "flex";
+            showMovesDown.display = "block";
         } else {
             movesPanelFooter.style.display = "none";
+            showMovesDown.display = "none";
         }
         movesGrid.scrollTop = 10000;
     } else {
