@@ -14,7 +14,7 @@ export interface UndoStatus {
     readonly n: number;
     readonly turn: Turn;
     readonly move: MoveInfo | '\u2026';
-    readonly initHalfMoveClock?: '1';
+    readonly iHMClock?: '1'; /* initHalfMoveClock */
     readonly castlingStatus?: CastlingStatus;
     readonly specialPawnCapture?: string;
     readonly fixedNumbering?: '?';
@@ -30,7 +30,7 @@ export function isUndoStatus(st: any): st is UndoStatus {
     && st.turn !== undefined && csty.isTurn(st.turn)
     && st.move !== undefined && (st.move == '\u2026' || csMoves.isMoveInfo(st.move) 
         || csMoves.isCastlingInfo(st.move) || csMoves.isPromotionInfo(st.move))
-    && (st.initHalfMoveClock === undefined || st.initHalfMoveClock == '1')
+    && (st.iHMClock === undefined || st.iHMClock == '1')
     && (st.castlingStatus === undefined || csty.isCastlingStatus(st.castlingStatus))
     && (st.specialPawnCapture === undefined 
         || (typeof st.specialPawnCapture == 'string' && st.specialPawnCapture.indexOf('@') > 0))
@@ -41,7 +41,7 @@ export function undoStatusEquals(a: UndoStatusWhithCheckInfo, b: UndoStatusWhith
     return a.n == b.n && a.turn == b.turn
         && ((a.move == '\u2026' && b.move == '\u2026')
             || (a.move != '\u2026' && b.move != '\u2026' && csMoves.equals(a.move, b.move)))
-        && a.initHalfMoveClock == b.initHalfMoveClock
+        && a.iHMClock == b.iHMClock
         && a.castlingStatus == b.castlingStatus
         && a.specialPawnCapture == b.specialPawnCapture
         && a.fixedNumbering == b.fixedNumbering

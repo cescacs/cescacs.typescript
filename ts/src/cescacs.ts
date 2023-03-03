@@ -1563,7 +1563,7 @@ export class Game extends Board {
                 }
             }
             if (this.turn === 'b') this._moveNumber--;
-            if (turnInfo.initHalfMoveClock === undefined) this.halfmoveClock--;
+            if (turnInfo.iHMClock === undefined) this.halfmoveClock--;
             else this.halfmoveClock = 0;
             super.prepareCurrentTurn();
             super.computeHeuristic(this.turn, this._moveNumber, true, this.currentHeuristic);
@@ -1751,7 +1751,10 @@ export class Game extends Board {
     }
 
     public restoreMovesJSON(moves: string): void {
-        const tmpMoves: UndoStatusWhithCheckInfo[] = JSON.parse(moves) as UndoStatusWhithCheckInfo[];
+        //version name changes (to remove after some time)
+        const strMv = moves.replace(/"initHalfMoveClock":/g, '"iHMClock:"')
+        const tmpMoves: UndoStatusWhithCheckInfo[] =
+            JSON.parse(strMv) as UndoStatusWhithCheckInfo[];
         this.restoreMoves(tmpMoves);
     }
 
@@ -2082,7 +2085,7 @@ export class Game extends Board {
             turn: this.turn,
             move: move,
             fixedNumbering: this._moveNumber == 1 && !this.fixedNumbering ? '?' : undefined,
-            initHalfMoveClock: this.halfmoveClock == 0 ? '1' : undefined,
+            iHMClock: this.halfmoveClock == 0 ? '1' : undefined,
             specialPawnCapture: this.specialPawnCapture == null ? undefined : this.specialPawnCapture.toString(),
             castlingStatus: (csmv.isMoveInfo(move) && ['K', 'R'].indexOf(cscnv.getPieceKeyName(move.piece)) >= 0) ?
                 this.playerCastlingStatus() : undefined
