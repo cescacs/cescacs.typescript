@@ -1987,7 +1987,7 @@ export class Game extends Board {
                 const parts: string[] = lines[i].split(/[.,]\s?/);
                 const nMove = parseInt(parts[0]);
                 assertCondition(nMove.toString() == parts[0], `Line number of "${lines[i]}"`);
-                assertCondition(this._moveNumber == (fixedNumbering ? nMove : firstLine + nMove - 1), `Expected move number ${this._moveNumber} on move ${i}`);
+                assertCondition(this._moveNumber == (fixedNumbering ? nMove : firstLine + nMove - 1), `Expected move number ${this._moveNumber} on move ${i+1}`);
                 if (nMove == 1) {
                     assertCondition(parts.length == 3, `first move must be a numbered pair of moves; white move can be an ellipsis: ${lines[0]}`);
                     if (parts[1] == '\u2026') {
