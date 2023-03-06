@@ -14,7 +14,8 @@ export function assertCondition(condition: boolean, conditionDescription?: strin
     if (!condition) {
         console.log("Condition assertion fail: " + conditionDescription ?? "-");
         const e = Error();
-        e.message = 'Assertion does not hold' + conditionDescription ? '' : ": " + conditionDescription;
+        //e.message = 'Assertion does not hold' + conditionDescription ? '' : ": " + conditionDescription;
+        e.message = "Condition assertion fail: " + conditionDescription ?? "-";
         console.log("ASSERT ERROR: ", e, "ASSERT ERROR MESSAGE: ", e.message);
         throw e;
     }
