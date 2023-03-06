@@ -13,8 +13,7 @@ export function assertNonNullish<TValue>(value: TValue, valueDescription?: strin
 export function assertCondition(condition: boolean, conditionDescription?: string): asserts condition {
     if (!condition) {
         console.log("Condition assertion fail: " + conditionDescription ?? "-");
-        const e = Error('Assertion does not hold' + conditionDescription ? ": " + conditionDescription : '');
-        throw e;
+        throw Error("Assertion does not hold" + conditionDescription ? ": " + conditionDescription : '');;
     }
 }
 

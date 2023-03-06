@@ -7,8 +7,8 @@ export function assertNonNullish(value, valueDescription) {
 export function assertCondition(condition, conditionDescription) {
     if (!condition) {
         console.log("Condition assertion fail: " + conditionDescription ?? "-");
-        const e = Error('Assertion does not hold' + conditionDescription ? ": " + conditionDescription : '');
-        throw e;
+        throw Error("Assertion does not hold" + conditionDescription ? ": " + conditionDescription : '');
+        ;
     }
 }
 export function isNotNullNorEmpty(str) {
