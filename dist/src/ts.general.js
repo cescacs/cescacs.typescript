@@ -1,13 +1,13 @@
 export function assertNonNullish(value, valueDescription) {
     if (value === null || value === undefined) {
         console.log("NonNullish assertion fail: " + valueDescription ?? "-");
-        throw new TypeError(`Unexpected ${value} value` + (valueDescription == undefined) ? '' : ": " + valueDescription);
+        throw TypeError(`Unexpected ${value} value` + (valueDescription == undefined) ? '' : ": " + valueDescription);
     }
 }
 export function assertCondition(condition, conditionDescription) {
     if (!condition) {
         console.log("Condition assertion fail: " + conditionDescription ?? "-");
-        throw new Error('Assertion does not hold' + (conditionDescription == undefined) ? '' : ": " + conditionDescription);
+        throw Error('Assertion does not hold' + conditionDescription ? '' : ": " + conditionDescription);
     }
 }
 export function isNotNullNorEmpty(str) {

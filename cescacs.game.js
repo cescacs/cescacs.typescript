@@ -1028,7 +1028,7 @@ function LoadMoves() {
                 displayMoveStatus();
                 saveMoves();
             } catch (e) {
-                console.log("LoadMoves: ", e);
+                console.log("LoadMoves error: ", e);
                 lMovesArea.value = ("LoadMoves error: " + (e instanceof Error) ? e.message : String(e)) + "\n\n" + text;
                 document.getElementById("gameStatus").textContent = (e instanceof Error ? e.message : "ERROR");
                 document.getElementById("resultString").textContent = 'ERROR';

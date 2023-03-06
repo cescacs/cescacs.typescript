@@ -6,14 +6,14 @@ export type PropertyBag<T> = Record<string, T>; // other way: interface Property
 export function assertNonNullish<TValue>(value: TValue, valueDescription?: string): asserts value is NonNullable<TValue> {
     if (value === null || value === undefined) {
         console.log("NonNullish assertion fail: " + valueDescription?? "-");
-        throw new TypeError(`Unexpected ${value} value` + (valueDescription == undefined) ? '' : ": " + valueDescription);
+        throw TypeError(`Unexpected ${value} value` + (valueDescription == undefined) ? '' : ": " + valueDescription);
     }
 }
 
 export function assertCondition(condition: boolean, conditionDescription?: string): asserts condition {
     if (!condition) {
-        console.log("Condition assertion fail: " + conditionDescription?? "-");
-        throw new Error('Assertion does not hold' + (conditionDescription == undefined) ? '' : ": " + conditionDescription);
+        console.log("Condition assertion fail: " + conditionDescription ?? "-");
+        throw Error('Assertion does not hold' + conditionDescription ? '' : ": " + conditionDescription);
     }
 }
 
