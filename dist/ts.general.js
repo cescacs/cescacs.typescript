@@ -7,7 +7,8 @@ export function assertNonNullish(value, valueDescription) {
 export function assertCondition(condition, conditionDescription) {
     if (!condition) {
         console.log("Condition assertion fail: " + conditionDescription ?? "-");
-        const e = Error('Assertion does not hold' + conditionDescription ? '' : ": " + conditionDescription);
+        const e = Error();
+        e.message = 'Assertion does not hold' + conditionDescription ? '' : ": " + conditionDescription;
         console.log("ASSERT ERROR: ", e, "ASSERT ERROR MESSAGE: ", e.message);
         throw e;
     }
