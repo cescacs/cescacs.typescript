@@ -2208,17 +2208,19 @@ export class Game extends Board {
         if (this.isGrand) {
             super.createPiece('P', "w", 'B', 6); super.createPiece('R', "w", 'B', 4); super.createPiece('N', "w", 'C', 3);
             super.createPiece('N', "w", 'I', 3); super.createPiece('R', "w", 'K', 4); super.createPiece('P', "w", 'K', 6);
-            super.createPiece('P', "w", 'P', 7); super.createPiece('P', "w", 'T', 8);
+            super.createPiece('P', "w", 'P', 7); super.createPiece('P', "w", 'T', 6);
             super.createPiece('P', "w", 'X', 8); super.createPiece('P', "w", 'Z', 7);
-            super.createPiece('M', "w", 'C', 7); super.createPiece('M', "w", 'A', 7);
+            super.createPiece('P', "w", 'A', 9); 
+            super.createPiece('M', "w", 'C', 5); super.createPiece('P', "w", 'C', 7); super.createPiece('M', "w", 'A', 7);
             super.createPiece('M', "w", 'L', 7); super.createPiece('M', "w", 'I', 7);
         } else {
-            super.createPiece('P', "w", 'B', 4); super.createPiece('R', "w", 'C', 3),
-                super.createPiece('R', "w", 'I', 3); super.createPiece('P', "w", 'K', 4);
+            super.createPiece('P', "w", 'A', 5); 
+            super.createPiece('P', "w", 'B', 4); super.createPiece('P', "w", 'C', 5); super.createPiece('R', "w", 'C', 3),
+            super.createPiece('R', "w", 'I', 3); super.createPiece('P', "w", 'K', 4);
         }
         super.createPiece('N', "w", 'E', 3); super.createPiece('N', "w", 'G', 3);
         super.createPiece('E', "w", 'D', 4); super.createPiece('J', "w", 'F', 4); super.createPiece('E', "w", 'H', 4);
-        super.createPiece('P', "w", 'A', 5); super.createPiece('P', "w", 'C', 5); super.createPiece('E', "w", 'E', 5);
+        super.createPiece('E', "w", 'E', 5);
         super.createPiece('E', "w", 'G', 5); super.createPiece('P', "w", 'I', 5); super.createPiece('P', "w", 'L', 5);
         super.createPiece('P', "w", 'D', 6); super.createPiece('J', "w", 'F', 6); super.createPiece('P', "w", 'H', 6);
         super.createPiece('P', "w", 'E', 7); super.createPiece('P', "w", 'F', 8); super.createPiece('P', "w", 'G', 7);
