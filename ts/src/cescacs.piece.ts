@@ -1078,9 +1078,9 @@ export class Pawn extends Piece {
         const p = this.position;
         if (p != null) {
             const c = p[0];
-            if (c > 3 && c < 7 || c == 3 && !grand) {
+            if (c > 4 && c < 7 || !grand && (c == 3 || c == 4)) {
                 return p[1] == (this.color == "w" ? c + 1 : 27 - c);
-            } else if (c > 7 && c < 11 || c == 11 && !grand) {
+            } else if (c > 7 && c < 10 || !grand && (c == 10 || c== 11)) {
                 return p[1] == (this.color == "w" ? 15 - c : 13 + c);
             } else if (grand) {
                 if (c == 3 || c == 11) return p[1] == (this.color == "w" ? 6 : 22);
