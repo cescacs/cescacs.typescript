@@ -2203,53 +2203,78 @@ export class Game extends Board {
         this.wKing.setToInitialPosition(); this.addPiece(this.wKing);
         this.bKing.setToInitialPosition(); this.addPiece(this.bKing);
         //whites
-        super.createPiece('D', 'w', 'E', 1); super.createPiece('V', "w", 'F', 0);
-        super.createPiece('G', "w", 'D', 2); super.createPiece('J', "w", 'F', 2); super.createPiece('G', "w", 'H', 2);
+        super.createPiece('G', "w", 'D', 2);
+        super.createPiece('E', "w", 'D', 4);
+        super.createPiece('D', 'w', 'E', 1);
+        super.createPiece('N', "w", 'E', 3);
+        super.createPiece('E', "w", 'E', 5);
+        super.createPiece('V', "w", 'F', 0);
+        super.createPiece('J', "w", 'F', 2);
+        super.createPiece('J', "w", 'F', 4);
+        super.createPiece('J', "w", 'F', 6);
+        super.createPiece('N', "w", 'G', 3);
+        super.createPiece('E', "w", 'G', 5); 
+        super.createPiece('G', "w", 'H', 2);
+        super.createPiece('E', "w", 'H', 4);
+        super.createPiece('P', "w", 'D', 6);
+        super.createPiece('P', "w", 'E', 7);
+        super.createPiece('P', "w", 'F', 8);
+        super.createPiece('P', "w", 'G', 7);
+        super.createPiece('P', "w", 'H', 6);
         if (this.isGrand) {
-            super.createPiece('N', "w", 'C', 3); super.createPiece('M', "w", 'C', 5); super.createPiece('P', "w", 'C', 7);
-            super.createPiece('P', "w", 'B', 6); super.createPiece('R', "w", 'B', 4);
+            super.createPiece('P', "w", 'P', 7);
+            super.createPiece('P', "w", 'T', 6);
             super.createPiece('M', "w", 'A', 7); super.createPiece('P', "w", 'A', 9);
-            super.createPiece('P', "w", 'P', 7); super.createPiece('P', "w", 'T', 6);
-
+            super.createPiece('P', "w", 'B', 6); super.createPiece('R', "w", 'B', 4);
+            super.createPiece('N', "w", 'C', 3); super.createPiece('M', "w", 'C', 5); super.createPiece('P', "w", 'C', 7);
+            /*  */
             super.createPiece('N', "w", 'I', 3); super.createPiece('M', "w", 'I', 5); super.createPiece('P', "w", 'I', 7);
             super.createPiece('P', "w", 'K', 6); super.createPiece('R', "w", 'K', 4);
-
             super.createPiece('M', "w", 'L', 7); super.createPiece('P', "w", 'L', 9);
-
-            super.createPiece('P', "w", 'Z', 7); super.createPiece('P', "w", 'X', 6);
+            super.createPiece('P', "w", 'X', 6);
+            super.createPiece('P', "w", 'Z', 7);
         } else {
             super.createPiece('P', "w", 'A', 5); 
-            super.createPiece('P', "w", 'B', 4); super.createPiece('P', "w", 'C', 5); super.createPiece('R', "w", 'C', 3),
+            super.createPiece('P', "w", 'B', 4);
+            super.createPiece('R', "w", 'C', 3); super.createPiece('P', "w", 'C', 5);
+            /*  */
             super.createPiece('R', "w", 'I', 3); super.createPiece('P', "w", 'I', 5); 
-            super.createPiece('P', "w", 'L', 5);
             super.createPiece('P', "w", 'K', 4);
+            super.createPiece('P', "w", 'L', 5);
         }
-        super.createPiece('N', "w", 'E', 3); super.createPiece('N', "w", 'G', 3);
-        super.createPiece('E', "w", 'D', 4); super.createPiece('J', "w", 'F', 4); super.createPiece('E', "w", 'H', 4);
-        super.createPiece('E', "w", 'E', 5);
-        super.createPiece('E', "w", 'G', 5); 
-        super.createPiece('P', "w", 'D', 6); super.createPiece('J', "w", 'F', 6); super.createPiece('P', "w", 'H', 6);
-        super.createPiece('P', "w", 'E', 7); super.createPiece('P', "w", 'F', 8); super.createPiece('P', "w", 'G', 7);
         //blacks
-        super.createPiece('D', "b", 'E', 27); super.createPiece('V', "b", 'F', 28);
-        super.createPiece('G', "b", 'D', 26); super.createPiece('J', "b", 'F', 26); super.createPiece('G', "b", 'H', 26);
+        super.createPiece('G', "b", 'D', 26); super.createPiece('E', "b", 'D', 24);
+        super.createPiece('D', "b", 'E', 27); super.createPiece('N', "b", 'E', 25); super.createPiece('E', "b", 'E', 23);
+        super.createPiece('V', "b", 'F', 28); super.createPiece('J', "b", 'F', 26);
+        super.createPiece('J', "b", 'F', 24); super.createPiece('J', "b", 'F', 22);
+        super.createPiece('N', "b", 'G', 25); super.createPiece('E', "b", 'G', 23);
+        super.createPiece('G', "b", 'H', 26); super.createPiece('E', "b", 'H', 24);
+        super.createPiece('P', "b", 'D', 22);
+        super.createPiece('P', "b", 'E', 21);
+        super.createPiece('P', "b", 'F', 20);
+        super.createPiece('P', "b", 'G', 21);
+        super.createPiece('P', "b", 'H', 22);
         if (this.isGrand) {
-            super.createPiece('P', "b", 'B', 22); super.createPiece('R', "b", 'B', 24); super.createPiece('N', "b", 'C', 25);
-            super.createPiece('N', "b", 'I', 25); super.createPiece('R', "b", 'K', 24); super.createPiece('P', "b", 'K', 22);
-            super.createPiece('P', "b", 'P', 21); super.createPiece('P', "b", 'T', 20);
-            super.createPiece('P', "b", 'X', 20); super.createPiece('P', "b", 'Z', 21);
-            super.createPiece('M', "b", 'C', 21); super.createPiece('M', "b", 'A', 21);
-            super.createPiece('M', "b", 'I', 21); super.createPiece('M', "b", 'L', 21);
+            super.createPiece('P', "b", 'P', 21);
+            super.createPiece('P', "b", 'T', 20);
+            super.createPiece('M', "b", 'A', 23); super.createPiece('P', "b", 'A', 21);
+            super.createPiece('P', "b", 'B', 22); super.createPiece('R', "b", 'B', 24);
+            super.createPiece('N', "b", 'C', 25); super.createPiece('M', "b", 'C', 23); super.createPiece('P', "b", 'C', 21);
+            /*  */
+            super.createPiece('N', "b", 'I', 25); super.createPiece('M', "b", 'I', 23); super.createPiece('P', "b", 'I', 21);            
+            super.createPiece('R', "b", 'K', 24); super.createPiece('P', "b", 'K', 22);
+            super.createPiece('M', "b", 'L', 21); super.createPiece('P', "b", 'L', 19);
+            super.createPiece('P', "b", 'X', 23);
+            super.createPiece('P', "b", 'Z', 21);
         } else {
-            super.createPiece('P', "b", 'B', 24); super.createPiece('R', "b", 'C', 25);
-            super.createPiece('R', "b", 'I', 25); super.createPiece('P', "b", 'K', 24);
+            super.createPiece('P', "b", 'A', 23);
+            super.createPiece('P', "b", 'B', 24);
+            super.createPiece('R', "b", 'C', 25); super.createPiece('P', "b", 'C', 23); 
+            /*  */
+            super.createPiece('R', "b", 'I', 25); super.createPiece('P', "b", 'I', 23);
+            super.createPiece('P', "b", 'K', 24);
+            super.createPiece('P', "b", 'L', 23);
         }
-        super.createPiece('N', "b", 'E', 25); super.createPiece('N', "b", 'G', 25);
-        super.createPiece('E', "b", 'D', 24); super.createPiece('J', "b", 'F', 24); super.createPiece('E', "b", 'H', 24);
-        super.createPiece('P', "b", 'A', 23); super.createPiece('P', "b", 'C', 23); super.createPiece('E', "b", 'E', 23);
-        super.createPiece('E', "b", 'G', 23); super.createPiece('P', "b", 'I', 23); super.createPiece('P', "b", 'L', 23);
-        super.createPiece('P', "b", 'D', 22); super.createPiece('J', "b", 'F', 22); super.createPiece('P', "b", 'H', 22);
-        super.createPiece('P', "b", 'E', 21); super.createPiece('P', "b", 'F', 20); super.createPiece('P', "b", 'G', 21);
     };
 
     private initGame() {
