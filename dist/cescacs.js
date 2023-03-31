@@ -2384,9 +2384,9 @@ export class Game extends Board {
         super.createPiece('P', "b", 'H', 22);
         if (this.isGrand) {
             super.createPiece('P', "b", 'P', 21);
-            super.createPiece('P', "b", 'T', 20);
-            super.createPiece('M', "b", 'A', 23);
-            super.createPiece('P', "b", 'A', 21);
+            super.createPiece('P', "b", 'T', 22);
+            super.createPiece('M', "b", 'A', 21);
+            super.createPiece('P', "b", 'A', 19);
             super.createPiece('P', "b", 'B', 22);
             super.createPiece('R', "b", 'B', 24);
             super.createPiece('N', "b", 'C', 25);
