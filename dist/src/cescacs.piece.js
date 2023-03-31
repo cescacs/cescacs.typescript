@@ -1035,6 +1035,8 @@ export class Pawn extends Piece {
             else if (grand) {
                 if (c == 3 || c == 11)
                     return p[1] == (this.color == "w" ? 6 : 22);
+                else if (c == 4 || c == 10)
+                    return p[1] == (this.color == "w" ? 7 : 23);
                 else
                     return false;
             }
