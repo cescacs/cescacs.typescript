@@ -2264,7 +2264,7 @@ export class Game extends Board {
             super.createPiece('N', "b", 'I', 25); super.createPiece('M', "b", 'I', 23); super.createPiece('P', "b", 'I', 21);            
             super.createPiece('R', "b", 'K', 24); super.createPiece('P', "b", 'K', 22);
             super.createPiece('M', "b", 'L', 21); super.createPiece('P', "b", 'L', 19);
-            super.createPiece('P', "b", 'X', 23);
+            super.createPiece('P', "b", 'X', 22);
             super.createPiece('P', "b", 'Z', 21);
         } else {
             super.createPiece('P', "b", 'A', 23);
