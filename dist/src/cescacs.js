@@ -244,7 +244,7 @@ export class Board {
             }
             bSrc = bSrc.toUpperCase();
             if (!csty.isCastlingStatus(wSrc) || !csty.isCastlingStatus(bSrc))
-                throw new TypeError(`Invalid TLPD issued castling status ${source}`);
+                throw new TypeError(`Invalid PDTL issued castling status ${source}`);
             return [wSrc, bSrc];
         }
         else
@@ -399,7 +399,7 @@ export class Board {
         }
         else
             throw new Error(`You cannot put a ${color} ${piece.symbol} there` +
-                ", because the hex is already in use; There may be a repeated line in the TLPD");
+                ", because the hex is already in use; There may be a repeated line in the PDTL");
         return piece;
     }
     addPiece(piece) {
@@ -1253,11 +1253,11 @@ export class Game extends Board {
     _draw = false;
     _resigned = false;
     _enpassantCaptureCoordString = null;
-    constructor(grand = false, restoreStatusTLPD) {
-        const restoreStatus = restoreStatusTLPD?.split(" ");
+    constructor(grand = false, restoreStatusPDTL) {
+        const restoreStatus = restoreStatusPDTL?.split(" ");
         const turn = restoreStatus?.[1] != null && (restoreStatus[1] == 'w' || restoreStatus[1] == 'b') ? restoreStatus[1] : 'w';
         super(grand, turn);
-        if (restoreStatusTLPD === undefined) {
+        if (restoreStatusPDTL === undefined) {
             this.fillDefaultPositions();
             this.halfmoveClock = 0;
             this._moveNumber = 1;
@@ -1265,7 +1265,7 @@ export class Game extends Board {
         }
         else if (restoreStatus != null && restoreStatus.length >= 2 && csty.isTurn(restoreStatus[1])) {
             const [wCastlingStatus, bCastlingStatus] = Board.splitCastlingStatus(restoreStatus[2]);
-            this.restoreTLPDPositions(restoreStatus[0], wCastlingStatus, bCastlingStatus);
+            this.restorePDTLPositions(restoreStatus[0], wCastlingStatus, bCastlingStatus);
             this.halfmoveClock = csty.isNumber(Number(restoreStatus[4])) ? Number(restoreStatus[4]) : 0;
             if (isNaN(Number(restoreStatus[4]))) {
                 if (restoreStatus[4] != null && restoreStatus[4] !== "-")
@@ -1283,7 +1283,7 @@ export class Game extends Board {
             super.specialPawnCapture = PawnSpecialCaptureStatus.parse(this, restoreStatus[3]);
         }
         else
-            throw new Error("Piece positions and turn are mandatory parts of the TLPD string");
+            throw new Error("Piece positions and turn are mandatory parts of the PDTL string");
         this.initGame();
     }
     get moveNumber() { return this._moveNumber; }
@@ -1825,20 +1825,20 @@ export class Game extends Board {
         this.initGame();
     }
     //#endregion
-    //#region TLPD
+    //#region PDTL
     /**
-     * Game state TLPD
+     * Game state PDTL
      *
      * @readonly
      * @type {string}
      * @memberof Game
      */
-    get valueTLPD() {
-        return this.piecePositionsTLPD + " " + this.turn + " " + this.castlingStatus
+    get valuePDTL() {
+        return this.piecePositionsPDTL + " " + this.turn + " " + this.castlingStatus
             + " " + (this.specialPawnCapture?.toString() ?? "-")
             + " " + this.halfmoveClock.toString() + " " + (this.fixedNumbering ? this._moveNumber.toString() : "-");
     }
-    get piecePositionsTLPD() {
+    get piecePositionsPDTL() {
         let r = "/";
         for (let i = 28; i >= 0; i--) {
             const isEven = i % 2 == 0;
@@ -1867,16 +1867,16 @@ export class Game extends Board {
         return r;
     }
     /**
-     * Load game using TLPD string
+     * Load game using PDTL string
      *
-     * @param {string} restoreStatusTLPD
+     * @param {string} restoreStatusPDTL
      * @memberof Game
      */
-    loadTLPD(restoreStatusTLPD) {
+    loadPDTL(restoreStatusPDTL) {
         try {
-            assertCondition(restoreStatusTLPD != null, "Not empty TLPD");
-            assertCondition(restoreStatusTLPD.trim().length > 12, "Enough TLPD length");
-            const restoreStatus = restoreStatusTLPD.split(" ");
+            assertCondition(restoreStatusPDTL != null, "Not empty PDTL");
+            assertCondition(restoreStatusPDTL.trim().length > 12, "Enough PDTL length");
+            const restoreStatus = restoreStatusPDTL.split(" ");
             assertCondition(restoreStatus.length >= 2, "Piece positions and turn are mandatory");
             assertCondition(restoreStatus[0].length >= 10, "Piece positions string");
             assertCondition(csty.isTurn(restoreStatus[1]), "Correct turn");
@@ -1885,7 +1885,7 @@ export class Game extends Board {
             this._moves.length = 0;
             this._top = -1;
             const [wCastlingStatus, bCastlingStatus] = Board.splitCastlingStatus(restoreStatus[2]);
-            this.restoreTLPDPositions(restoreStatus[0], wCastlingStatus, bCastlingStatus);
+            this.restorePDTLPositions(restoreStatus[0], wCastlingStatus, bCastlingStatus);
             this.halfmoveClock = csty.isNumber(Number(restoreStatus[4])) ? Number(restoreStatus[4]) : 0;
             if (isNaN(Number(restoreStatus[4]))) {
                 if (restoreStatus[4] != null && restoreStatus[4] !== "-")
@@ -1905,12 +1905,12 @@ export class Game extends Board {
         }
         catch (e) {
             if (e instanceof Error && e.name == 'Error')
-                e.name = 'TLPD';
+                e.name = 'PDTL';
             throw e;
         }
     }
-    restoreTLPDPositions(positions, wCastlingStatus, bCastlingStatus) {
-        assertCondition(positions.length >= 10 && positions[0] == '/' && positions[positions.length - 1] == '/', `Valid TLPD string positions: ${positions}`);
+    restorePDTLPositions(positions, wCastlingStatus, bCastlingStatus) {
+        assertCondition(positions.length >= 10 && positions[0] == '/' && positions[positions.length - 1] == '/', `Valid PDTL string positions: ${positions}`);
         const rooks = [];
         const wPiece = [];
         const bPiece = [];
@@ -1928,7 +1928,7 @@ export class Game extends Board {
                         let actualColumnIndex = initialColumnIndex;
                         for (const pieceName of content) {
                             if (actualColumnIndex > finalColumnIndex)
-                                throw new Error("Incorrect TLPD line content");
+                                throw new Error("Incorrect PDTL line content");
                             else {
                                 const value = Number(pieceName);
                                 if (isNaN(value)) {
@@ -2064,7 +2064,7 @@ export class Game extends Board {
             sq = sq.replaceAll(' ', '').replace(/\n\n+/g, '\n').replace(/^[\s\n]+|[\s\n]+$/gm, '');
             const fixedNumbering = (sq[0] != '1' || sq[1] != '?');
             sq = sq.replace(/^1\?/, '1.').replace(/^1....,/, '1.\u2026');
-            const regExp = new RegExp(/^(\d+\..*\n)+\d+\..*$/);
+            const regExp = new RegExp(/^(\d+\..*\n)*\d+\..*$/);
             assertCondition(regExp.test(sq), "numbered lines");
             const lines = sq.split(/\r?\n/);
             const firstLine = this._moveNumber;
