@@ -47,11 +47,11 @@ for (const span of document.querySelectorAll("dialog>span.close")) {
 }
 
 // ---- Game status
-document.getElementById("buttonTLPD").addEventListener("click", (event) => {
-    TLPDString();
+document.getElementById("buttonPDTL").addEventListener("click", (event) => {
+    PDTLString();
 });
 document.getElementById("buttonLoad").addEventListener("click", (event) => {
-    LoadTLPD();
+    LoadPDTL();
 });
 document.getElementById("buttonNew").addEventListener("click", (event) => {
     LoadNewGame();
@@ -470,8 +470,8 @@ function clearClickHex() {
  * @return {*} 
  */
 function isExecutingAction() {
-    if (boardTLPDStatus || loadNewGame || endingGameResign || endingGameDraw || showingThreatened || showingThreats) return true;
-    else return document.getElementById("TLPD").style.display != 'none'
+    if (boardPDTLStatus || loadNewGame || endingGameResign || endingGameDraw || showingThreatened || showingThreats) return true;
+    else return document.getElementById("PDTL").style.display != 'none'
         || document.getElementById("castlingContainer").style.display != 'none'
         || document.getElementById("movesPanel").style.display != 'none'
         || document.getElementById("loadMovesPanel").style.display != 'none';
@@ -535,7 +535,7 @@ function restoreBoard() {
 function saveGame() {
     try {
         localStorage.setItem("cescacs-grand", game.isGrand ? 'grand' : "");
-        localStorage.setItem("cescacs", game.valueTLPD);
+        localStorage.setItem("cescacs", game.valuePDTL);
         localStorage.removeItem("cescacs-mv");
         if (game.gameEnd) localStorage.setItem("cescacs-end", game.resultString);
         else localStorage.removeItem("cescacs-end");
@@ -557,10 +557,10 @@ function restoreGame() {
     if (game.isGrand == isGrandStored) {
         const movesGrid = document.getElementById("movesGrid");
         movesGrid.innerHTML = "";
-        const statusTLPD = localStorage.getItem("cescacs");
+        const statusPDTL = localStorage.getItem("cescacs");
         try {
-            if (statusTLPD && (statusTLPD.trim().length > 12)) {
-                game.loadTLPD(localStorage.getItem("cescacs"));
+            if (statusPDTL && (statusPDTL.trim().length > 12)) {
+                game.loadPDTL(localStorage.getItem("cescacs"));
                 if (localStorage.getItem("cescacs-mv") != null) {
                     game.restoreMovesJSON(localStorage.getItem("cescacs-mv"));
                 }
@@ -582,45 +582,45 @@ function restoreGame() {
 //SECTION BUTTON ACTIONS
 //------------- BUTTON ACTIONS IN UPPERCASE ------------------
 
-var boardTLPDStatus = false;
-function TLPDString() {
+var boardPDTLStatus = false;
+function PDTLString() {
     clearClickHex();
-    const x = document.getElementById("TLPD");
-    const l = document.getElementById("TLPDStringLabel");
+    const x = document.getElementById("PDTL");
+    const l = document.getElementById("PDTLStringLabel");
     if (x.style.display === "none") {
         const sepGameStatus = document.getElementById("sepGameStatus");
-        const buttonTLPD = document.getElementById("buttonTLPD");
+        const buttonPDTL = document.getElementById("buttonPDTL");
         x.readOnly = true;
-        x.value = game.valueTLPD;
+        x.value = game.valuePDTL;
         HideButtons();
         sepGameStatus.style.display = "block";
-        buttonTLPD.classList.remove("halfbutton");
-        buttonTLPD.classList.add("fullbutton");
-        buttonTLPD.textContent = "Got";
-        buttonTLPD.style.display = "block";
+        buttonPDTL.classList.remove("halfbutton");
+        buttonPDTL.classList.add("fullbutton");
+        buttonPDTL.textContent = "Got";
+        buttonPDTL.style.display = "block";
         x.style.display = "block";
         l.style.display = "block";
         x.select();
         x.setSelectionRange(0, 99999); /* For mobile devices */
         navigator.clipboard.writeText(x.value);
-        boardTLPDStatus = true;
-    } else if (boardTLPDStatus) {
+        boardPDTLStatus = true;
+    } else if (boardPDTLStatus) {
         x.value = "";
         x.style.display = "none";
         l.style.display = "none";
         RestoreButtons();
-        const buttonTLPD = document.getElementById("buttonTLPD");
-        buttonTLPD.textContent = "Get";
-        buttonTLPD.classList.remove("fullbutton");
-        buttonTLPD.classList.add("halfbutton");
-        boardTLPDStatus = false;
+        const buttonPDTL = document.getElementById("buttonPDTL");
+        buttonPDTL.textContent = "Get";
+        buttonPDTL.classList.remove("fullbutton");
+        buttonPDTL.classList.add("halfbutton");
+        boardPDTLStatus = false;
     }
 }
-function LoadTLPD() {
-    if (!boardTLPDStatus) {
+function LoadPDTL() {
+    if (!boardPDTLStatus) {
         clearClickHex();
-        const x = document.getElementById("TLPD");
-        const l = document.getElementById("loadTLPDLabel");
+        const x = document.getElementById("PDTL");
+        const l = document.getElementById("loadPDTLLabel");
         if (x.style.display === "none") {
             const sepGameStatus = document.getElementById("sepGameStatus");
             const buttonLoad = document.getElementById("buttonLoad");
@@ -644,7 +644,7 @@ function LoadTLPD() {
             } else if (textContent.length > 10) {
                 try {
                     const movesGrid = document.getElementById("movesGrid");
-                    const result = game.loadTLPD(textContent);
+                    const result = game.loadPDTL(textContent);
                     movesGrid.innerHTML = "";
                     x.style.display = "none";
                     l.style.display = "none";
@@ -656,8 +656,8 @@ function LoadTLPD() {
                     saveGame();
                     displayMoveStatus();
                 } catch (e) {
-                    console.log("LoadTLPD: ", x.value, e);
-                    x.value = ("LoadTLPD: " + e instanceof Error ? e.toString() : String(e)) + "\n\n" + x.value;
+                    console.log("LoadPDTL: ", x.value, e);
+                    x.value = ("LoadPDTL: " + e instanceof Error ? e.toString() : String(e)) + "\n\n" + x.value;
                     document.getElementById("gameStatus").textContent = (e instanceof Error ? e.message : "");
                     document.getElementById("resultString").textContent = 'ERROR';
                 }
@@ -1426,7 +1426,7 @@ function confirmCastling() {
 //!SECTION BUTTON ACTIONS
 
 function HideButtons() {
-    const buttonTLPD = document.getElementById("buttonTLPD");
+    const buttonPDTL = document.getElementById("buttonPDTL");
     const buttonLoad = document.getElementById("buttonLoad");
     const buttonNew = document.getElementById("buttonNew");
     const buttonShowMoves = document.getElementById("buttonShowMoves");
@@ -1452,7 +1452,7 @@ function HideButtons() {
         toggler.style.pointerEvents = "none";
     }
     document.querySelector("div.hamenu").classList.remove("hamburger");
-    buttonTLPD.style.display = "none";
+    buttonPDTL.style.display = "none";
     buttonLoad.style.display = "none";
     buttonNew.style.display = "none";
     buttonShowMoves.style.display = "none";
@@ -1475,7 +1475,7 @@ function HideButtons() {
 }
 
 function RestoreButtons() {
-    const buttonTLPD = document.getElementById("buttonTLPD");
+    const buttonPDTL = document.getElementById("buttonPDTL");
     const buttonLoad = document.getElementById("buttonLoad");
     const buttonNew = document.getElementById("buttonNew");
     const buttonShowMoves = document.getElementById("buttonShowMoves");
@@ -1501,7 +1501,7 @@ function RestoreButtons() {
     grandCescacs.style.display = "none";
     confirmLblPrevi.textContent = "";
     confirmLbl.textContent = "";
-    buttonTLPD.style.display = "block";
+    buttonPDTL.style.display = "block";
     buttonLoad.style.display = "block";
     buttonNew.style.display = "block";
     buttonShowMoves.style.display = "block";
