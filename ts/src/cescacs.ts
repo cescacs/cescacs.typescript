@@ -1978,7 +1978,7 @@ export class Game extends Board {
             sq = sq.replaceAll(' ', '').replace(/\n\n+/g, '\n').replace(/^[\s\n]+|[\s\n]+$/gm, '');
             const fixedNumbering: boolean = (sq[0] != '1' || sq[1] != '?');
             sq = sq.replace(/^1\?/, '1.').replace(/^1....,/, '1.\u2026');
-            const regExp = new RegExp(/^(\d+\..*\n)+\d+\..*$/);
+            const regExp = new RegExp(/^(\d+\..*\n)*\d+\..*$/);
             assertCondition(regExp.test(sq), "numbered lines");
             const lines = sq.split(/\r?\n/);
             const firstLine = this._moveNumber;
