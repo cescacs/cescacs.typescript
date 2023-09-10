@@ -1,31 +1,64 @@
 #!/bin/bash
 
+
 # needs:
 # sudo npm install -g uglify-js
 
+optimize=0
+BASEDIR="/srv/http/cescacs/cescacs.typescript/"
+MAKE_SRC=$BASEDIR"dist/src/"
+MAKE_DEST=$BASEDIR"dist/"
+FILES="cescacs cescacs.types cescacs.positionHelper cescacs.piece cescacs.moves ts.general"
+
+usage() {							# Function: Print a help message.
+	echo "Usage: $0 [ -o ] [ -h ]" 1>&2
+	echo "-o	optimize"  1>&2
+	echo "-h	help (print this message)" 1>&2
+	echo "needs"
+	echo "sudo npm install -g uglify-js"
+
+}
+exit_abnormal() {					# Function: Exit with error.
+  usage
+  exit 1
+}
+
+while getopts ":oh" options; do		# Loop: Get the next option;
+									# use silent error checking (full string starts with colon);
+ case "${options}" in				# 
+    o)
+		optimize=1
+		;;
+	h)
+		usage
+		exit 0
+		;;
+	*)								# If unknown (any other) option:
+		exit_abnormal				# Exit abnormally.
+      ;;
+  esac
+done
+
+cd $BASEDIR
 tsc
-if [ $? -eq 0 ] 
-then 
-#	uglifyjs dist/src/cescacs.js -c -m -o dist/cescacs.js
-#	uglifyjs dist/src/cescacs.types.js -c -m -o dist/cescacs.types.js
-#	uglifyjs dist/src/cescacs.positionHelper.js -c -m -o dist/cescacs.positionHelper.js
-#	uglifyjs dist/src/cescacs.piece.js -c -m -o dist/cescacs.piece.js
-#	uglifyjs dist/src/cescacs.moves.js -c -m -o dist/cescacs.moves.js
-#	uglifyjs dist/src/ts.general.js -c -m -o dist/ts.general.js
-
-	cp dist/src/cescacs.js dist/cescacs.js
-	cp dist/src/cescacs.types.js dist/cescacs.types.js
-	cp dist/src/cescacs.positionHelper.js dist/cescacs.positionHelper.js
-	cp dist/src/cescacs.piece.js dist/cescacs.piece.js
-	cp dist/src/cescacs.moves.js dist/cescacs.moves.js
-	cp dist/src/ts.general.js dist/ts.general.js
-
-	sed -i 's/\(from[ ]*"[^"]*\)";/\1.js";/g' dist/cescacs.js
-	sed -i 's/\(from[ ]*"[^"]*\)";/\1.js";/g' dist/cescacs.types.js
-	sed -i 's/\(from[ ]*"[^"]*\)";/\1.js";/g' dist/cescacs.positionHelper.js
-	sed -i 's/\(from[ ]*"[^"]*\)";/\1.js";/g' dist/cescacs.piece.js
-	sed -i 's/\(from[ ]*"[^"]*\)";/\1.js";/g' dist/cescacs.moves.js
-	sed -i 's/\(from[ ]*"[^"]*\)";/\1.js";/g' dist/ts.general.js
-
+if [ $? -ne 0 ] 
+then
+  exit $?
 fi
 
+if [ $optimize -eq 1 ]
+then
+	for FILE in $FILES
+	do
+		echo $MAKE_DEST$FILE".js"
+		uglifyjs $MAKE_SRC$FILE".js" -c -m -o $MAKE_DEST$FILE".js"
+		sed -i 's/\(from[ ]*"[^"]*\)";/\1.js";/g' $MAKE_DEST$FILE".js"
+	done
+else
+	for FILE in $FILES
+	do
+		echo $MAKE_DEST$FILE".js"
+		cp $MAKE_SRC$FILE".js" $MAKE_DEST$FILE".js"
+		sed -i 's/\(from[ ]*"[^"]*\)";/\1.js";/g' $MAKE_DEST$FILE".js"
+	done
+fi
