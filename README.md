@@ -1,6 +1,6 @@
 # CONTENTS
 
-1. cescacs.game.html is the web page to play the game. There you'd find
+## 1. cescacs.game.html is the web page to play the game. There you'd find
 + HTML structure
 + SVG board embedded within the HTML
 + SGV pieces (SVG symbol) embedded as symbols within the SVG
@@ -15,7 +15,7 @@
   * cescacs.css is shared with the web site with the c'escacs rules
     https://cescacs.github.io/cescacs.css
 
-2. its page specific javascript and css files
+## 2. its page specific javascript and css files
 - cescacs.game.js
 - cescacs.game.css
 
