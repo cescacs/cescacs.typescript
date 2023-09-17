@@ -9,7 +9,7 @@ mirror=0
 FILES="cescacs cescacs.types cescacs.positionHelper cescacs.piece cescacs.moves ts.general"
 
 usage() {							# Function: Print a help message.
-	echo "Usage: $0 [ -o ] [ -h ]" 1>&2
+	echo "Usage: $0 [ -o ] [-m] [ -h ]" 1>&2
 	echo "-o	optimize"  1>&2
 	echo "-m	use mirror directory" 1>&2
 	echo "-h	help (print this message)" 1>&2
@@ -22,7 +22,7 @@ exit_abnormal() {					# Function: Exit with error.
   exit 1
 }
 
-while getopts ":oh" options; do		# Loop: Get the next option;
+while getopts ":moh" options; do		# Loop: Get the next option;
 									# use silent error checking (full string starts with colon);
  case "${options}" in				# 
     o)
