@@ -12,6 +12,11 @@
     <link rel="stylesheet" type="text/css" href="./cescacs.game.css">
     <script type="module" src="./dist/cescacs.js"></script> 
     <script type="module" src="./cescacs.game.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", (event) => {
+            document.querySelector('body > div:last-of-type').css('width', '');
+        });
+    </script>
     <style>
         @media screen and (orientation: portrait) and (max-width: 1024px) {
             /* TODO 
@@ -860,6 +865,7 @@
             </div>
         </dialog>
     </div>
+    <div id="nulDiv" style="width:0;height:0;"></div>
     <!--
     <script>
         //const myWorker = undefined; // = new Worker("./dist/bundle-worker.js");
