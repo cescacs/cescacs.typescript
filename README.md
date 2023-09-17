@@ -51,7 +51,8 @@
 ## TODO list
 ### 1. The Check indication for *adjoining check* uses ^+ instead of +^
 ### 2. The Check indication for *check from afar* uses a single + instead of +∞
-### 3. It names *SingleCheck* the *check from afar*; It'd be better *RemoteCheck*, or *CheckAfar*.
+### 3. It names *SingleCheck* the *check from afar*; It'd be better *RemoteCheck*, or *CheckFromAfar*.
+### 3. It names *KnightOrCloseCheck* the *adjoining check*; rename it as *AdjoiningCheck*.
 ### 4. Warn errors when entering moves: specific cases of Labels, Coments and Variations; display error in the text box is not a convenient way to do it.
 ### 5. Button access from movile device. Case of moves, specific Undo move.
 ### 6. Problem on orgfree.com; freewha image (problem with the 100% width div, the last div before body, may be use a javascript hack to remove the width)
