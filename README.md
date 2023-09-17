@@ -48,17 +48,4 @@
 - `rotateTheDisplay.png` is a warning for movile unsupported display position. Running on a movile device has stil several problems.
 - `savedGames.txt` has several unusable cases. I've used that file as a case backup to program some tests; there are several game status lines saved there, and also some game moves.
 
-## TODO list
-### 1. The Check indication for *adjoining check* uses ^+ instead of +^
-### 2. The Check indication for *check from afar* uses a single + instead of +∞
-### 3. It names *SingleCheck* the *check from afar*; It'd be better *RemoteCheck*, or *CheckFromAfar*.
-### 3. It names *KnightOrCloseCheck* the *adjoining check*; rename it as *AdjoiningCheck*.
-### 4. Warn errors when entering moves: specific cases of Labels, Coments and Variations; display error in the text box is not a convenient way to do it (see TODO about applyStringMove).
-### 5. Button access from movile device. Case of moves, specific Undo move.
-### 6. Problem on orgfree.com; freewha image (problem with the 100% width div, the last div before body, may be use a javascript hack to remove the width)
-  - last div: document.querySelector('body > div:last-of-type').css('width', '');
-  - 
-### 7. Check applyStringMove and applyMoveSq with move valoration
-### 8. Firebase !!! It would be interesting to call from orgfree.com, but it needs the freewha image problem solved.
-### 9. Program a PDTL viewer
-### 10. Program a move viewer (from a PDTL position). Implement move valorations.
+## [TODO](./TODO.md)
