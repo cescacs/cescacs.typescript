@@ -1,2 +1,4 @@
-dist/
+dist/src/
+dist/test/
 ts/src/alpha-beta.ts
+ts/test/
