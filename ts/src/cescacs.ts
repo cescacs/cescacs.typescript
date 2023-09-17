@@ -2110,8 +2110,8 @@ export class Game extends Board {
         } else if (this.halfmoveClock >= 200 || super.insuficientMaterial()) {
             this._draw = true; endGame = "draw";
         } else if (this.checked) {
-            if (this.isKnightOrCloseCheck) check = "^+";
-            else if (this.isSingleCheck) check = "+";
+            if (this.isKnightOrCloseCheck) check = "+^";
+            else if (this.isSingleCheck) check = "+∞";
             else if (this.isDoubleCheck) check = "++"
             else throw new Error("never: exhaused check options");
         }

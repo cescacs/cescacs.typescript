@@ -51,22 +51,22 @@ export type KnightOrCloseCheck = Position;
 export type DoubleCheck = [Position, Position, Nullable<Orientation>];
 export interface SingleCheck { d: Direction, p: Position };
 export type EndGame = "mate" | "stalemate" | "resigned" | "draw";
-export type CheckNotation = "+" | "^+" | "++";
+export type CheckNotation = "+∞" | "+^" | "++";
 
 // Type predicates
 export namespace csTypes {
     export const isNumber = (x: any): x is Number => typeof x === "number" && !isNaN(x);
     export const isColumn = (x: any): x is Column => _column.includes(x);
-    export const isColumnIndex = (x: any): x is ColumnIndex => isNumber(x) && Number.isInteger(x) && x >= 0 && x <= 14;
-    export const isLine = (x: any): x is Line => isNumber(x) && Number.isInteger(x) && x >= 0 && x <= 28;
+    export const isColumnIndex = (x: any): x is ColumnIndex => isNumber(x) && Number.isInteger(x) && x.valueOf() >= 0 && x.valueOf() <= 14;
+    export const isLine = (x: any): x is Line => isNumber(x) && Number.isInteger(x) && x.valueOf() >= 0 && x.valueOf() <= 28;
     export const isPosition = (x: any): x is Position => Array.isArray(x) && x.length == 2 && isColumnIndex(x[0]) && isLine(x[1]);
     export const isCompactPosition = (x : any): x is CompactPosition => typeof x === "number" && isColumnIndex(x >> 5) && isLine(x & 0b000011111);
     export const isOrthogonalDirection = (x: any): x is OrthogonalDirection => _orthogonalDirection.includes(x);
     export const isDiagonalDirection = (x: any): x is DiagonalDirection => _diagonalDirection.includes(x);
     export const isKnightDirection = (x: any): x is KnightDirection => _knightDirection.includes(x);
     export const isCastlingColumn = (x: any): x is Column => _castlingColumn.includes(x);
-    export const isDirectionMoveRange = (x: any): x is DirectionMoveRange => isNumber(x) && Number.isInteger(x) && x >= 0 && x <= 5;
-    export const isDirectionFullMoveRange = (x: any): x is DirectionFullMoveRange => isNumber(x) && Number.isInteger(x) && x >= 0 && x <= 11;
+    export const isDirectionMoveRange = (x: any): x is DirectionMoveRange => isNumber(x) && Number.isInteger(x) && x.valueOf() >= 0 && x.valueOf() <= 5;
+    export const isDirectionFullMoveRange = (x: any): x is DirectionFullMoveRange => isNumber(x) && Number.isInteger(x) && x.valueOf() >= 0 && x.valueOf() <= 11;
     export const isOrthogonalOrientation = (x: any): x is OrthogonalOrientation =>
         Array.isArray(x) && _orthogonalOrientation.some(y => y[0] == x[0] && y[1] == x[1]);
     export const isDiagonalOrientation = (x: any): x is DiagonalOrientation =>
