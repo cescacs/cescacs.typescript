@@ -5,14 +5,13 @@
 # sudo npm install -g uglify-js
 
 optimize=0
-BASEDIR="/srv/http/cescacs/cescacs.typescript/"
-MAKE_SRC=$BASEDIR"dist/src/"
-MAKE_DEST=$BASEDIR"dist/"
+mirror=0
 FILES="cescacs cescacs.types cescacs.positionHelper cescacs.piece cescacs.moves ts.general"
 
 usage() {							# Function: Print a help message.
 	echo "Usage: $0 [ -o ] [ -h ]" 1>&2
 	echo "-o	optimize"  1>&2
+	echo "-m	use mirror directory" 1>&2
 	echo "-h	help (print this message)" 1>&2
 	echo "needs"
 	echo "sudo npm install -g uglify-js"
@@ -29,6 +28,9 @@ while getopts ":oh" options; do		# Loop: Get the next option;
     o)
 		optimize=1
 		;;
+    m)
+		mirror=1
+		;;
 	h)
 		usage
 		exit 0
@@ -38,6 +40,15 @@ while getopts ":oh" options; do		# Loop: Get the next option;
       ;;
   esac
 done
+
+if [ $mirror -eq 1 ] 
+then
+	BASEDIR="/srv/http/cescacs/cescacs.typescript/"
+else
+	BASEDIR="/srv/http/cescacs.typescript/"
+fi
+MAKE_SRC=$BASEDIR"dist/src/"
+MAKE_DEST=$BASEDIR"dist/"
 
 cd $BASEDIR
 tsc
