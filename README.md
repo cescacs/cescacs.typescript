@@ -36,7 +36,7 @@
 ### 5. `tsconfig.json` is the typescript transpiler configuration
 
 ### 6. `makejs.sh` is a shell script which transpiles the code
-* The result of the tsc transpiler is the javascript on dist directory
+* The result of the tsc transpiler is the javascript on the `dist` directory
 * It allows the -o (optimize) option, but then it needs ***uglify-js*** to be installed:
   `$ npm install -g uglify-js`
 * uglifyjs minimizes the distribution javascript files.
@@ -45,7 +45,7 @@
 
 ### 7. Other files.
 - `cescacs-pointy.svg` is not used
-- `rotateTheDisplay.png` is a warning for movile unsupported display position. Running on a movile device stil has several problems.
+- `rotateTheDisplay.png` is a warning for movile unsupported display position. Running on a movile device has stil several problems.
 - `savedGames.txt` has several unusable cases. I've used that file as a case backup to program some tests; there are several game status lines saved there, and also some game moves.
 
 ## TODO list
