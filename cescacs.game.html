@@ -5,7 +5,14 @@
     <meta charset="UTF-8">
     <link rel="canonical" href="https://cescacs.orgfree.com/cescacs.typescript/cescacs.game.html">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<!-- description -->
     <title>C'escacs game!</title>
+	<meta property="og:type" content="website">
+	<meta name="twitter:card" content="summary_large_image">
+    <meta property="og:title" content="C'escacs">
+    <meta property="og:locale" content="en-GB">
+    <meta name="description" property="og:description" content="Try out the game">
+    <!-- fonts, css i javascript -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Tangerine">
     <link rel="stylesheet" type="text/css" href="../w3.css">
     <link rel="stylesheet" type="text/css" href="../w3-colors-win8.css">
@@ -13,11 +20,13 @@
     <link rel="stylesheet" type="text/css" href="./cescacs.game.css">
     <script type="module" src="./dist/cescacs.js"></script> 
     <script type="module" src="./cescacs.game.js"></script>
+    <!-- script to solve web host FreeWha image problem -->
     <script>
         document.addEventListener("DOMContentLoaded", (event) => {
             document.querySelector('body > div:last-of-type').style.width = '';
         });
     </script>
+    <!-- private css -->
     <style>
         @media screen and (orientation: portrait) and (max-width: 1024px) {
             /* TODO 
