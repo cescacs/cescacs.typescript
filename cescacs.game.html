@@ -6,7 +6,7 @@
     <link rel="canonical" href="https://cescacs.orgfree.com/cescacs.typescript/cescacs.game.html">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<!-- description -->
-    <title>C'escacs game!</title>
+    <title>C&apos;escacs game!</title>
 	<meta property="og:type" content="website">
 	<meta name="twitter:card" content="summary_large_image">
     <meta property="og:title" content="C'escacs">
@@ -159,10 +159,35 @@
             }
         }
     </style>
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script>
+        // GOOGLE: Define dataLayer and the gtag function.
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        // Default ad_storage and analytics_storage to 'denied'
+        gtag('consent', 'default', {
+        'ad_storage': 'denied',
+        'analytics_storage': 'denied'
+        });
+        // Microsoft Clarity
+        (function(c,l,a,r,i,t,y){
+            c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+            t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+            y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+        })(window, document, "clarity", "script", "ixp5avtgzb");
+    </script>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-CHKYWCYH3N"></script>
+    <!-- end gtag (end cookie config inside cookies.js) -->
+    <script src="../cookies.js"></script>
 </head>
 
 <body>
     <h1 id="gameTitle" class="cescacs-title w3-text-green">C'escacs</h1>
+    <div id="cookies-eu-banner" class="w3-small hidden">
+        This site uses cookies from Google Analytics and Microsoft Clarity
+        to analyse its use:
+        <button class="w3-button w3-round-xxlarge w3-small">Accept</button>
+    </div>
     <div id="messagesContainer" class="board-messages w3-right">
         <div class="w3-bar">
             <label class="w3-text-purple"
