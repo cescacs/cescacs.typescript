@@ -23,7 +23,8 @@
     <!-- script to solve web host FreeWha image problem -->
     <script>
         document.addEventListener("DOMContentLoaded", (event) => {
-            document.querySelector('body > div:last-of-type').style.width = '';
+			const lastDiv = document.querySelector('body > div:last-of-type');
+			if(lastDiv) lastDiv.style.width = '';
         });
     </script>
     <!-- private css -->
